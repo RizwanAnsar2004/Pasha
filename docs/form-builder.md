@@ -21,7 +21,13 @@ FormConfig  (src/lib/form-config.ts types)
         └─ routeValues(config, data)   → { columns, answers } for persistence
         ▼
 DynamicForm.tsx  (wizard) → DynamicField.tsx (one field, recursive)
+        │
+        ▼ POST /api/submit
+submissions row (core columns + answers JSONB + vetting)
 ```
+
+`/apply` is `force-dynamic` — admin edits appear on the next page load without
+redeploy.
 
 ## Data model
 
@@ -68,13 +74,81 @@ DynamicForm.tsx  (wizard) → DynamicField.tsx (one field, recursive)
 sub-groups within a step (BASICS, LOCATION…) are **HEADING** fields, so value
 fields stay flat (top-level keys) and routing to columns/vetting is simple.
 
-## Value routing (preserving the dataset)
+**Special renderers** (not driven by nested `form_fields` rows):
+- `founders` GROUP → `FoundersRepeater` (hardcoded sub-fields; writes `founders` JSONB)
+- `location` CITY_COMPOSITE → `CityField` (writes `hq_city`, `hq_other`, etc.)
 
-`routeValues(config, data)` walks the config: a field with `column_map` writes to
-that `submissions` column (a repeatable GROUP writes its array, like `founders`);
-everything else goes into the `answers` JSONB. HEADING fields are skipped. The
-submit route (`src/app/api/submit/route.ts`) then builds the insert record the
-same way as before, so vetting + `databank` materialization are untouched.
+## Value routing & submission storage
+
+`routeValues(config, data)` walks the config and splits a validated payload:
+
+| Field config | Stored as |
+|--------------|-----------|
+| `column_map` set | That `submissions` column (e.g. `startup_name`, `founders`) |
+| `column_map` null | `submissions.answers[field_key]` |
+| HEADING (30) | Skipped — no value |
+| CITY_COMPOSITE (91) | `hq_city`, `hq_other`, `outside_pakistan`, `hq_country` columns |
+
+`POST /api/submit` (`src/app/api/submit/route.ts`):
+
+1. `getFormConfig()` — dynamic schema if seeded, else static `submissionSchema`
+2. `buildZodSchema(config).safeParse(body)` — validate
+3. `routeValues(config, data)` — `{ columns, answers }`
+4. `scoreVetting()` — reads **core columns only** (unchanged)
+5. `INSERT INTO submissions` — one row per application
+
+Example row shape (simplified):
+
+```
+startup_name     → "Acme Inc"          (column)
+website          → "https://acme.com"  (column)
+founders         → [{ name, email, … }] (JSONB column)
+answers          → { "extra_q": "Yes" } (JSONB — admin-added fields only)
+vetting_score    → 72                  (computed)
+status           → "pending"           (default)
+```
+
+Admin submission detail (`SubmissionsClient`) shows core columns plus any keys in
+`answers`. Approval → `databank` still materialises from core columns only.
+
+## Admin auth (form builder writes)
+
+Admin pages and admin APIs use **different** gates:
+
+| Action | Auth |
+|--------|------|
+| View `/admin/forms` (page) | `psec_admin` cookie from `/admin/login`, or dev layout bypass |
+| Load form data on page | `createServiceClient()` (service role — no user session) |
+| `PATCH/POST/DELETE /api/admin/forms` | **Supabase Auth session** + email in `admin_users` |
+
+Login flow (`POST /api/admin/auth`):
+
+1. Email must be in `admin_users` (`isAdminEmail()`)
+2. `signInWithPassword` → sets Supabase `sb-*` cookies on the response
+3. First login for an allowlisted email auto-creates the Supabase Auth user
+   (`provisionSupabaseAuthUser`)
+4. Also sets `psec_admin` cookie for the admin layout
+
+Logout (`POST /admin/logout`) clears both Supabase session and `psec_admin`.
+
+**Common 401 on PATCH:** browsing admin via dev bypass without signing in — pages
+render (service-role read) but API mutations fail. Fix: sign in at `/admin/login`.
+
+**Password policy:** Supabase requires ≥ 12 characters. Provision with:
+
+```bash
+pnpm tsx scripts/ensure-admin-auth.ts
+```
+
+(requires `ADMIN_EMAIL` in `admin_users` and `ADMIN_PASSWORD_HASH` in `.env.local`)
+
+Key auth files:
+
+- `src/app/api/admin/auth/route.ts` — login / logout API
+- `src/lib/supabase/route-handler.ts` — Supabase client + cookie forwarding for routes
+- `src/lib/admin-auth-provision.ts` — create/update Supabase Auth users
+- `src/lib/admin-allowlist.ts` — `admin_users` table lookup (30s cache)
+- `scripts/ensure-admin-auth.ts` — one-time Auth user + password setup
 
 ## Key files
 
@@ -87,8 +161,9 @@ same way as before, so vetting + `databank` materialization are untouched.
 - `src/app/apply/page.tsx` — loads config; falls back to static `ApplyForm`.
 - `src/app/api/submit/route.ts` — config-aware validate + persist.
 - `src/app/admin/(authed)/forms/*` + `src/app/api/admin/forms/route.ts` — builder.
-- `scripts/seed-form-config.ts` — seeds the current form into the tables.
+- `scripts/seed-form-config.ts` + `scripts/seed-form-config.sql` — seed static form.
 - `scripts/run-migration.ts` — applies a SQL migration via `SUPABASE_DB_URL`.
+- `scripts/ensure-admin-auth.ts` — provision Supabase Auth for `ADMIN_EMAIL`.
 
 ## How to extend
 
@@ -100,12 +175,28 @@ scalar, mirror the GROUP/CITY_COMPOSITE special-casing.
 **Reuse option lists:** add to `OPTION_LISTS` in `src/lib/options.ts` and
 reference by name via a field's `options_source`.
 
+**Add an admin-only field:** create in `/admin/forms` with `column_map` empty →
+values land in `submissions.answers`. They won't affect vetting or the public
+directory until explicitly wired.
+
 ## Apply + seed (DB ops)
 
-1. Add a Postgres URI to `.env.local` as `SUPABASE_DB_URL` (Supabase → Settings →
-   Database → Connection string → URI, with the DB password).
+**Option A — SQL editor (no DB URI needed):**
+
+1. Paste `supabase/migrations/20260615_form_builder.sql` → Run
+2. Paste `scripts/seed-form-config.sql` → Run
+3. Verify: `SELECT count(*) FROM form_sections` → 3; `form_fields` → 54
+
+**Option B — CLI:**
+
+1. Add `SUPABASE_DB_URL` to `.env.local` (Postgres URI from Supabase dashboard)
 2. `pnpm tsx scripts/run-migration.ts supabase/migrations/20260615_form_builder.sql`
 3. `pnpm tsx scripts/seed-form-config.ts --force`
 
-Fallback without a URI: paste the migration SQL in the Supabase SQL editor, then
-run only the seed (works via the service-role REST key).
+**Admin auth setup (after adding email to `admin_users`):**
+
+1. Set `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH` (≥ 12 chars) in `.env.local`
+2. `pnpm tsx scripts/ensure-admin-auth.ts`
+3. Sign in at `/admin/login`
+
+Re-running the seed **wipes** form config back to defaults (`DELETE` + re-insert).
