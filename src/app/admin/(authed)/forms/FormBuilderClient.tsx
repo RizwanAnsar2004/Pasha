@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { Plus, Trash2, Save, AlertTriangle, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useMemo, useCallback, createContext, useContext } from "react";
+import {
+  Plus,
+  Trash2,
+  Save,
+  AlertTriangle,
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { InputType, INPUT_TYPE_LABELS } from "@/lib/form-enums";
+
+// Available option-list names (code + admin-managed DB lists), provided by the
+// page and surfaced as a dropdown so admins can discover/pick them instead of
+// typing a magic string that silently yields an empty field on a typo.
+const OptionNamesContext = createContext<string[]>([]);
 
 export type SectionRow = {
   id: string;
@@ -42,6 +57,49 @@ const INPUT_TYPE_OPTIONS = Object.entries(INPUT_TYPE_LABELS).map(([v, label]) =>
   label,
 }));
 
+// Input types that need a list of choices.
+const CHOICE_TYPES = new Set<number>([
+  InputType.SELECT,
+  InputType.MULTISELECT,
+  InputType.RADIO_CARDS,
+]);
+
+// Serialize a field's stored `options` into the textarea format: one option per
+// line, `value | label` when they differ, otherwise just the value.
+function optionsToText(options: unknown): string {
+  if (!Array.isArray(options)) return "";
+  return options
+    .map((o) => {
+      if (typeof o === "string") return o;
+      if (o && typeof o === "object") {
+        const value = String((o as { value?: unknown }).value ?? "");
+        const label = (o as { label?: unknown }).label;
+        const labelStr = label == null ? value : String(label);
+        return labelStr === value ? value : `${value} | ${labelStr}`;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Parse the textarea back into a {value,label}[] array (or null when empty, so
+// the field falls back to options_source / no options).
+function textToOptions(text: string): { value: string; label: string }[] | null {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  return lines.map((line) => {
+    const idx = line.indexOf("|");
+    if (idx === -1) return { value: line, label: line };
+    const value = line.slice(0, idx).trim();
+    const label = line.slice(idx + 1).trim();
+    return { value, label: label || value };
+  });
+}
+
 async function api(method: string, body: unknown) {
   const res = await fetch("/api/admin/forms", {
     method,
@@ -59,14 +117,19 @@ const inputCls =
 export function FormBuilderClient({
   initialSections,
   initialFields,
+  optionListNames = [],
 }: {
   initialSections: SectionRow[];
   initialFields: FieldRow[];
+  optionListNames?: string[];
 }) {
   const [sections, setSections] = useState(initialSections);
   const [fields, setFields] = useState(initialFields);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // The step just created via "Add step" — it mounts expanded; all others
+  // start collapsed so the builder is compact on load.
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/admin/forms");
@@ -112,11 +175,12 @@ export function FormBuilderClient({
     [sections]
   );
 
-  // Each section IS a step. "Add step" appends a new section at step = max+1.
+  // Each section IS a step. "Add step" appends a new section at step = max+1,
+  // then scrolls the freshly-created card into view.
   const addStep = () =>
     run(async () => {
       const nextStep = (steps[steps.length - 1] ?? 0) + 1;
-      await api("POST", {
+      const { id } = await api("POST", {
         type: "section",
         data: {
           key: `section_${Date.now()}`,
@@ -126,7 +190,16 @@ export function FormBuilderClient({
           is_active: true,
         },
       });
+      if (id) setJustAddedId(id);
       await refresh();
+      if (id && typeof window !== "undefined") {
+        // Wait for the new card to render, then bring it into view.
+        requestAnimationFrame(() =>
+          document
+            .getElementById(`step-${id}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        );
+      }
     });
 
   // Reorder a step by swapping its `step` with the neighbour in `dir`.
@@ -189,6 +262,7 @@ export function FormBuilderClient({
     });
 
   return (
+    <OptionNamesContext.Provider value={optionListNames}>
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <button
@@ -212,6 +286,7 @@ export function FormBuilderClient({
             stepNumber={idx + 1}
             isFirst={idx === 0}
             isLast={idx === arr.length - 1}
+            defaultExpanded={section.id === justAddedId}
             fields={fields}
             busy={busy}
             onSaveSection={saveSection}
@@ -223,6 +298,7 @@ export function FormBuilderClient({
           />
         ))}
     </div>
+    </OptionNamesContext.Provider>
   );
 }
 
@@ -233,6 +309,7 @@ function SectionCard({
   stepNumber,
   isFirst,
   isLast,
+  defaultExpanded,
   fields,
   busy,
   onSaveSection,
@@ -246,6 +323,7 @@ function SectionCard({
   stepNumber: number;
   isFirst: boolean;
   isLast: boolean;
+  defaultExpanded: boolean;
   fields: FieldRow[];
   busy: boolean;
   onSaveSection: (id: string, u: Partial<SectionRow>) => void;
@@ -257,16 +335,36 @@ function SectionCard({
 }) {
   const [title, setTitle] = useState(section.title);
   const [subtitle, setSubtitle] = useState(section.subtitle ?? "");
+  const [collapsed, setCollapsed] = useState(!defaultExpanded);
   const topFields = fields
     .filter((f) => f.section_id === section.id && f.parent_field_id === null)
     .sort((a, b) => a.sort_order - b.sort_order);
+  const fieldCount = fields.filter((f) => f.section_id === section.id).length;
 
   return (
-    <div className="rounded-xl border border-pasha-line bg-white p-5 space-y-4">
+    <div id={`step-${section.id}`} className="rounded-xl border border-pasha-line bg-white p-5 space-y-4 scroll-mt-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-mono text-xs uppercase tracking-[2px] text-pasha-red font-semibold">
-          Step {stepNumber} — {section.title}
-        </h2>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-2 text-left group"
+          title={collapsed ? "Expand step" : "Collapse step"}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4 text-pasha-muted group-hover:text-pasha-red" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-pasha-muted group-hover:text-pasha-red" />
+          )}
+          <h2 className="font-mono text-xs uppercase tracking-[2px] text-pasha-red font-semibold">
+            Step {stepNumber} — {section.title}
+          </h2>
+          {collapsed && (
+            <span className="text-[11px] text-pasha-muted normal-case tracking-normal font-normal">
+              ({fieldCount} field{fieldCount === 1 ? "" : "s"}
+              {section.is_active ? "" : " · hidden"})
+            </span>
+          )}
+        </button>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -288,6 +386,9 @@ function SectionCard({
           </button>
         </div>
       </div>
+
+      {collapsed ? null : (
+        <>
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-xs text-pasha-muted">
           Step title
@@ -366,6 +467,8 @@ function SectionCard({
           <Plus className="w-3.5 h-3.5" /> Add subsection
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 }
@@ -391,12 +494,21 @@ function FieldNode({
     placeholder: field.placeholder ?? "",
     hint: field.hint ?? "",
     options_source: field.options_source ?? "",
+    options: optionsToText(field.options),
     minLength: (field.validation?.minLength as number | undefined) ?? "",
     maxLength: (field.validation?.maxLength as number | undefined) ?? "",
     pattern: (field.validation?.pattern as string | undefined) ?? "",
   });
   const isGroup = field.input_type === InputType.GROUP;
   const isHeadingField = field.input_type === InputType.HEADING;
+  const isChoice = CHOICE_TYPES.has(field.input_type);
+  const optionListNames = useContext(OptionNamesContext);
+  // Show the saved source even if it's not in the available list (e.g. a list
+  // that was later deleted) so the admin can see/fix it.
+  const listNames =
+    field.options_source && !optionListNames.includes(field.options_source)
+      ? [...optionListNames, field.options_source]
+      : optionListNames;
   const children = fields
     .filter((f) => f.parent_field_id === field.id)
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -461,6 +573,7 @@ function FieldNode({
       placeholder: draft.placeholder || null,
       hint: draft.hint || null,
       options_source: draft.options_source || null,
+      options: isChoice ? textToOptions(draft.options) : field.options ?? null,
       validation: {
         ...(field.validation ?? {}),
         minLength: draft.minLength === "" ? undefined : Number(draft.minLength),
@@ -539,15 +652,6 @@ function FieldNode({
           />
         </label>
         <label className="text-[11px] text-pasha-muted">
-          Options list
-          <input
-            className={inputCls + " min-w-[120px]"}
-            placeholder="e.g. SECTORS"
-            value={draft.options_source}
-            onChange={(e) => setDraft({ ...draft, options_source: e.target.value })}
-          />
-        </label>
-        <label className="text-[11px] text-pasha-muted">
           Min len
           <input
             className={inputCls + " w-20"}
@@ -572,6 +676,58 @@ function FieldNode({
           />
         </label>
       </div>
+
+      {isChoice && (
+        <div className="rounded-md border border-pasha-line/70 bg-white p-2.5 space-y-2.5">
+          <p className="text-[11px] text-pasha-muted">
+            This field needs a list of choices. Pick a <strong>built-in list</strong>{" "}
+            or type your <strong>own options</strong> below.
+          </p>
+
+          <label className="text-[11px] text-pasha-muted block">
+            Built-in list
+            <select
+              className={inputCls + " mt-1"}
+              value={draft.options_source}
+              onChange={(e) => setDraft({ ...draft, options_source: e.target.value })}
+            >
+              <option value="">— Custom (use the box below) —</option>
+              {listNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-[11px] text-pasha-muted block">
+            Custom options — one per line. Use{" "}
+            <span className="font-mono">value | label</span> to store a code but show
+            friendlier text (otherwise the line is used as both).
+            <textarea
+              className={inputCls + " mt-1 font-mono min-h-[96px]"}
+              placeholder={"Karachi\nLahore\nb2b | Business to Business (B2B)"}
+              value={draft.options}
+              onChange={(e) => setDraft({ ...draft, options: e.target.value })}
+            />
+          </label>
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-pasha-muted">
+              If both are set, your custom options win. Inline options aren&apos;t
+              saved until you click Save.
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={save}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-1.5 text-xs hover:border-pasha-red hover:text-pasha-red shrink-0"
+            >
+              <Save className="w-3.5 h-3.5" /> Save options
+            </button>
+          </div>
+        </div>
+      )}
 
       {field.column_map && (
         <p className="flex items-center gap-1.5 text-[11px] text-amber-600">

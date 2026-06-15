@@ -69,11 +69,17 @@ export const CITY_COMPOSITE_KEYS = [
 // ---------------------------------------------------------------------------
 
 export function resolveOptions(
-  field: FormFieldConfig
+  field: FormFieldConfig,
+  registry?: Record<string, { value: string; label: string }[]>
 ): { value: string; label: string }[] {
+  // Per-field inline options always win.
   if (field.options && field.options.length > 0) return normalizeOptions(field.options);
-  if (field.options_source && OPTION_LISTS[field.options_source]) {
-    return normalizeOptions(OPTION_LISTS[field.options_source]);
+  const src = field.options_source;
+  if (src) {
+    // A resolved registry (code + admin-managed DB lists) takes priority; fall
+    // back to the code-only lists when no registry was supplied (e.g. SSR-less).
+    if (registry && registry[src]) return registry[src];
+    if (OPTION_LISTS[src]) return normalizeOptions(OPTION_LISTS[src]);
   }
   return [];
 }

@@ -11,6 +11,7 @@ import { CityField } from "@/components/form/controls/CityField";
 import { FoundersRepeater } from "@/components/form/controls/FoundersRepeater";
 import { InputType, htmlInputType } from "@/lib/form-enums";
 import { resolveOptions, type FormFieldConfig } from "@/lib/form-config";
+import { useOptionRegistry } from "@/components/form/OptionListsContext";
 
 // Read a nested error message off RHF's errors object by dotted path.
 function errorAt(errors: unknown, path: string): string | undefined {
@@ -39,6 +40,7 @@ export function DynamicField({
   namePrefix?: string;
 }) {
   const form = useFormContext();
+  const optionRegistry = useOptionRegistry();
   const path = namePrefix ? `${namePrefix}.${field.field_key}` : field.field_key;
 
   const condName = field.conditional
@@ -100,7 +102,7 @@ export function DynamicField({
           <Select
             {...form.register(path)}
             placeholder={field.placeholder ?? "Select…"}
-            options={resolveOptions(field)}
+            options={resolveOptions(field, optionRegistry)}
           />
         </Field>
       );
@@ -111,7 +113,7 @@ export function DynamicField({
           <CheckboxGroup
             value={(value as string[]) ?? []}
             onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
-            options={resolveOptions(field).map((o) => o.value)}
+            options={resolveOptions(field, optionRegistry).map((o) => o.value)}
             aria-label={label}
           />
         </Field>
@@ -123,7 +125,7 @@ export function DynamicField({
           <RadioCardGroup
             value={value as string | undefined}
             onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
-            options={resolveOptions(field)}
+            options={resolveOptions(field, optionRegistry)}
             aria-label={label}
           />
         </Field>

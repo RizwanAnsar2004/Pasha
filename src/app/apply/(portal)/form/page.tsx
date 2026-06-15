@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { ApplyForm } from "@/components/form/ApplyForm";
 import { DynamicForm } from "@/components/form/DynamicForm";
 import { getFormConfig } from "@/lib/form-config.server";
+import { getOptionRegistry } from "@/lib/option-lists.server";
 import { getApplicantContext, getApplicantDraft } from "@/lib/applicant-auth";
 
 export const metadata: Metadata = {
@@ -13,11 +14,19 @@ export const metadata: Metadata = {
 };
 
 export default async function ApplicantFormPage() {
-  // Layout already guaranteed an applicant session.
+  // The layout gates this section, but a layout redirect doesn't stop the page
+  // from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
-  const user = ctx.user!;
+  if (ctx.status !== "applicant") {
+    redirect(ctx.status === "admin" ? "/apply/login?error=admin" : "/apply/login?redirect=/apply");
+  }
+  const user = ctx.user;
 
-  const [config, draft] = await Promise.all([getFormConfig(), getApplicantDraft(user.id)]);
+  const [config, draft, optionLists] = await Promise.all([
+    getFormConfig(),
+    getApplicantDraft(user.id),
+    getOptionRegistry(),
+  ]);
 
   // Already submitted → there's nothing to edit; send them to the overview.
   if (draft.submitted) redirect("/apply");
@@ -46,6 +55,7 @@ export default async function ApplicantFormPage() {
           initialValues={draft.data}
           initialStep={draft.current_step}
           serverPersist
+          optionLists={optionLists}
         />
       ) : (
         <ApplyForm />

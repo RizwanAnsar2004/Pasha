@@ -23,6 +23,35 @@ no public SiteHeader) gated by `getApplicantContext()`.
   classifies anon/admin/applicant) and `getApplicantDraft(userId)` (cached).
 - Old flat `src/app/apply/page.tsx` and `ApplyAccountBar.tsx` removed.
 
+### Admin-managed option lists (2026-06-15)
+Admins can now manage reusable choice lists from the portal (previously only in
+code). New admin tab **Option lists** (`/admin/option-lists`).
+
+- **Migration (PENDING):** `supabase/migrations/20260617_option_lists.sql` —
+  `option_lists` table (name unique, label, items jsonb). RLS deny-all.
+- **Model:** a DB list **overrides** a code list (`src/lib/options.ts`) with the
+  same `name`. Three sources surfaced: `code` (built-in), `db` (custom),
+  `override` (DB row shadowing a code list; can revert by deleting it).
+- **Server:** `src/lib/option-lists.server.ts` — `getOptionRegistry()` (merged
+  code+DB map for the renderer) and `getOptionListsForAdmin()` (manager/builder
+  metadata). Both cached; degrade to code-only pre-migration.
+- **Renderer wiring:** `resolveOptions(field, registry?)` takes a registry;
+  `OptionListsContext` (provider in `DynamicForm`, consumed in `DynamicField`)
+  carries it. Applicant form page passes `getOptionRegistry()` as `optionLists`.
+- **Admin UI:** `/api/admin/option-lists` (GET/POST/PATCH/DELETE),
+  `option-lists/page.tsx` + `OptionListsClient.tsx`. Builder "Built-in list"
+  dropdown now lists code+DB names (passed from `forms/page.tsx` via
+  `optionListNames`, threaded through `OptionNamesContext`).
+
+### Form builder: inline options editor (2026-06-15)
+**Gap:** choice fields (SELECT/MULTISELECT/RADIO_CARDS) could only get choices
+via `options_source` (a name referencing `OPTION_LISTS` in `options.ts`) — there
+was no UI to type custom options, so such fields rendered empty. The backend
+already supported inline `options` (API `FIELD_COLS`, `resolveOptions()`).
+**Fix:** `FormBuilderClient.tsx` now shows an **Options** textarea for choice
+types (one per line, `value | label` supported) writing to `form_fields.options`.
+Inline options win over `options_source`; blank falls back to the named list.
+
 ### Autosave loop fix (2026-06-15)
 **Bug:** `/api/applicant/draft` was being PUT every ~1s even with no field
 changes. Cause: `form.watch()` returns a new object each render and the

@@ -17,6 +17,9 @@ Admins can define, from `/admin/forms`:
 - **Validations** per field (min/max, length, pattern, required, safe URL).
 - **Repeatable subsections** (groups) — e.g. a "Members" group with min/max
   instances, each with its own fields (generalizes the founders repeater).
+- **Reusable option lists** — choice fields get options inline (per field) or
+  from a named list. Named lists are managed by admins at `/admin/option-lists`
+  (DB), overriding the code defaults in `src/lib/options.ts` without a deploy.
 
 Changes saved in the form builder go live on `/apply` on the next page load
 (`force-dynamic` + `getFormConfig()`).

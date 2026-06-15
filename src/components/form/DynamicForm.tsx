@@ -17,6 +17,7 @@ import {
   type FormConfig,
 } from "@/lib/form-config";
 import { DynamicField } from "./DynamicField";
+import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -28,6 +29,7 @@ export function DynamicForm({
   initialValues,
   initialStep = 0,
   serverPersist = false,
+  optionLists,
 }: {
   config: FormConfig;
   /** Server-saved draft values to resume from (applicant flow). */
@@ -36,6 +38,8 @@ export function DynamicForm({
   initialStep?: number;
   /** Persist progress to the server draft API instead of localStorage. */
   serverPersist?: boolean;
+  /** Resolved option-list registry (code + admin-managed DB lists). */
+  optionLists?: OptionRegistry;
 }) {
   const router = useRouter();
 
@@ -225,6 +229,7 @@ export function DynamicForm({
 
   return (
     <FormProvider {...form}>
+      <OptionListsProvider value={optionLists ?? {}}>
       <AnimatePresence>
         {draftRestored && (
           <motion.div
@@ -398,6 +403,7 @@ export function DynamicForm({
           )}
         </div>
       </div>
+      </OptionListsProvider>
     </FormProvider>
   );
 }

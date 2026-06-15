@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircle2, ArrowRight, FileText, Clock, Sparkles } from "lucide-react";
 import { getApplicantContext, getApplicantDraft } from "@/lib/applicant-auth";
 import { getFormConfig } from "@/lib/form-config.server";
@@ -11,9 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ApplicantOverviewPage() {
-  // Layout already guaranteed an applicant session.
+  // The layout gates this section, but a layout redirect doesn't stop the page
+  // from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
-  const user = ctx.user!;
+  if (ctx.status !== "applicant") {
+    redirect(ctx.status === "admin" ? "/apply/login?error=admin" : "/apply/login?redirect=/apply");
+  }
+  const user = ctx.user;
   const [draft, config] = await Promise.all([getApplicantDraft(user.id), getFormConfig()]);
   const totalSteps = config ? stepsOf(config).length : 0;
 

@@ -224,8 +224,34 @@ to a working (non-persistent) form if the drafts table is absent.
 (form-config.ts) and add a render case in `DynamicField.tsx`. If it isn't a plain
 scalar, mirror the GROUP/CITY_COMPOSITE special-casing.
 
-**Reuse option lists:** add to `OPTION_LISTS` in `src/lib/options.ts` and
-reference by name via a field's `options_source`.
+**Give a choice field its options (SELECT / MULTISELECT / RADIO_CARDS):** two
+ways, both resolved by `resolveOptions(field, registry?)` (inline wins, then the
+named list, then empty):
+- **Inline** — type one option per line in the field's **Options** box
+  (`value | label`). Saved to `form_fields.options` JSONB as `[{value,label}]`.
+- **Named list** — pick a list in the **Built-in list** dropdown
+  (`options_source`). The dropdown lists code lists **and** admin-managed DB
+  lists (names passed from `forms/page.tsx`).
+
+### Reusable option lists (code + admin-managed)
+
+Named lists come from two places, merged at render time by
+`getOptionRegistry()` (`src/lib/option-lists.server.ts`):
+- **Code** — `OPTION_LISTS` in `src/lib/options.ts` (developer-maintained).
+- **DB** — the `option_lists` table, managed by admins at **`/admin/option-lists`**.
+
+A DB row whose `name` matches a code list **overrides** it (shown as
+"Built-in · overridden"; deleting the row reverts to the code default). New DB
+lists show as "Custom". Migration: `supabase/migrations/20260617_option_lists.sql`.
+
+Renderer flow: the form page calls `getOptionRegistry()` and passes it to
+`DynamicForm` as `optionLists`; `OptionListsProvider` puts it in context;
+`DynamicField` reads it via `useOptionRegistry()` and calls
+`resolveOptions(field, registry)`. With no provider, `resolveOptions` falls back
+to the code-only lists, so the form still works.
+
+A choice field with neither inline options nor a valid list renders empty — the
+builder shows both inputs together so it's clear one is required.
 
 **Add an admin-only field:** create in `/admin/forms` with `column_map` empty →
 values land in `submissions.answers`. They won't affect vetting or the public

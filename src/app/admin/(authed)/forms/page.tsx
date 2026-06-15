@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { getOptionListsForAdmin } from "@/lib/option-lists.server";
 import { FormBuilderClient, type SectionRow, type FieldRow } from "./FormBuilderClient";
 
 // Admin form builder — define the public apply form's sections, fields, input
@@ -8,10 +9,12 @@ export const dynamic = "force-dynamic";
 
 export default async function FormsPage() {
   const supabase = createServiceClient();
-  const [{ data: sections }, { data: fields }] = await Promise.all([
+  const [{ data: sections }, { data: fields }, optionLists] = await Promise.all([
     supabase.from("form_sections").select("*").order("step").order("sort_order"),
     supabase.from("form_fields").select("*").order("sort_order"),
+    getOptionListsForAdmin(),
   ]);
+  const optionListNames = optionLists.map((l) => l.name);
 
   return (
     <div className="py-6">
@@ -25,6 +28,7 @@ export default async function FormsPage() {
       <FormBuilderClient
         initialSections={(sections ?? []) as SectionRow[]}
         initialFields={(fields ?? []) as FieldRow[]}
+        optionListNames={optionListNames}
       />
     </div>
   );
