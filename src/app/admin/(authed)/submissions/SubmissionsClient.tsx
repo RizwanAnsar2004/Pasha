@@ -496,6 +496,28 @@ function SubmissionDrawer({
                 {row.facebook_optin ? <span>✓ Facebook opt-in</span> : null}
               </div>
             </Section>
+
+            {/* Admin-defined fields (form builder) land in the answers JSONB. */}
+            {row.answers &&
+            typeof row.answers === "object" &&
+            Object.keys(row.answers as Record<string, unknown>).length > 0 ? (
+              <Section title="Additional fields">
+                <dl className="space-y-2">
+                  {Object.entries(row.answers as Record<string, unknown>).map(([key, val]) => (
+                    <div key={key} className="flex flex-col">
+                      <dt className="text-[11px] uppercase tracking-wide text-pasha-muted">{key}</dt>
+                      <dd className="text-sm text-pasha-ink break-words">
+                        {Array.isArray(val)
+                          ? val.join(", ")
+                          : typeof val === "object" && val !== null
+                          ? JSON.stringify(val)
+                          : String(val ?? "—")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </Section>
+            ) : null}
           </div>
         )}
         <div className="px-6 py-4 border-t border-pasha-line bg-pasha-stone/30 flex items-center gap-2">

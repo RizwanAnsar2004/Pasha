@@ -91,6 +91,8 @@ export function validateAdminCredentials(
   return null;
 }
 
+const cookieSecure = process.env.NODE_ENV === "production";
+
 /** Returns cookie params to be set via NextResponse.cookies.set() in a route handler. */
 export function makeAdminSessionCookie(email: string): ResponseCookie {
   const now = Math.floor(Date.now() / 1000);
@@ -99,7 +101,7 @@ export function makeAdminSessionCookie(email: string): ResponseCookie {
     name: ADMIN_COOKIE,
     value: sign(session),
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
@@ -112,7 +114,7 @@ export function clearAdminSessionCookie(): ResponseCookie {
     name: ADMIN_COOKIE,
     value: "",
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure,
     sameSite: "lax",
     path: "/",
     maxAge: 0,

@@ -55,7 +55,8 @@ function LoginInner() {
               Committee sign-in
             </h1>
             <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
-              Restricted to authorised committee members.
+              Restricted to authorised committee members. Your email must be in the
+              committee allowlist.
             </p>
 
             <form onSubmit={submit} className="mt-6 space-y-4">

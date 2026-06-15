@@ -1,0 +1,397 @@
+// Isomorphic form-config layer: the TypeScript shape of the admin-defined form,
+// plus a runtime Zod schema builder and the helpers the renderer + submit
+// pipeline share. No server-only imports here so it can be bundled to the
+// client (DynamicForm builds its resolver from buildZodSchema). The DB loader
+// lives in form-config.server.ts.
+
+import { z } from "zod";
+import {
+  optionalString,
+  optionalSafeUrl,
+  requiredSafeUrl,
+  optionalBool,
+  foundersArray,
+  applyCityCountryRefine,
+  SAFE_URL_RE,
+} from "./schema";
+import { InputType, type ValidationSpec } from "./form-enums";
+import { OPTION_LISTS, normalizeOptions } from "./options";
+
+// ---------------------------------------------------------------------------
+// Config types (mirror form_sections / form_fields rows; fields are recursive)
+// ---------------------------------------------------------------------------
+
+export interface FormFieldConfig {
+  id: string;
+  field_key: string;
+  label?: string | null;
+  hint?: string | null;
+  placeholder?: string | null;
+  input_type: number;
+  required: boolean;
+  validation: ValidationSpec;
+  options?: { value: string; label: string }[] | string[] | null;
+  options_source?: string | null;
+  repeatable?: boolean;
+  min_items?: number | null;
+  max_items?: number | null;
+  item_label?: string | null;
+  column_map?: string | null;
+  visible: boolean;
+  sort_order: number;
+  conditional?: { field_key: string; equals: unknown } | null;
+  children?: FormFieldConfig[]; // populated for GROUP nodes
+}
+
+export interface FormSectionConfig {
+  id: string;
+  key: string;
+  title: string;
+  subtitle?: string | null;
+  step: number;
+  sort_order: number;
+  is_active: boolean;
+  fields: FormFieldConfig[]; // top-level fields (parent_field_id IS NULL)
+}
+
+export type FormConfig = FormSectionConfig[];
+
+// The keys a CITY_COMPOSITE field expands into in the form state.
+export const CITY_COMPOSITE_KEYS = [
+  "hq_city",
+  "hq_other",
+  "outside_pakistan",
+  "hq_country",
+] as const;
+
+// ---------------------------------------------------------------------------
+// Option resolution
+// ---------------------------------------------------------------------------
+
+export function resolveOptions(
+  field: FormFieldConfig
+): { value: string; label: string }[] {
+  if (field.options && field.options.length > 0) return normalizeOptions(field.options);
+  if (field.options_source && OPTION_LISTS[field.options_source]) {
+    return normalizeOptions(OPTION_LISTS[field.options_source]);
+  }
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// Runtime Zod builder
+// ---------------------------------------------------------------------------
+
+const emptyToUndef = (v: unknown) =>
+  v === "" || v === null || v === undefined ? undefined : String(v).trim();
+
+const emptyToEmpty = (v: unknown) =>
+  v === "" || v === null || v === undefined ? "" : String(v).trim();
+
+// Build a string validator honoring the validation spec. `required` controls
+// whether an empty min(1)/"Required" rule is applied.
+function buildStringBase(
+  spec: ValidationSpec,
+  opts: { email?: boolean; safeUrl?: boolean },
+  required: boolean
+): z.ZodTypeAny {
+  let s = z.string();
+  const minLen = required ? spec.minLength ?? 1 : spec.minLength;
+  if (minLen) {
+    s = s.min(minLen, required && !spec.minLength ? "Required" : `At least ${minLen} characters`);
+  }
+  if (spec.maxLength) s = s.max(spec.maxLength, `At most ${spec.maxLength} characters`);
+  if (opts.email) s = s.email("Valid email required");
+
+  let out: z.ZodTypeAny = s;
+  if (opts.safeUrl) {
+    out = out.refine((u: unknown) => typeof u === "string" && SAFE_URL_RE.test(u), {
+      message: "Must be a valid http or https URL",
+    });
+  }
+  if (spec.pattern) {
+    const re = new RegExp(spec.pattern);
+    out = out.refine((v: unknown) => typeof v === "string" && re.test(v), {
+      message: "Invalid format",
+    });
+  }
+  return out;
+}
+
+function makeOptionalString(
+  spec: ValidationSpec,
+  opts: { email?: boolean; safeUrl?: boolean } = {}
+): z.ZodTypeAny {
+  return z.preprocess(emptyToUndef, buildStringBase(spec, opts, false).optional());
+}
+
+function makeRequiredString(
+  spec: ValidationSpec,
+  opts: { email?: boolean; safeUrl?: boolean } = {}
+): z.ZodTypeAny {
+  return z.preprocess(emptyToEmpty, buildStringBase(spec, opts, true));
+}
+
+function makeNumber(spec: ValidationSpec, required: boolean): z.ZodTypeAny {
+  const isInt = spec.integer !== false;
+  return z.preprocess(
+    (v) => {
+      if (v === "" || v === null || v === undefined) return undefined;
+      const n = typeof v === "string" ? Number(v) : v;
+      if (typeof n !== "number" || !Number.isFinite(n)) return undefined;
+      return isInt ? Math.floor(n) : n;
+    },
+    (() => {
+      let num = z.number();
+      if (isInt) num = num.int();
+      num = num.min(spec.min ?? 0, spec.min != null ? `Min ${spec.min}` : undefined);
+      if (spec.max != null) num = num.max(spec.max, `Max ${spec.max}`);
+      return required ? num : num.optional();
+    })()
+  );
+}
+
+function makeBool(required: boolean): z.ZodTypeAny {
+  if (!required) return optionalBool;
+  return optionalBool.refine((v) => v !== undefined, { message: "Required" });
+}
+
+const filterStrings = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x) => x !== null && x !== undefined && x !== "") : [];
+
+function makeArray(required: boolean): z.ZodTypeAny {
+  if (!required) return z.preprocess(filterStrings, z.array(z.string()).default([]));
+  return z.preprocess(filterStrings, z.array(z.string()).min(1, "Pick at least one option"));
+}
+
+// Build the Zod type for a single scalar field.
+function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
+  const spec = field.validation ?? {};
+  const req = field.required && !field.conditional; // conditional-required enforced in superRefine
+  switch (field.input_type) {
+    case InputType.NUMBER:
+      return makeNumber(spec, req);
+    case InputType.YES_NO:
+      return makeBool(req);
+    case InputType.MULTISELECT:
+      return makeArray(req);
+    case InputType.EMAIL:
+      return req
+        ? makeRequiredString(spec, { email: true })
+        : makeOptionalString(spec, { email: true });
+    case InputType.URL:
+      return req ? requiredSafeUrl : optionalSafeUrl;
+    default:
+      // TEXT, TEXTAREA, SELECT, RADIO_CARDS, PHONE, DATE, FILE_UPLOAD
+      return req ? makeRequiredString(spec) : makeOptionalString(spec);
+  }
+}
+
+// Build a z.object shape for a GROUP's children.
+function groupShape(children: FormFieldConfig[]): Record<string, z.ZodTypeAny> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const child of children) {
+    if (child.input_type === InputType.GROUP) {
+      shape[child.field_key] = groupZod(child);
+    } else {
+      shape[child.field_key] = scalarZod(child);
+    }
+  }
+  return shape;
+}
+
+function groupZod(field: FormFieldConfig): z.ZodTypeAny {
+  const item = z.object(groupShape(field.children ?? []));
+  if (field.repeatable) {
+    let arr = z.array(item);
+    if (field.min_items != null) {
+      arr = arr.min(field.min_items, `Add at least ${field.min_items}`);
+    }
+    if (field.max_items != null) {
+      arr = arr.max(field.max_items, `At most ${field.max_items} allowed`);
+    }
+    return field.required ? arr : arr.default([]);
+  }
+  return field.required ? item : item.optional();
+}
+
+function isEmptyValue(v: unknown): boolean {
+  if (v === undefined || v === null || v === "") return true;
+  if (Array.isArray(v)) return v.length === 0;
+  return false;
+}
+
+/**
+ * Build a Zod schema from the form config. Top-level fields become object keys;
+ * GROUPs become nested objects (or arrays when repeatable). The special
+ * CITY_COMPOSITE field expands into its four keys, and a founders group reuses
+ * the canonical founders schema. Cross-field rules (city/country, conditional
+ * required) are added via superRefine.
+ */
+export function buildZodSchema(config: FormConfig): z.ZodTypeAny {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  let hasCityComposite = false;
+  const conditionalRequired: FormFieldConfig[] = [];
+
+  for (const section of config) {
+    for (const field of section.fields) {
+      if (field.input_type === InputType.HEADING) continue; // visual only
+      if (field.input_type === InputType.CITY_COMPOSITE) {
+        hasCityComposite = true;
+        shape.hq_city = optionalString;
+        shape.hq_other = optionalString;
+        shape.hq_country = optionalString;
+        shape.outside_pakistan = z.boolean().default(false);
+        continue;
+      }
+      if (field.input_type === InputType.GROUP && field.field_key === "founders") {
+        shape.founders = foundersArray;
+        continue;
+      }
+      if (field.input_type === InputType.GROUP) {
+        shape[field.field_key] = groupZod(field);
+      } else {
+        shape[field.field_key] = scalarZod(field);
+      }
+      if (field.required && field.conditional) conditionalRequired.push(field);
+    }
+  }
+
+  const obj = z.object(shape);
+
+  return obj.superRefine((data: Record<string, unknown>, ctx) => {
+    if (hasCityComposite) {
+      applyCityCountryRefine(data as never, ctx);
+    }
+    // A required field gated by a conditional is only enforced when its
+    // condition is met (it's hidden otherwise, so we can't block on it blindly).
+    for (const field of conditionalRequired) {
+      const cond = field.conditional!;
+      if (data[cond.field_key] === cond.equals && isEmptyValue(data[field.field_key])) {
+        ctx.addIssue({ code: "custom", message: "Required", path: [field.field_key] });
+      }
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Derived helpers (wizard steps, default values, value routing)
+// ---------------------------------------------------------------------------
+
+// Distinct, ordered step numbers present in the config.
+export function stepsOf(config: FormConfig): number[] {
+  const steps = new Set<number>();
+  for (const s of config) if (s.is_active) steps.add(s.step);
+  return Array.from(steps).sort((a, b) => a - b);
+}
+
+export function sectionsForStep(config: FormConfig, step: number): FormSectionConfig[] {
+  return config
+    .filter((s) => s.is_active && s.step === step)
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+// Titles for the wizard header — one entry per step (first section's title).
+export function stepTitlesOf(
+  config: FormConfig
+): { num: number; title: string; subtitle: string }[] {
+  return stepsOf(config).map((step) => {
+    const first = sectionsForStep(config, step)[0];
+    return {
+      num: step,
+      title: first?.title ?? `Step ${step}`,
+      subtitle: first?.subtitle ?? "",
+    };
+  });
+}
+
+// The form-state keys owned by a step — used for per-step RHF validation.
+// CITY_COMPOSITE expands to its four keys; everything else is its field_key.
+export function stepFieldKeys(config: FormConfig, step: number): string[] {
+  const keys: string[] = [];
+  for (const section of sectionsForStep(config, step)) {
+    for (const field of section.fields) {
+      if (field.input_type === InputType.HEADING) continue;
+      if (field.input_type === InputType.CITY_COMPOSITE) {
+        keys.push(...CITY_COMPOSITE_KEYS);
+      } else {
+        keys.push(field.field_key);
+      }
+    }
+  }
+  return keys;
+}
+
+// Sensible empty defaults so selects start on their placeholder, arrays are [],
+// booleans are false, and a repeatable group seeds one blank item.
+export function buildDefaultValues(config: FormConfig): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const section of config) {
+    for (const field of section.fields) {
+      if (field.input_type === InputType.HEADING) continue;
+      if (field.input_type === InputType.CITY_COMPOSITE) {
+        out.hq_city = "";
+        out.hq_other = "";
+        out.hq_country = "";
+        out.outside_pakistan = false;
+        continue;
+      }
+      out[field.field_key] = defaultForField(field);
+    }
+  }
+  return out;
+}
+
+function defaultForField(field: FormFieldConfig): unknown {
+  switch (field.input_type) {
+    case InputType.YES_NO:
+      return field.required ? undefined : false;
+    case InputType.MULTISELECT:
+      return [];
+    case InputType.GROUP: {
+      const item = groupDefault(field.children ?? []);
+      if (field.repeatable) {
+        const min = field.min_items ?? 0;
+        return min > 0 ? Array.from({ length: min }, () => ({ ...item })) : [];
+      }
+      return item;
+    }
+    default:
+      return "";
+  }
+}
+
+function groupDefault(children: FormFieldConfig[]): Record<string, unknown> {
+  const item: Record<string, unknown> = {};
+  for (const c of children) item[c.field_key] = defaultForField(c);
+  return item;
+}
+
+// Walk the config and split a validated payload into:
+//   columns: values whose field has a column_map → dedicated submissions column
+//   answers: everything else → submissions.answers JSONB (keyed by field_key)
+// CITY_COMPOSITE and founders always map to their existing columns.
+export function routeValues(
+  config: FormConfig,
+  data: Record<string, unknown>
+): { columns: Record<string, unknown>; answers: Record<string, unknown> } {
+  const columns: Record<string, unknown> = {};
+  const answers: Record<string, unknown> = {};
+  for (const section of config) {
+    for (const field of section.fields) {
+      if (field.input_type === InputType.HEADING) continue;
+      if (field.input_type === InputType.CITY_COMPOSITE) {
+        for (const k of CITY_COMPOSITE_KEYS) columns[k] = data[k];
+        continue;
+      }
+      const key = field.field_key;
+      const value = data[key];
+      if (field.column_map) {
+        columns[field.column_map] = value;
+      } else {
+        answers[key] = value;
+      }
+    }
+  }
+  return { columns, answers };
+}

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { submissionSchema } from "@/lib/schema";
+import { submissionSchema, type Founder } from "@/lib/schema";
 import { scoreVetting } from "@/lib/vetting";
 import { labelFor } from "@/lib/field-labels";
+import { getFormConfig } from "@/lib/form-config.server";
+import { buildZodSchema, routeValues } from "@/lib/form-config";
 
 export async function POST(req: Request) {
   try {
@@ -15,55 +17,63 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const parsed = submissionSchema.safeParse(body);
-    if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const pathKey = issue.path.length > 0 ? issue.path.join(".") : "_root";
-        const label = labelFor(pathKey);
-        fieldErrors[pathKey] = `${label}: ${issue.message}`;
-      }
-      const firstField = Object.keys(fieldErrors)[0];
-      const summary = firstField ? fieldErrors[firstField] : "Validation failed";
-      return NextResponse.json({ error: summary, fieldErrors }, { status: 400 });
+
+    // The form structure may be admin-defined. When a config exists we validate
+    // against the schema built from it and route values to their mapped columns
+    // (+ an `answers` JSONB bag for admin-added fields). Without a config we use
+    // the original static schema — values are already keyed by column name.
+    const config = await getFormConfig();
+    let cols: Record<string, unknown>;
+    let answers: Record<string, unknown> = {};
+
+    if (config && config.length > 0) {
+      const parsed = buildZodSchema(config).safeParse(body);
+      if (!parsed.success) return validationError(parsed.error.issues);
+      const routed = routeValues(config, parsed.data as Record<string, unknown>);
+      cols = routed.columns;
+      answers = routed.answers;
+    } else {
+      const parsed = submissionSchema.safeParse(body);
+      if (!parsed.success) return validationError(parsed.error.issues);
+      cols = parsed.data as unknown as Record<string, unknown>;
     }
-    const data = parsed.data;
 
-    // Primary founder is the row marked is_primary (the schema's superRefine
-    // sets the first row to primary if none was marked). Used to populate the
-    // legacy flat founder_* columns so existing admin tooling keeps working.
-    const primary = data.founders.find((f) => f.is_primary) ?? data.founders[0];
-    // Derive total + female founder counts from the array; the form no
-    // longer asks for them separately.
-    const totalFoundersDerived = data.founders.length || undefined;
+    // Helper: read a column value, coercing undefined → null for the insert.
+    const col = (k: string) => (cols[k] === undefined ? null : cols[k]);
+    const founders = (cols.founders as Founder[] | undefined) ?? [];
+
+    // Primary founder populates the legacy flat founder_* columns so existing
+    // admin tooling keeps working.
+    const primary = founders.find((f) => f.is_primary) ?? founders[0];
+    const totalFoundersDerived = founders.length || undefined;
     const femaleFoundersDerived =
-      data.founders.filter((f) => f.gender === "female").length || undefined;
+      founders.filter((f) => f.gender === "female").length || undefined;
 
-    // Vetting — reads from primary founder + startup fields.
+    // Vetting — reads core columns + primary founder.
     const vetting = scoreVetting({
-      startup_name: data.startup_name,
-      website: data.website,
+      startup_name: cols.startup_name as string | undefined,
+      website: cols.website as string | undefined,
       founder_name: primary?.name,
       founder_email: primary?.email,
-      description: data.description,
-      stage: data.stage as
+      description: cols.description as string | undefined,
+      stage: cols.stage as
         | "ideation"
         | "dev_launch"
         | "early"
         | "growth"
         | undefined,
-      revenue_band: data.revenue_band,
-      raised_funding: data.raised_funding,
-      funding_stage: data.funding_stage,
+      revenue_band: cols.revenue_band as string | undefined,
+      raised_funding: cols.raised_funding as boolean | undefined,
+      funding_stage: cols.funding_stage as string | undefined,
       total_founders: totalFoundersDerived,
-      total_employees: data.total_employees,
+      total_employees: cols.total_employees as number | undefined,
       female_founders: femaleFoundersDerived,
-      fbr_registered: data.fbr_registered,
-      secp_registered: data.secp_registered,
-      incubated_in_nic: data.incubated_in_nic,
-      nic_name: data.nic_name,
-      has_patents: data.has_patents,
-      primary_sector: data.primary_sector,
+      fbr_registered: cols.fbr_registered as boolean | undefined,
+      secp_registered: cols.secp_registered as boolean | undefined,
+      incubated_in_nic: cols.incubated_in_nic as boolean | undefined,
+      nic_name: cols.nic_name as string | undefined,
+      has_patents: cols.has_patents as boolean | undefined,
+      primary_sector: cols.primary_sector as string | undefined,
     });
 
     const headers = req.headers;
@@ -75,10 +85,9 @@ export async function POST(req: Request) {
 
     const supabase = createServiceClient();
 
-    // Build the full v2 record. If the v2 migration hasn't been applied yet,
-    // Postgres will error on the unknown column names — we then strip those
-    // and retry with the legacy column set so the form keeps accepting
-    // submissions through the deploy/migration handoff window.
+    // Columns that may not exist if a migration hasn't been applied yet. On a
+    // "column X does not exist" error we strip X and retry (deploy/migration
+    // handoff window). `answers` is here for the form-builder migration too.
     const V2_COLUMNS = [
       "founders",
       "company_linkedin",
@@ -92,91 +101,92 @@ export async function POST(req: Request) {
       "certifications",
       "founder_role",
       "tagline",
+      "answers",
     ] as const;
 
     const record: Record<string, unknown> = {
-        // ---- legacy flat columns (kept for admin tooling backward compat)
-        founder_name: primary?.name ?? null,
-        founder_email: primary?.email ?? null,
-        founder_mobile: primary?.mobile ?? null,
-        founder_linkedin: primary?.linkedin ?? null,
-        founder_photo_url: primary?.photo_url ?? null,
-        founder_gender: primary?.gender ?? null,
-        founder_role: primary?.role ?? null,
+      // ---- legacy flat columns (kept for admin tooling backward compat)
+      founder_name: primary?.name ?? null,
+      founder_email: primary?.email ?? null,
+      founder_mobile: primary?.mobile ?? null,
+      founder_linkedin: primary?.linkedin ?? null,
+      founder_photo_url: primary?.photo_url ?? null,
+      founder_gender: primary?.gender ?? null,
+      founder_role: primary?.role ?? null,
 
-        // ---- startup
-        startup_name: data.startup_name,
-        tagline: data.tagline ?? null,
-        website: data.website,
-        year_founded: data.year_founded || null,
-        description: data.description,
-        logo_url: data.logo_url ?? null,
+      // ---- startup
+      startup_name: col("startup_name"),
+      tagline: col("tagline"),
+      website: col("website"),
+      year_founded: (cols.year_founded as string) || null,
+      description: col("description"),
+      logo_url: col("logo_url"),
 
-        // ---- location
-        hq_city: data.hq_city ?? null,
-        hq_other: data.hq_other ?? null,
-        outside_pakistan: data.outside_pakistan,
-        hq_country: data.hq_country ?? null,
+      // ---- location
+      hq_city: col("hq_city"),
+      hq_other: col("hq_other"),
+      outside_pakistan: cols.outside_pakistan ?? false,
+      hq_country: col("hq_country"),
 
-        // ---- category
-        primary_sector: data.primary_sector,
-        secondary_sector: data.secondary_sector ?? null,
-        business_model: data.business_model ?? null,
-        stage: data.stage,
-        revenue_models: data.revenue_models ?? [],
+      // ---- category
+      primary_sector: col("primary_sector"),
+      secondary_sector: col("secondary_sector"),
+      business_model: col("business_model"),
+      stage: col("stage"),
+      revenue_models: (cols.revenue_models as string[]) ?? [],
 
-        // ---- team & legal
-        total_employees: data.total_employees ?? null,
-        female_employees: data.female_employees ?? null,
-        founding_team_composition: data.founding_team_composition ?? null,
-        fbr_registered: data.fbr_registered ?? null,
-        secp_registered: data.secp_registered ?? null,
-        is_pasha_member: data.is_pasha_member ?? null,
+      // ---- team & legal
+      total_employees: col("total_employees"),
+      female_employees: col("female_employees"),
+      founding_team_composition: col("founding_team_composition"),
+      fbr_registered: col("fbr_registered"),
+      secp_registered: col("secp_registered"),
+      is_pasha_member: col("is_pasha_member"),
 
-        // ---- traction & funding
-        revenue_band: data.revenue_band ?? null,
-        raised_funding: data.raised_funding ?? null,
-        funding_stage: data.funding_stage ?? null,
-        currently_raising: data.currently_raising ?? null,
-        pitch_deck_url: data.pitch_deck_url ?? null,
-        pitch_video: data.pitch_video ?? null,
+      // ---- traction & funding
+      revenue_band: col("revenue_band"),
+      raised_funding: col("raised_funding"),
+      funding_stage: col("funding_stage"),
+      currently_raising: col("currently_raising"),
+      pitch_deck_url: col("pitch_deck_url"),
+      pitch_video: col("pitch_video"),
 
-        // ---- incubation
-        incubated_in_nic: data.incubated_in_nic ?? null,
-        nic_name: data.nic_name ?? null,
-        nic_cohort: data.nic_cohort ?? null,
-        nic_year: data.nic_year ?? null,
+      // ---- incubation
+      incubated_in_nic: col("incubated_in_nic"),
+      nic_name: col("nic_name"),
+      nic_cohort: col("nic_cohort"),
+      nic_year: col("nic_year"),
 
-        // ---- socials
-        company_linkedin: data.company_linkedin ?? null,
-        company_x: data.company_x ?? null,
-        company_instagram: data.company_instagram ?? null,
-        company_facebook: data.company_facebook ?? null,
-        company_youtube: data.company_youtube ?? null,
+      // ---- socials
+      company_linkedin: col("company_linkedin"),
+      company_x: col("company_x"),
+      company_instagram: col("company_instagram"),
+      company_facebook: col("company_facebook"),
+      company_youtube: col("company_youtube"),
 
-        // ---- founders array (NEW source of truth — JSONB).
-        // total_founders / female_founders columns are populated from
-        // derived counts so legacy admin tooling that reads them keeps
-        // working. The form no longer asks for these as separate inputs.
-        founders: data.founders,
-        total_founders: totalFoundersDerived ?? null,
-        female_founders: femaleFoundersDerived ?? null,
+      // ---- founders array (source of truth — JSONB) + derived counts
+      founders: founders,
+      total_founders: totalFoundersDerived ?? null,
+      female_founders: femaleFoundersDerived ?? null,
 
-        // ---- recognition
-        has_patents: data.has_patents ?? null,
-        patents_count: data.patents_count ?? null,
-        awards: data.awards ?? null,
-        certifications: data.certifications ?? null,
-        engagement_interests: data.engagement_interests ?? [],
-        whatsapp_optin: data.whatsapp_optin,
-        facebook_optin: data.facebook_optin,
-        closing_notes: data.closing_notes ?? null,
+      // ---- recognition
+      has_patents: col("has_patents"),
+      patents_count: col("patents_count"),
+      awards: col("awards"),
+      certifications: col("certifications"),
+      engagement_interests: (cols.engagement_interests as string[]) ?? [],
+      whatsapp_optin: cols.whatsapp_optin ?? false,
+      facebook_optin: cols.facebook_optin ?? false,
+      closing_notes: col("closing_notes"),
 
-        // ---- computed + audit
-        vetting_score: vetting.score,
-        vetting_tier: vetting.tier,
-        source_ip: ip,
-        user_agent: ua,
+      // ---- admin-defined fields (no column_map) live here
+      answers,
+
+      // ---- computed + audit
+      vetting_score: vetting.score,
+      vetting_tier: vetting.tier,
+      source_ip: ip,
+      user_agent: ua,
     };
 
     async function insertWith(rec: Record<string, unknown>) {
@@ -189,21 +199,16 @@ export async function POST(req: Request) {
 
     let { data: row, error } = await insertWith(record);
 
-    // If the v2 migration isn't fully applied (or a v2 column was added on
-    // databank but missed on submissions), Postgres/PostgREST reports the
-    // missing column — we strip just that column and retry. Bounded loop
-    // because each retry can surface one more missing column.
-    //
-    // Two error shapes to handle:
+    // Strip missing columns and retry (bounded). Two error shapes:
     //   PG direct:  `column "X" of relation "submissions" does not exist`
     //   PostgREST:  `Could not find the 'X' column of 'submissions' in the schema cache`
     let safetyLoops = V2_COLUMNS.length + 4;
     while (error && safetyLoops-- > 0) {
       const pg = error.message.match(/column "([^"]+)" of relation/);
       const rest = error.message.match(/the '([^']+)' column of '/);
-      const col = pg?.[1] ?? rest?.[1];
-      if (!col || !(col in record)) break;
-      delete record[col];
+      const colName = pg?.[1] ?? rest?.[1];
+      if (!colName || !(colName in record)) break;
+      delete record[colName];
       ({ data: row, error } = await insertWith(record));
     }
 
@@ -221,4 +226,16 @@ export async function POST(req: Request) {
     const msg = e instanceof Error ? e.message : "Submit failed";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+}
+
+// Shared field-level validation error response.
+function validationError(issues: { path: PropertyKey[]; message: string }[]) {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of issues) {
+    const pathKey = issue.path.length > 0 ? issue.path.join(".") : "_root";
+    fieldErrors[pathKey] = `${labelFor(pathKey)}: ${issue.message}`;
+  }
+  const firstField = Object.keys(fieldErrors)[0];
+  const summary = firstField ? fieldErrors[firstField] : "Validation failed";
+  return NextResponse.json({ error: summary, fieldErrors }, { status: 400 });
 }

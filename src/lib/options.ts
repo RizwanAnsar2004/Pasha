@@ -160,3 +160,34 @@ export const NIC_CENTERS = [
   "LUMS LCE",
   "Other",
 ] as const;
+
+// Named registry so a form_fields row can reference a centrally-maintained
+// option list by name (options_source) instead of duplicating it in the DB.
+// The dynamic renderer + buildZodSchema resolve a field's options from here
+// when options_source is set and options is empty.
+export type OptionList = readonly string[] | readonly { value: string; label: string }[];
+
+export const OPTION_LISTS: Record<string, OptionList> = {
+  HQ_CITIES,
+  STAGES,
+  BUSINESS_MODELS,
+  REVENUE_MODELS,
+  SECTORS,
+  FUNDING_STAGES,
+  REVENUE_BANDS,
+  CUSTOMER_BANDS,
+  FOUNDING_TEAM_COMPOSITIONS,
+  FOUNDER_GENDERS,
+  ENGAGEMENT_INTERESTS,
+  NIC_CENTERS,
+};
+
+// Normalize any option list to {value,label}[] for rendering.
+export function normalizeOptions(
+  list: OptionList | null | undefined
+): { value: string; label: string }[] {
+  if (!list) return [];
+  return list.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
+  );
+}

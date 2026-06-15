@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/submissions", label: "Submissions" },
   { href: "/admin/databank", label: "Data bank" },
+  { href: "/admin/forms", label: "Form builder" },
 ];
 
 export function AdminNav() {

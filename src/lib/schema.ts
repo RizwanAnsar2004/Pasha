@@ -6,7 +6,10 @@ import { z } from "zod";
 // undefined output from the preprocessor passes downstream validation cleanly.
 // ---------------------------------------------------------------------------
 
-const optionalString = z.preprocess(
+// NOTE: these preprocessors are exported so the dynamic form builder
+// (src/lib/form-config.ts buildZodSchema) can reuse the exact same coercion +
+// validation rules when constructing a schema from admin-defined fields.
+export const optionalString = z.preprocess(
   (v) => {
     if (v === "" || v === null || v === undefined) return undefined;
     return String(v).trim();
@@ -16,9 +19,9 @@ const optionalString = z.preprocess(
 
 // Strict URL: only http/https schemes. Rejects javascript:, data:, vbscript:,
 // file:, etc. Used for any URL field rendered later as an <a href>.
-const SAFE_URL_RE = /^https?:\/\/[^\s<>"]+$/i;
+export const SAFE_URL_RE = /^https?:\/\/[^\s<>"]+$/i;
 
-const optionalSafeUrl = z.preprocess(
+export const optionalSafeUrl = z.preprocess(
   (v) => {
     if (v === "" || v === null || v === undefined) return undefined;
     return String(v).trim();
@@ -33,7 +36,7 @@ const optionalSafeUrl = z.preprocess(
 );
 
 // REQUIRED URL — same validation, but emits an error when missing.
-const requiredSafeUrl = z.preprocess(
+export const requiredSafeUrl = z.preprocess(
   (v) => {
     if (v === "" || v === null || v === undefined) return "";
     return String(v).trim();
@@ -46,7 +49,7 @@ const requiredSafeUrl = z.preprocess(
     })
 );
 
-const optionalNumber = z.preprocess(
+export const optionalNumber = z.preprocess(
   (v) => {
     if (v === "" || v === null || v === undefined) return undefined;
     const n = typeof v === "string" ? Number(v) : v;
@@ -56,7 +59,7 @@ const optionalNumber = z.preprocess(
   z.number().int().min(0).optional()
 );
 
-const optionalBool = z.preprocess(
+export const optionalBool = z.preprocess(
   (v) => {
     if (v === true || v === "true" || v === 1 || v === "1") return true;
     if (v === false || v === "false" || v === 0 || v === "0") return false;
@@ -65,7 +68,7 @@ const optionalBool = z.preprocess(
   z.boolean().optional()
 );
 
-const optionalArray = z.preprocess(
+export const optionalArray = z.preprocess(
   (v) => {
     if (Array.isArray(v)) {
       return v.filter((x) => x !== null && x !== undefined && x !== "");
@@ -89,7 +92,7 @@ const founderCustomLink = z.object({
   url: optionalSafeUrl,
 });
 
-const founderSchema = z.object({
+export const founderSchema = z.object({
   name: z.string().trim().min(2, "Founder name required"),
   role: z.string().trim().min(2, "Role required (e.g. CEO, CTO)"),
   email: z.preprocess(
@@ -125,7 +128,7 @@ const founderSchema = z.object({
 
 export type Founder = z.infer<typeof founderSchema>;
 
-const foundersArray = z
+export const foundersArray = z
   .array(founderSchema)
   .min(1, "At least one founder required")
   .superRefine((arr, ctx) => {
@@ -240,20 +243,33 @@ export const submissionSchema = z
     closing_notes: optionalString,
   })
   .superRefine((data, ctx) => {
-    // City vs country mutual exclusivity.
-    if (data.outside_pakistan) {
-      if (!data.hq_country || !data.hq_country.trim()) {
-        ctx.addIssue({ code: "custom", message: "Pick a country", path: ["hq_country"] });
-      }
-    } else {
-      if (!data.hq_city || !data.hq_city.trim()) {
-        ctx.addIssue({ code: "custom", message: "Pick a city", path: ["hq_city"] });
-      }
-      if (data.hq_city === "Other" && (!data.hq_other || !data.hq_other.trim())) {
-        ctx.addIssue({ code: "custom", message: "Enter your city", path: ["hq_other"] });
-      }
-    }
+    applyCityCountryRefine(data, ctx);
   });
+
+// City vs country mutual exclusivity, shared between the static submission
+// schema and the runtime-built schema (for a CITY_COMPOSITE field).
+export function applyCityCountryRefine(
+  data: {
+    outside_pakistan?: boolean;
+    hq_city?: string;
+    hq_other?: string;
+    hq_country?: string;
+  },
+  ctx: z.RefinementCtx
+) {
+  if (data.outside_pakistan) {
+    if (!data.hq_country || !data.hq_country.trim()) {
+      ctx.addIssue({ code: "custom", message: "Pick a country", path: ["hq_country"] });
+    }
+  } else {
+    if (!data.hq_city || !data.hq_city.trim()) {
+      ctx.addIssue({ code: "custom", message: "Pick a city", path: ["hq_city"] });
+    }
+    if (data.hq_city === "Other" && (!data.hq_other || !data.hq_other.trim())) {
+      ctx.addIssue({ code: "custom", message: "Enter your city", path: ["hq_other"] });
+    }
+  }
+}
 
 export type SubmissionInput = z.infer<typeof submissionSchema>;
 

@@ -3,6 +3,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ApplyHero } from "@/components/form/ApplyHero";
 import { ApplyForm } from "@/components/form/ApplyForm";
+import { DynamicForm } from "@/components/form/DynamicForm";
+import { getFormConfig } from "@/lib/form-config.server";
+
+// The form structure is admin-configurable. Always render the latest config.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Apply",
@@ -18,7 +23,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ApplyPage() {
+export default async function ApplyPage() {
+  // Admin-defined form config drives the form when present; otherwise we fall
+  // back to the original hard-coded form so the page never breaks pre-seed.
+  const config = await getFormConfig();
+
   return (
     <>
       <SiteHeader />
@@ -26,7 +35,7 @@ export default function ApplyPage() {
         <ApplyHero />
         <section className="bg-white border-t border-pasha-line">
           <div className="mx-auto max-w-5xl px-5 sm:px-8 py-10 sm:py-14">
-            <ApplyForm />
+            {config && config.length > 0 ? <DynamicForm config={config} /> : <ApplyForm />}
           </div>
         </section>
       </main>
