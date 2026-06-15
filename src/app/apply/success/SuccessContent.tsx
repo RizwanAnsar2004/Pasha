@@ -3,35 +3,49 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import confetti from "canvas-confetti";
 import { Sparkles, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export function SuccessContent() {
   useEffect(() => {
-    const duration = 1800;
-    const end = Date.now() + duration;
-    const colors = ["#E6160F", "#FF3329", "#0E0E10", "#15803D"];
-    (function frame() {
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 55,
-        startVelocity: 45,
-        origin: { x: 0, y: 0.6 },
-        colors,
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 55,
-        startVelocity: 45,
-        origin: { x: 1, y: 0.6 },
-        colors,
-      });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    })();
+    let cancelled = false;
+    let raf = 0;
+
+    void import("canvas-confetti").then((mod) => {
+      if (cancelled) return;
+      const confetti = (
+        "default" in mod && mod.default ? mod.default : mod
+      ) as typeof import("canvas-confetti");
+      const duration = 1800;
+      const end = Date.now() + duration;
+      const colors = ["#E6160F", "#FF3329", "#0E0E10", "#15803D"];
+
+      (function frame() {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          startVelocity: 45,
+          origin: { x: 0, y: 0.6 },
+          colors,
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          startVelocity: 45,
+          origin: { x: 1, y: 0.6 },
+          colors,
+        });
+        if (Date.now() < end) raf = requestAnimationFrame(frame);
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (

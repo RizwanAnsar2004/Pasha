@@ -18,6 +18,9 @@ if (!email || !password) {
   process.exit(1);
 }
 
+const adminEmail: string = email;
+const adminPassword: string = password;
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
@@ -31,23 +34,23 @@ async function main() {
   const { data: row } = await supabase
     .from("admin_users")
     .select("email")
-    .eq("email", email)
+    .eq("email", adminEmail)
     .maybeSingle();
 
   if (!row) {
-    console.error(`${email} is not in admin_users — add it in Supabase first.`);
+    console.error(`${adminEmail} is not in admin_users — add it in Supabase first.`);
     process.exit(1);
   }
 
-  const created = await provisionSupabaseAuthUser(email, password);
+  const created = await provisionSupabaseAuthUser(adminEmail, adminPassword);
   if (created) {
-    console.log(`Created Supabase Auth user for ${email}`);
+    console.log(`Created Supabase Auth user for ${adminEmail}`);
   } else {
-    const updated = await setSupabaseAuthPassword(email, password);
+    const updated = await setSupabaseAuthPassword(adminEmail, adminPassword);
     console.log(
       updated
-        ? `Updated password for existing Supabase Auth user ${email}`
-        : `Auth user for ${email} already exists (could not update password)`
+        ? `Updated password for existing Supabase Auth user ${adminEmail}`
+        : `Auth user for ${adminEmail} already exists (could not update password)`
     );
   }
 
