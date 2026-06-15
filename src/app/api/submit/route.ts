@@ -5,9 +5,20 @@ import { scoreVetting } from "@/lib/vetting";
 import { labelFor } from "@/lib/field-labels";
 import { getFormConfig } from "@/lib/form-config.server";
 import { buildZodSchema, routeValues } from "@/lib/form-config";
+import { getApplicantUser } from "@/lib/applicant-auth";
 
 export async function POST(req: Request) {
   try {
+    // The apply form lives behind the applicant auth wall — an application is
+    // always tied to the signed-in user who created it.
+    const user = await getApplicantUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Please sign in to submit your application." },
+        { status: 401 }
+      );
+    }
+
     let body: unknown;
     try {
       body = await req.json();
@@ -102,6 +113,7 @@ export async function POST(req: Request) {
       "founder_role",
       "tagline",
       "answers",
+      "user_id",
     ] as const;
 
     const record: Record<string, unknown> = {
@@ -182,6 +194,9 @@ export async function POST(req: Request) {
       // ---- admin-defined fields (no column_map) live here
       answers,
 
+      // ---- owning applicant
+      user_id: user.id,
+
       // ---- computed + audit
       vetting_score: vetting.score,
       vetting_tier: vetting.tier,
@@ -215,6 +230,13 @@ export async function POST(req: Request) {
     if (error || !row) {
       return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
     }
+
+    // Finalise the applicant's draft: link it to the new submission and stamp
+    // it so the apply page shows the submitted state instead of the wizard.
+    await supabase
+      .from("application_drafts")
+      .update({ submission_id: row.id, submitted_at: new Date().toISOString() })
+      .eq("user_id", user.id);
 
     return NextResponse.json({
       ok: true,

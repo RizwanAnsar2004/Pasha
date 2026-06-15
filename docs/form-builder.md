@@ -150,6 +150,58 @@ Key auth files:
 - `src/lib/admin-allowlist.ts` — `admin_users` table lookup (30s cache)
 - `scripts/ensure-admin-auth.ts` — one-time Auth user + password setup
 
+## Applicant portal (auth wall + resumable drafts)
+
+`/apply` is an **applicant portal** gated by a **separate** auth (Supabase Auth
+users NOT in `admin_users`) so it never overlaps the committee portal. It
+mirrors the admin `(authed)` pattern: a `src/app/apply/(portal)/` route group
+with its own header + tab nav. The wizard reuses the same `DynamicForm` /
+`getFormConfig()`, so hidden fields (`visible=false`) stay hidden — the applicant
+sees exactly the admin's build.
+
+```
+src/app/apply/
+  (portal)/                 ← gated group (own chrome, no SiteHeader)
+    layout.tsx              getApplicantContext(): anon→login, admin→login?error=admin
+    page.tsx                Overview — status card (not started / in progress / submitted)
+    form/page.tsx           Wizard — DynamicForm; redirect→overview if already submitted
+    PortalNav.tsx           tabs: Overview · My application
+    SignOutButton.tsx       DELETE /api/applicant/auth
+  login/page.tsx            register + sign-in (NOT in the group; no portal chrome)
+  success/...               post-submit confetti page (NOT in the group)
+```
+
+Flow:
+
+```
+/apply (overview)  status from application_drafts
+/apply/form        DynamicForm + initialValues + initialStep + serverPersist
+        │  (debounced) PUT /api/applicant/draft  → application_drafts upsert
+        ▼  final submit
+  POST /api/submit → submissions row (user_id) + draft.submitted_at stamped
+```
+
+**Admin/applicant separation is enforced, not assumed.** Both audiences share
+Supabase Auth cookies, so `getApplicantContext()` (cached) classifies the
+session as `anon | admin | applicant` and `getApplicantUser()` returns null for
+admins. The page gate AND every applicant API (`/api/submit`,
+`/api/applicant/draft`) reject admins — an admin session can never fill or submit
+the form.
+
+| Concern | Where |
+|---------|-------|
+| Session classification | `getApplicantContext()` in `src/lib/applicant-auth.ts` (cached) |
+| Applicant-only API gate | `getApplicantUser()` (null for anon AND admin) |
+| Register / login / logout | `POST,DELETE /api/applicant/auth` (refuses admin emails) |
+| Provision Auth user | `provisionApplicantAuthUser()` (service-role, `email_confirm`) |
+| Resumable draft (load) | `getApplicantDraft(userId)` (cached) + `GET /api/applicant/draft` |
+| Resumable draft (save) | `PUT /api/applicant/draft` → `application_drafts` upsert |
+| Owning applicant on a submission | `submissions.user_id` (nullable; null for legacy/admin rows) |
+
+Migration: `supabase/migrations/20260616_applicant_accounts.sql`. The submit
+route is migration-resilient (`user_id` in `V2_COLUMNS`), and the portal degrades
+to a working (non-persistent) form if the drafts table is absent.
+
 ## Key files
 
 - `src/lib/form-enums.ts` — int enum + `ValidationSpec` + helpers.

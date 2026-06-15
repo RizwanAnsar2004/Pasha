@@ -21,6 +21,30 @@ Admins can define, from `/admin/forms`:
 Changes saved in the form builder go live on `/apply` on the next page load
 (`force-dynamic` + `getFormConfig()`).
 
+## Standing goal: applicant portal (resumable apply)
+
+`/apply` is an **applicant portal** (its own chrome + tab nav, mirroring the
+admin portal), behind an **applicant auth wall** kept **strictly separate from
+admin**:
+
+- Applicants **register/sign in** at `/apply/login` (Supabase Auth users that
+  are never added to `admin_users`; admin emails are refused there).
+- **Admins are not applicants.** Although both ride on Supabase Auth, an admin
+  session can never view, fill, or submit the apply form — `getApplicantContext()`
+  classifies the session and bounces admins to `/apply/login?error=admin`.
+- The portal has an **Overview** (application status) and an **My application**
+  wizard step (`/apply` and `/apply/form`).
+- The gated form is the **same admin-configured `DynamicForm`** — hidden fields
+  stay hidden; nothing about the builder changes.
+- Progress **autosaves server-side** (`application_drafts`, one row per user) so
+  an applicant can fill it **partially, leave, and resume**, review/edit earlier
+  steps, then submit when ready.
+- Final submit creates the usual `submissions` row (now stamped with `user_id`)
+  and marks the draft submitted; `/apply` then shows a submitted-status panel.
+
+Constraint: this must not touch the admin/committee auth or the form builder, and
+must degrade gracefully before its migration is applied.
+
 ## How submissions are stored
 
 Every apply submission is **one row** in `submissions` (via `POST /api/submit`):

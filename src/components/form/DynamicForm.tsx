@@ -23,13 +23,29 @@ const DRAFT_DEBOUNCE_MS = 1000;
 
 type Values = Record<string, unknown>;
 
-export function DynamicForm({ config }: { config: FormConfig }) {
+export function DynamicForm({
+  config,
+  initialValues,
+  initialStep = 0,
+  serverPersist = false,
+}: {
+  config: FormConfig;
+  /** Server-saved draft values to resume from (applicant flow). */
+  initialValues?: Values;
+  /** Step index the applicant left off on. */
+  initialStep?: number;
+  /** Persist progress to the server draft API instead of localStorage. */
+  serverPersist?: boolean;
+}) {
   const router = useRouter();
 
   const steps = useMemo(() => stepsOf(config), [config]);
   const titles = useMemo(() => stepTitlesOf(config), [config]);
   const schema = useMemo(() => buildZodSchema(config), [config]);
-  const defaults = useMemo(() => buildDefaultValues(config), [config]);
+  const defaults = useMemo(
+    () => ({ ...buildDefaultValues(config), ...(initialValues ?? {}) }),
+    [config, initialValues]
+  );
 
   // Map every field_key → its label, for friendly validation messages.
   const labelMap = useMemo(() => {
@@ -38,11 +54,19 @@ export function DynamicForm({ config }: { config: FormConfig }) {
     return m;
   }, [config]);
 
-  const [stepIdx, setStepIdx] = useState(0); // index into `steps`
+  const [stepIdx, setStepIdx] = useState(() => {
+    const max = Math.max(0, steps.length - 1);
+    return Math.min(Math.max(0, initialStep), max);
+  }); // index into `steps`
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const draftRestoredOnce = useRef(false);
+  // Serialized snapshot of the last payload we persisted — lets us skip saves
+  // when nothing actually changed (form.watch() returns a fresh object every
+  // render, and setSaveState re-renders, so a naive effect would loop forever).
+  const lastSavedRef = useRef<string | null>(null);
 
   const totalSteps = steps.length;
   const currentStep = steps[stepIdx];
@@ -56,8 +80,10 @@ export function DynamicForm({ config }: { config: FormConfig }) {
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
 
-  // Hydrate draft once.
+  // Hydrate draft once (localStorage only). In server-persist mode the draft is
+  // seeded into `defaults` from the DB, so there's nothing to restore here.
   useEffect(() => {
+    if (serverPersist) return;
     if (draftRestoredOnce.current) return;
     draftRestoredOnce.current = true;
     try {
@@ -77,9 +103,39 @@ export function DynamicForm({ config }: { config: FormConfig }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced autosave.
+  // Debounced autosave. Server-persist mode (applicant flow) writes to the
+  // draft API so progress resumes across devices; otherwise localStorage. We
+  // diff a serialized snapshot so the network is only hit on a *real* change —
+  // not on every render (form.watch() + our setSaveState would otherwise loop).
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    if (serverPersist) {
+      const payload = JSON.stringify({ data: values, current_step: stepIdx });
+      // First run: the seeded values already match the server draft, so record
+      // the baseline without a redundant write.
+      if (lastSavedRef.current === null) {
+        lastSavedRef.current = payload;
+        return;
+      }
+      if (payload === lastSavedRef.current) return; // nothing actually changed
+
+      const handle = window.setTimeout(() => {
+        // Mark saved up front so the re-render from setSaveState doesn't re-fire
+        // (and so a failing endpoint isn't hammered on every render).
+        lastSavedRef.current = payload;
+        setSaveState("saving");
+        fetch("/api/applicant/draft", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        })
+          .then((res) => setSaveState(res.ok ? "saved" : "idle"))
+          .catch(() => setSaveState("idle"));
+      }, DRAFT_DEBOUNCE_MS);
+      return () => window.clearTimeout(handle);
+    }
+
     const handle = window.setTimeout(() => {
       try {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), values }));
@@ -88,7 +144,7 @@ export function DynamicForm({ config }: { config: FormConfig }) {
       }
     }, DRAFT_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
-  }, [values]);
+  }, [values, stepIdx, serverPersist]);
 
   const clearDraft = () => {
     try {
@@ -224,6 +280,18 @@ export function DynamicForm({ config }: { config: FormConfig }) {
             transition={{ duration: 0.3 }}
           />
         </div>
+        {serverPersist && (
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-pasha-muted">
+            <Save className="w-3 h-3" />
+            <span>
+              {saveState === "saving"
+                ? "Saving…"
+                : saveState === "saved"
+                ? "Progress saved — you can leave and resume anytime."
+                : "We auto-save your progress as you go."}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 rounded-2xl bg-white border border-pasha-line/70 shadow-[0_4px_16px_-4px_rgba(14,14,16,0.06)] overflow-hidden">
