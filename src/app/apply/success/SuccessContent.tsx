@@ -1,0 +1,134 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
+import { Sparkles, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+
+export function SuccessContent() {
+  useEffect(() => {
+    const duration = 1800;
+    const end = Date.now() + duration;
+    const colors = ["#E6160F", "#FF3329", "#0E0E10", "#15803D"];
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 55,
+        startVelocity: 45,
+        origin: { x: 0, y: 0.6 },
+        colors,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 55,
+        startVelocity: 45,
+        origin: { x: 1, y: 0.6 },
+        colors,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }, []);
+
+  return (
+    <>
+      <SiteHeader />
+      <main className="flex-1 bg-pasha-stone/30">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-4 py-1.5 mb-8">
+              <Sparkles className="w-3.5 h-3.5 text-pasha-red" />
+              <span className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/80">
+                Application submitted
+              </span>
+            </div>
+            <h1 className="font-serif text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
+              Thank you for applying.
+            </h1>
+            <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
+              We&apos;ve received your submission. The P@SHA committee reviews
+              applications weekly — you&apos;ll hear back by email once
+              your profile has been approved for the public directory.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-12 mx-auto max-w-md"
+          >
+            <div className="rounded-2xl border border-pasha-line bg-white p-6 sm:p-7 text-left">
+              <h3 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-red">
+                What happens next
+              </h3>
+              <ul className="mt-4 space-y-3 text-sm text-pasha-ink/85 leading-relaxed">
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2
+                    className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red"
+                    aria-hidden
+                  />
+                  <span>
+                    Our committee reviews each submission by hand. Reviews
+                    happen weekly.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2
+                    className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red"
+                    aria-hidden
+                  />
+                  <span>
+                    You&apos;ll receive an email once your profile is approved
+                    and live on the directory.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2
+                    className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red"
+                    aria-hidden
+                  />
+                  <span>
+                    If anything needs clarification we&apos;ll reach out from
+                    startups@pasha.org.pk — please add it to your contacts.
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Link
+              href="/directory"
+              className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
+            >
+              Browse the directory
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <a
+              href="mailto:startups@pasha.org.pk"
+              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-6 py-3 text-sm text-pasha-ink hover:bg-pasha-stone/60 transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              startups@pasha.org.pk
+            </a>
+          </motion.div>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}

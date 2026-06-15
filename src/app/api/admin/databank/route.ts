@@ -1,0 +1,230 @@
+// Admin CRUD for the databank table. Edit + delete only — creation goes
+// through the public /api/submit pipeline (founder submits → admin approves
+// in /api/admin/submission → row gets materialised into databank).
+//
+// Auth:
+//   - Authenticated Supabase session via cookie.
+//   - Email in the admin allowlist (domain + bootstrap list).
+//
+// Every PATCH and DELETE writes an audit_log entry.
+
+import { NextResponse } from "next/server";
+import {
+  createClient as createSessionClient,
+  createServiceClient,
+} from "@/lib/supabase/server";
+import { z } from "zod";
+import { isAdminEmail } from "@/lib/admin-allowlist";
+
+// Whitelist of columns an admin can edit. Anything not on this list is
+// silently dropped from the payload so a malformed/attacker-shaped body
+// can't smuggle in writes to vetting_score, source_id, created_at, etc.
+const EDITABLE_COLUMNS = new Set([
+  // identity / branding
+  "startup_name",
+  "company_name",
+  "tagline",
+  "logo_url",
+  "website",
+  "founded_date",
+
+  // category
+  "primary_industry",
+  "secondary_industries",
+  "business_types",
+  "product_stage",
+
+  // location
+  "city",
+  "hq_country",
+
+  // incubation
+  "nic_name",
+  "incubation_stage",
+  "cohort",
+  "joining_date",
+
+  // team & traction
+  "total_employees",
+  "female_employees",
+  "jobs_created",
+  "current_revenue",
+  "investment_raised",
+  "investment_commitment",
+  "investment_raised_from",
+  "number_of_customers",
+
+  // rich text
+  "startup_idea",
+  "business_model",
+  "social_impact",
+  "sdgs",
+  "video_pitch",
+
+  // recognition / audit
+  "awards",
+  "certifications",
+  "pasha_verified",
+
+  // contact (legacy flat — still useful for outreach)
+  "contact_person",
+  "contact_email",
+  "outreach_status",
+  "outreach_notes",
+
+  // socials
+  "company_linkedin",
+  "company_x",
+  "company_instagram",
+  "company_facebook",
+  "company_youtube",
+
+  // key persons JSONB
+  "key_persons",
+]);
+
+const patchSchema = z.object({
+  id: z.string().uuid(),
+  updates: z.record(z.string(), z.unknown()),
+});
+
+const deleteSchema = z.object({
+  id: z.string().uuid(),
+});
+
+async function requireAdmin() {
+  const sessionClient = await createSessionClient();
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
+  if (!user || !(await isAdminEmail(user.email))) {
+    return { user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  return { user, error: null };
+}
+
+export async function PATCH(req: Request) {
+  const { user, error } = await requireAdmin();
+  if (!user) return error!;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+  const { id, updates } = parsed.data;
+
+  // Drop unknown keys.
+  const sanitised: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    if (EDITABLE_COLUMNS.has(k)) sanitised[k] = v;
+  }
+  if (Object.keys(sanitised).length === 0) {
+    return NextResponse.json({ error: "No editable fields in payload" }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+
+  // Capture prior state for the audit log. We only diff the changed keys.
+  const { data: prior } = await supabase
+    .from("databank")
+    .select(Array.from(EDITABLE_COLUMNS).join(","))
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!prior) {
+    return NextResponse.json({ error: "Row not found" }, { status: 404 });
+  }
+
+  // If pasha_verified is being flipped to true and there's no prior
+  // verification timestamp, stamp it now. Same for unflipping → null both.
+  if ("pasha_verified" in sanitised) {
+    const v = sanitised.pasha_verified;
+    sanitised.pasha_verified_at = v === true ? new Date().toISOString() : null;
+    sanitised.pasha_verified_by = v === true ? user.email : null;
+  }
+
+  const { error: updErr } = await supabase
+    .from("databank")
+    .update(sanitised)
+    .eq("id", id);
+
+  if (updErr) {
+    return NextResponse.json({ error: updErr.message }, { status: 500 });
+  }
+
+  const priorRow = prior as unknown as Record<string, unknown>;
+  const diffPayload: Record<string, { prior: unknown; next: unknown }> = {};
+  for (const k of Object.keys(sanitised)) {
+    diffPayload[k] = { prior: priorRow[k], next: sanitised[k] };
+  }
+  const { error: auditErr } = await supabase.from("audit_log").insert({
+    actor_id: user.id,
+    actor_email: user.email,
+    action: "databank.update",
+    resource_type: "databank",
+    resource_id: id,
+    payload: diffPayload,
+  });
+  if (auditErr) console.error("audit_log insert failed:", auditErr.message);
+
+  return NextResponse.json({ ok: true, id });
+}
+
+export async function DELETE(req: Request) {
+  const { user, error } = await requireAdmin();
+  if (!user) return error!;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+  const { id } = parsed.data;
+
+  const supabase = createServiceClient();
+
+  // Snapshot the row so the audit log preserves what was deleted.
+  const { data: prior } = await supabase
+    .from("databank")
+    .select("startup_name, website, source")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!prior) {
+    return NextResponse.json({ error: "Row not found" }, { status: 404 });
+  }
+
+  const { error: delErr } = await supabase.from("databank").delete().eq("id", id);
+  if (delErr) {
+    return NextResponse.json({ error: delErr.message }, { status: 500 });
+  }
+
+  const { error: auditErr } = await supabase.from("audit_log").insert({
+    actor_id: user.id,
+    actor_email: user.email,
+    action: "databank.delete",
+    resource_type: "databank",
+    resource_id: id,
+    payload: { prior },
+  });
+  if (auditErr) console.error("audit_log insert failed:", auditErr.message);
+
+  return NextResponse.json({ ok: true, id });
+}

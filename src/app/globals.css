@@ -1,0 +1,210 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --font-inter: "Inter", sans-serif;
+  --font-jetbrains: "JetBrains Mono", monospace;
+  --font-serif: "Source Serif 4", serif;
+}
+
+@theme {
+  /* P@SHA brand */
+  --color-pasha-red: #E6160F;
+  --color-pasha-red-dark: #B5100B;
+  --color-pasha-red-light: #FF3329;
+  --color-pasha-ink: #0E0E10;
+  --color-pasha-stone: #F6F6F4;
+  --color-pasha-line: #E5E5E2;
+  --color-pasha-muted: #6B6B6B;
+
+  /* Tier accents */
+  --color-tier-featured: #15803D;
+  --color-tier-listed: #2563EB;
+  --color-tier-watchlist: #C2410C;
+  --color-tier-excluded: #6B7280;
+
+  /* Surface tokens */
+  --color-background: #ffffff;
+  --color-foreground: var(--color-pasha-ink);
+  --color-card: #ffffff;
+  --color-border: var(--color-pasha-line);
+  --color-muted: var(--color-pasha-muted);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: "Source Serif Pro", "Source Serif 4", Georgia, "Times New Roman", serif;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  ::selection {
+    background: var(--color-pasha-red);
+    color: white;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(14, 14, 16, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(14, 14, 16, 0.04) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .bg-mesh {
+    background:
+      radial-gradient(at 20% 20%, rgba(230, 22, 15, 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 60%, rgba(230, 22, 15, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(230, 22, 15, 0.04) 0px, transparent 50%);
+  }
+
+  /* Subtle marquee for committee strip */
+  @keyframes scroll-x {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: scroll-x 40s linear infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230, 22, 15, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(230, 22, 15, 0); }
+  }
+
+  .animate-pulse-red {
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "zero", "cv01";
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     ANIMATION UTILITIES — homepage interactivity
+     ───────────────────────────────────────────────────────── */
+
+  /* Slow floating orb drift for hero/CTA backgrounds */
+  @keyframes float-slow {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(30px, -40px) scale(1.05); }
+    66%      { transform: translate(-20px, 25px) scale(0.95); }
+  }
+  .animate-float-slow {
+    animation: float-slow 18s ease-in-out infinite;
+  }
+
+  @keyframes float-slower {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-35px, 30px) scale(1.08); }
+  }
+  .animate-float-slower {
+    animation: float-slower 24s ease-in-out infinite;
+  }
+
+  /* Gradient shimmer behind accent text */
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease-in-out infinite;
+  }
+
+  /* Soft pulse for stat dots / "live" indicators */
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(1.15); }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-in-out infinite;
+  }
+
+  /* Scroll-indicator bounce */
+  @keyframes scroll-bounce {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50%      { transform: translateY(8px); opacity: 1; }
+  }
+  .animate-scroll-bounce {
+    animation: scroll-bounce 1.8s ease-in-out infinite;
+  }
+
+  /* Glowing ring around CTA buttons */
+  @keyframes glow-ring {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230, 22, 15, 0.45); }
+    50%      { box-shadow: 0 0 0 18px rgba(230, 22, 15, 0); }
+  }
+  .animate-glow-ring {
+    animation: glow-ring 2.6s ease-in-out infinite;
+  }
+
+  /* Vertical marquees — used by the hero scrolling columns */
+  @keyframes scroll-y-up {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-50%); }
+  }
+  @keyframes scroll-y-down {
+    from { transform: translateY(-50%); }
+    to   { transform: translateY(0); }
+  }
+  .animate-scroll-y-up {
+    animation: scroll-y-up linear infinite;
+  }
+  .animate-scroll-y-down {
+    animation: scroll-y-down linear infinite;
+  }
+
+  /* Pause marquee animations when the user hovers — lets them read cards */
+  .group:hover .pause-on-hover {
+    animation-play-state: paused;
+  }
+
+  /* Soft ping — used on wizard stepper's active circle */
+  @keyframes ping-soft {
+    0%   { transform: scale(1);   opacity: 0.6; }
+    80%  { transform: scale(1.4); opacity: 0;   }
+    100% { transform: scale(1.4); opacity: 0;   }
+  }
+  .animate-ping-soft {
+    animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  /* Smooth scroll for the whole document */
+  html {
+    scroll-behavior: smooth;
+  }
+}
