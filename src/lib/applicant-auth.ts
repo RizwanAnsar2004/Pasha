@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 
 /**
  * Applicant accounts are ordinary Supabase Auth users that are NOT in the
@@ -86,6 +87,72 @@ export const getApplicantDraft = cache(async (userId: string): Promise<Applicant
     ),
   };
 });
+
+export type ApplicantSubmissionStatus = {
+  /** Raw submissions.status (legacy 'pending'/'watchlist' tolerated). */
+  status: string;
+  /** Committee notes — shown to the applicant on "Needs Update"/"Rejected". */
+  reviewerNotes: string | null;
+  /** databank.pasha_verified for the published row (only when approved). */
+  pashaVerified: boolean;
+  /** An active featured window exists for the published row. */
+  featuredActive: boolean;
+};
+
+/**
+ * Load the workflow state of an applicant's submission for the dashboard.
+ * Derives Verified/Featured from the published databank row (only meaningful
+ * once approved). Safe before migrations: returns sensible defaults on error.
+ */
+export const getApplicantSubmissionStatus = cache(
+  async (submissionId: string): Promise<ApplicantSubmissionStatus | null> => {
+    const supabase = createServiceClient();
+    const { data: sub, error } = await supabase
+      .from("submissions")
+      .select("status, reviewer_notes, startup_name")
+      .eq("id", submissionId)
+      .maybeSingle<{ status: string | null; reviewer_notes: string | null; startup_name: string | null }>();
+    if (error || !sub) return null;
+
+    let pashaVerified = false;
+    let featuredActive = false;
+
+    if (sub.status === "approved") {
+      let databankId: string | null = null;
+      const { data: bySource } = await supabase
+        .from("databank")
+        .select("id, pasha_verified")
+        .eq("source_id", submissionId)
+        .maybeSingle<{ id: string; pasha_verified: boolean | null }>();
+      if (bySource?.id) {
+        databankId = bySource.id;
+        pashaVerified = Boolean(bySource.pasha_verified);
+      } else if (sub.startup_name) {
+        const { data: byName } = await supabase
+          .from("databank")
+          .select("id, pasha_verified")
+          .ilike("startup_name", sub.startup_name)
+          .limit(1)
+          .maybeSingle<{ id: string; pasha_verified: boolean | null }>();
+        if (byName?.id) {
+          databankId = byName.id;
+          pashaVerified = Boolean(byName.pasha_verified);
+        }
+      }
+      if (databankId) {
+        const featured = await getFeaturedStatusByDatabankId(databankId).catch(() => null);
+        featuredActive = featured?.status === "active";
+      }
+    }
+
+    return {
+      status: sub.status ?? "submitted",
+      reviewerNotes: sub.reviewer_notes ?? null,
+      pashaVerified,
+      featuredActive,
+    };
+  }
+);
 
 export type RegisterResult =
   | { status: "needs_verification"; userId: string }

@@ -4,23 +4,51 @@ import { redirect } from "next/navigation";
 import {
   CheckCircle2,
   ArrowRight,
-  FileText,
-  Clock,
   Sparkles,
   Building2,
   MapPin,
   Phone,
   Layers,
   Tag,
+  ClipboardList,
+  AlertCircle,
+  BadgeCheck,
+  Star,
+  Clock,
 } from "lucide-react";
-import { getApplicantContext, getApplicantDraft } from "@/lib/applicant-auth";
+import {
+  getApplicantContext,
+  getApplicantDraft,
+  getApplicantSubmissionStatus,
+} from "@/lib/applicant-auth";
 import { getFormConfig } from "@/lib/form-config.server";
 import { getOptionRegistry } from "@/lib/option-lists.server";
-import { stepsOf } from "@/lib/form-config";
+import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/profile-completion";
+import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
 
 export const metadata: Metadata = {
   title: "Your application",
   alternates: { canonical: "/apply" },
+};
+
+// Tailwind classes per stage tone (badge + accent).
+const TONE: Record<string, { badge: string; bar: string; ring: string }> = {
+  neutral: { badge: "bg-pasha-stone/80 text-pasha-ink/70", bar: "bg-pasha-ink/60", ring: "border-pasha-line" },
+  info: { badge: "bg-sky-50 text-sky-700", bar: "bg-sky-500", ring: "border-sky-200" },
+  warn: { badge: "bg-amber-50 text-amber-800", bar: "bg-amber-500", ring: "border-amber-200" },
+  success: { badge: "bg-green-600/10 text-green-700", bar: "bg-green-600", ring: "border-green-200" },
+  danger: { badge: "bg-pasha-red/10 text-pasha-red", bar: "bg-pasha-red", ring: "border-pasha-red/20" },
+  gold: { badge: "bg-amber-100 text-amber-800", bar: "bg-amber-400", ring: "border-amber-300" },
+};
+
+const STAGE_ICON: Record<WorkflowStage, typeof CheckCircle2> = {
+  draft: ClipboardList,
+  submitted: Clock,
+  needs_update: AlertCircle,
+  rejected: AlertCircle,
+  approved: CheckCircle2,
+  verified: BadgeCheck,
+  featured: Star,
 };
 
 export default async function ApplicantOverviewPage() {
@@ -36,31 +64,45 @@ export default async function ApplicantOverviewPage() {
     getFormConfig(),
     getOptionRegistry(),
   ]);
-  const totalSteps = config ? stepsOf(config).length : 0;
 
-  const status: "submitted" | "in_progress" | "not_started" = draft.submitted
-    ? "submitted"
-    : draft.started
-    ? "in_progress"
-    : "not_started";
+  // Workflow status of the (latest) submission, if any.
+  const submissionStatus = draft.submission_id
+    ? await getApplicantSubmissionStatus(draft.submission_id)
+    : null;
 
-  // The §3 fields captured at registration live in the draft (keyed by
-  // field_key). Surface them as a read-only snapshot + greeting.
+  const stage = deriveStage({
+    submitted: Boolean(submissionStatus),
+    status: submissionStatus?.status,
+    pashaVerified: submissionStatus?.pashaVerified,
+    featuredActive: submissionStatus?.featuredActive,
+  });
+  const meta = stageMeta(stage);
+  const tone = TONE[meta.tone] ?? TONE.neutral;
+  const StageIcon = STAGE_ICON[stage] ?? ClipboardList;
+
+  // The form is editable while the applicant owns it: never submitted, or the
+  // committee reopened it for changes (Needs Update resets submitted_at).
+  const editable = !draft.submitted;
+
+  // §12 completion ladder, from the saved draft values. Field labels in the
+  // hints come from the live form config (falls back to built-in names).
+  const completion = computeCompletion(draft.data, config ? fieldLabelMap(config) : undefined);
+  // Dashboard modules mirror the application's actual steps (title + subtitle +
+  // per-step progress) so they stay in sync with the form builder.
+  const modules = config ? computeFormModules(config, draft.data) : [];
+
+  // ---- Registration snapshot (from §3 fields stored in the draft) ----------
   const d = draft.data as Record<string, unknown>;
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
   const labelFromList = (listKey: string, value: unknown): string => {
     if (typeof value !== "string" || !value) return "";
     return optionLists[listKey]?.find((o) => o.value === value)?.label ?? value;
   };
-
   const fullName = str("full_name");
   const firstName = fullName.split(/\s+/)[0] || "";
   const startupName = str("startup_name");
   const tagline = str("tagline");
-  const location = [str("hq_city") || str("hq_other"), str("hq_country")]
-    .filter(Boolean)
-    .join(", ");
-
+  const location = [str("hq_city") || str("hq_other"), str("hq_country")].filter(Boolean).join(", ");
   const startupFacts = [
     { icon: Tag, label: "Tagline", value: tagline },
     { icon: Layers, label: "Stage", value: labelFromList("STAGES", d["stage"]) },
@@ -68,8 +110,15 @@ export default async function ApplicantOverviewPage() {
     { icon: MapPin, label: "Location", value: location },
     { icon: Phone, label: "Mobile / WhatsApp", value: str("founder_mobile") },
   ].filter((f) => f.value);
-
   const greetingName = firstName || startupName;
+
+  // CTA target + label by stage.
+  const cta =
+    editable
+      ? { href: "/apply/form", label: draft.started ? "Continue application" : "Start application" }
+      : stage === "submitted"
+      ? { href: "/apply/form", label: "View application" }
+      : { href: "/directory", label: "Browse the directory" };
 
   return (
     <div className="space-y-6">
@@ -83,7 +132,7 @@ export default async function ApplicantOverviewPage() {
         </p>
       </div>
 
-      {/* Startup snapshot — from the details captured at registration */}
+      {/* Startup snapshot — identity captured at registration (profile header) */}
       {(startupName || startupFacts.length > 0) && (
         <div className="rounded-2xl border border-pasha-line bg-white p-6 sm:p-7">
           <div className="flex items-start gap-3">
@@ -91,12 +140,8 @@ export default async function ApplicantOverviewPage() {
               <Building2 className="w-5 h-5 text-pasha-red" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-medium text-pasha-ink truncate">
-                {startupName || "Your startup"}
-              </h2>
-              <p className="text-xs text-pasha-muted">
-                From your registration — you can refine these in the application.
-              </p>
+              <h2 className="font-medium text-pasha-ink truncate">{startupName || "Your startup"}</h2>
+              <p className="text-xs text-pasha-muted">From your registration — refine these in the application.</p>
             </div>
           </div>
           {startupFacts.length > 0 && (
@@ -117,99 +162,129 @@ export default async function ApplicantOverviewPage() {
         </div>
       )}
 
-      {/* Status card */}
-      <div className="rounded-2xl border border-pasha-line bg-white p-6 sm:p-7">
-        {status === "submitted" ? (
-          <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-600/10 grid place-items-center">
-                <CheckCircle2 className="w-5 h-5 text-green-700" />
-              </div>
-              <div>
-                <h2 className="font-medium text-pasha-ink">Application submitted</h2>
-                <p className="text-sm text-pasha-muted">
-                  The committee reviews submissions weekly — you&apos;ll hear back by email.
-                </p>
-              </div>
+      {/* Status + completion — one hero card (spec §12) */}
+      <div className={`rounded-2xl border bg-white p-6 sm:p-7 ${tone.ring}`}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${tone.badge}`}>
+              <StageIcon className="w-5 h-5" />
             </div>
+            <div className="min-w-0">
+              <h2 className="font-medium text-pasha-ink">{meta.label}</h2>
+              <p className="mt-1 text-sm text-pasha-muted">{meta.blurb}</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="font-serif text-4xl text-pasha-ink tabular-nums leading-none">
+              {completion.percent}%
+            </div>
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-[2px] text-pasha-red">
+              Profile complete
+            </div>
+          </div>
+        </div>
+
+        {/* Committee notes on Needs Update / Rejected */}
+        {(stage === "needs_update" || stage === "rejected") && submissionStatus?.reviewerNotes ? (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="font-medium">Committee notes: </span>
+            {submissionStatus.reviewerNotes}
+          </div>
+        ) : null}
+
+        <div className="mt-5 h-2 rounded-full bg-pasha-line/60 overflow-hidden">
+          <div className="h-full rounded-full bg-pasha-red transition-all" style={{ width: `${completion.percent}%` }} />
+        </div>
+
+        {/* Level milestones — the highlighted chip is the current completion level */}
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {completion.levels.map((lvl) => (
+            <div
+              key={lvl.key}
+              className={`rounded-lg border px-3 py-2 text-center ${
+                lvl.met ? "border-green-200 bg-green-50" : "border-pasha-line bg-white"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                {lvl.met ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                ) : (
+                  <span className="text-[11px] font-mono text-pasha-muted">{lvl.percent}%</span>
+                )}
+              </div>
+              <div className="mt-1 text-[11px] leading-tight text-pasha-ink/80">{lvl.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {completion.nextLevel && completion.nextLevel.missing.length > 0 && (
+          <p className="mt-4 text-sm text-pasha-muted">
+            <span className="font-medium text-pasha-ink">
+              Next — {completion.nextLevel.label} ({completion.nextLevel.percent}%):
+            </span>{" "}
+            add {completion.nextLevel.missing.map((m) => m.label).join(", ")}.
+          </p>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <Link
+            href={cta.href}
+            className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
+          >
+            {stage === "needs_update" ? "Edit & resubmit" : cta.label}
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          {(stage === "approved" || stage === "verified" || stage === "featured") && (
             <Link
               href="/directory"
-              className="mt-6 group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
+              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-5 py-2.5 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-all"
             >
               Browse the directory
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-          </>
-        ) : status === "in_progress" ? (
-          <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pasha-red/10 grid place-items-center">
-                <Clock className="w-5 h-5 text-pasha-red" />
-              </div>
-              <div>
-                <h2 className="font-medium text-pasha-ink">Application in progress</h2>
-                <p className="text-sm text-pasha-muted">
-                  {totalSteps > 0
-                    ? `You're on step ${Math.min(draft.current_step + 1, totalSteps)} of ${totalSteps}.`
-                    : "Pick up where you left off."}
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/apply/form"
-              className="mt-6 group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-            >
-              Continue application
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-pasha-stone grid place-items-center">
-                <FileText className="w-5 h-5 text-pasha-ink/70" />
-              </div>
-              <div>
-                <h2 className="font-medium text-pasha-ink">Ready when you are</h2>
-                <p className="text-sm text-pasha-muted">
-                  {totalSteps > 0
-                    ? `${totalSteps} quick steps. Takes about 8 minutes.`
-                    : "A few quick steps. Takes about 8 minutes."}
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/apply/form"
-              className="mt-6 group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-            >
-              Start application
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* What happens next */}
-      {status !== "submitted" && (
-        <div className="rounded-2xl border border-pasha-line bg-white p-6 sm:p-7">
-          <h3 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-red flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            What happens next
+      {/* Dashboard modules — one card per application step (spec §12) */}
+      {modules.length > 0 && (
+        <div>
+          <h3 className="mb-3 font-mono text-[10px] uppercase tracking-[2px] text-pasha-red">
+            Application steps
           </h3>
-          <ul className="mt-4 space-y-3 text-sm text-pasha-ink/85 leading-relaxed">
-            <li className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red" aria-hidden />
-              <span>Fill the form step by step — it saves as you go, no need to finish in one sitting.</span>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red" aria-hidden />
-              <span>Submit when you&apos;re ready. The P@SHA committee reviews submissions weekly.</span>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-pasha-red" aria-hidden />
-              <span>You&apos;ll get an email once your profile is approved and live on the directory.</span>
-            </li>
-          </ul>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {modules.map((m) => (
+              <div key={m.step} className="rounded-2xl border border-pasha-line bg-white p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-pasha-ink">
+                      <span className="font-mono text-xs text-pasha-muted mr-1.5">
+                        {String(m.step + 1).padStart(2, "0")}
+                      </span>
+                      {m.title}
+                    </h4>
+                    {m.subtitle && (
+                      <p className="mt-0.5 text-xs text-pasha-muted leading-relaxed">{m.subtitle}</p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-xs font-mono text-pasha-muted tabular-nums">
+                    {m.filled}/{m.total}
+                  </span>
+                </div>
+                <div className="mt-3 h-1.5 rounded-full bg-pasha-line/60 overflow-hidden">
+                  <div className="h-full rounded-full bg-pasha-red/80 transition-all" style={{ width: `${m.percent}%` }} />
+                </div>
+                {editable && (
+                  <Link
+                    href={`/apply/form?step=${m.step}`}
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm text-pasha-red hover:text-pasha-red-dark font-medium"
+                  >
+                    {m.percent >= 100 ? "Review" : "Complete"}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -4,11 +4,12 @@ import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star } from "lucide-react";
+import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, BadgeCheck } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/safe-url";
+import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/workflow";
 
 type Row = {
   id: string;
@@ -37,7 +38,7 @@ type FeaturedStatus = {
 export function SubmissionsClient({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "watchlist">("all");
+  const [filter, setFilter] = useState<"all" | "submitted" | "needs_update" | "approved" | "rejected">("all");
   // Initialise from ?id= query param on mount so deep-linked submissions
   // open immediately without a cascading setState inside an effect.
   const [openId, setOpenId] = useState<string | null>(() => {
@@ -75,7 +76,7 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
   const filtered = useMemo(() => {
     const needle = q.toLowerCase().trim();
     return rows.filter((r) => {
-      if (filter !== "all" && r.status !== filter) return false;
+      if (filter !== "all" && rowStage(r.status) !== filter) return false;
       if (!needle) return true;
       return [r.startup_name, r.founder_name, r.founder_email, r.primary_sector]
         .filter(Boolean)
@@ -100,9 +101,9 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
         <div className="flex gap-1.5 overflow-x-auto">
           {[
             { v: "all", label: "All" },
-            { v: "pending", label: "Pending" },
+            { v: "submitted", label: "Submitted" },
+            { v: "needs_update", label: "Needs Update" },
             { v: "approved", label: "Approved" },
-            { v: "watchlist", label: "Watchlist" },
             { v: "rejected", label: "Rejected" },
           ].map((f) => (
             <button
@@ -231,18 +232,32 @@ function TierBadge({ tier, score }: { tier: string; score: number }) {
   );
 }
 
+// Map a raw submissions.status to a workflow stage for the table/badge
+// (verified/featured need databank info, so the table tops out at "approved").
+function rowStage(status: string | null): WorkflowStage {
+  return deriveStage({ submitted: true, status });
+}
+
+const TONE_BADGE: Record<string, string> = {
+  neutral: "bg-pasha-stone/80 text-pasha-ink/70",
+  info: "bg-sky-50 text-sky-700",
+  warn: "bg-amber-50 text-amber-800",
+  success: "bg-tier-featured/10 text-tier-featured",
+  danger: "bg-pasha-red/10 text-pasha-red",
+  gold: "bg-amber-100 text-amber-800",
+};
+
 function StatusBadge({ status }: { status: string }) {
+  const stage = rowStage(status);
+  const meta = STAGE_META[stage];
   return (
     <span
       className={cn(
         "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono uppercase tracking-[1px]",
-        status === "pending" && "bg-pasha-stone/80 text-pasha-ink/70",
-        status === "approved" && "bg-tier-featured/10 text-tier-featured",
-        status === "rejected" && "bg-pasha-red/10 text-pasha-red",
-        status === "watchlist" && "bg-tier-watchlist/10 text-tier-watchlist"
+        TONE_BADGE[meta.tone] ?? TONE_BADGE.neutral
       )}
     >
-      {status}
+      {meta.label}
     </span>
   );
 }
@@ -285,7 +300,9 @@ function SubmissionDrawer({
   onUpdated: (r: Partial<Row> & { id: string }) => void;
 }) {
   const [row, setRow] = useState<FullRow | null>(null);
-  const [acting, setActing] = useState<null | "approve" | "reject" | "watchlist">(null);
+  const [acting, setActing] = useState<null | "approve" | "reject" | "needs_update" | "verify">(null);
+  const [notes, setNotes] = useState("");
+  const [verified, setVerified] = useState(false);
   // The matching databank row's id, if this submission has been approved
   // and materialised into the public directory. Powers the "Edit listing"
   // link in the drawer footer.
@@ -294,6 +311,7 @@ function SubmissionDrawer({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- portal mount flag + body scroll lock
     setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -304,9 +322,11 @@ function SubmissionDrawer({
 
   useEffect(() => {
     let cancel = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset drawer state when the opened id changes
     setRow(null);
     setDatabankId(null);
     setFeaturedStatus(null);
+    setVerified(false);
 
     (async () => {
       const res = await fetch(`/api/admin/submission?id=${encodeURIComponent(id)}`, {
@@ -317,6 +337,8 @@ function SubmissionDrawer({
       setRow(j.submission as FullRow);
       setDatabankId(j.databank_id ?? null);
       setFeaturedStatus(j.featured ?? null);
+      setVerified(Boolean(j.verified));
+      setNotes(String((j.submission as FullRow)?.reviewer_notes ?? ""));
     })();
 
     return () => {
@@ -324,19 +346,33 @@ function SubmissionDrawer({
     };
   }, [id]);
 
-  const act = async (newStatus: "approved" | "rejected" | "watchlist") => {
-    setActing(newStatus === "approved" ? "approve" : newStatus === "rejected" ? "reject" : "watchlist");
+  const act = async (newStatus: "approved" | "rejected" | "needs_update") => {
+    setActing(newStatus === "approved" ? "approve" : newStatus === "rejected" ? "reject" : "needs_update");
     try {
       // Use the admin API route so writes go through is_admin() check + audit log
       const res = await fetch("/api/admin/submission", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: newStatus }),
+        body: JSON.stringify({ id, status: newStatus, reviewer_notes: notes || undefined }),
       });
       if (res.ok) {
         onUpdated({ id, status: newStatus });
         setRow((r) => (r ? { ...r, status: newStatus } : r));
       }
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const toggleVerify = async () => {
+    setActing("verify");
+    try {
+      const res = await fetch("/api/admin/submission", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "verify", verified: !verified }),
+      });
+      if (res.ok) setVerified((v) => !v);
     } finally {
       setActing(null);
     }
@@ -399,7 +435,13 @@ function SubmissionDrawer({
                 ) : null}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {row.vetting_tier ? <TierBadge tier={String(row.vetting_tier)} score={Number(row.vetting_score ?? 0)} /> : null}
-                  <StatusBadge status={String(row.status ?? "pending")} />
+                  <StatusBadge status={String(row.status ?? "submitted")} />
+                  {verified ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-green-600/10 text-green-700">
+                      <BadgeCheck className="w-3 h-3" />
+                      Verified
+                    </span>
+                  ) : null}
                   {featuredStatus ? <FeaturedBadge status={featuredStatus} /> : null}
                 </div>
                 {featuredStatus ? (
@@ -565,50 +607,73 @@ function SubmissionDrawer({
             ) : null}
           </div>
         )}
-        <div className="flex shrink-0 items-center gap-2 border-t border-pasha-line bg-pasha-stone/30 px-6 py-4">
+        <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-6 py-4 space-y-3">
           {!isApproved && row ? (
-            <>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Notes for the applicant — shown on Needs Update / Not accepted…"
+              className="w-full rounded-lg border border-pasha-line bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            />
+          ) : null}
+          <div className="flex items-center gap-2">
+            {!isApproved && row ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => act("rejected")}
+                  disabled={!!acting}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
+                >
+                  {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  onClick={() => act("needs_update")}
+                  disabled={!!acting}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                >
+                  {acting === "needs_update" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Request update
+                </button>
+              </>
+            ) : null}
+            {isApproved && row ? (
               <button
                 type="button"
-                onClick={() => act("rejected")}
-                disabled={!!acting}
-                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
+                onClick={toggleVerify}
+                disabled={!!acting || !databankId}
+                title={databankId ? undefined : "No published directory row to verify"}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-50 transition-colors"
               >
-                {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                Reject
+                {acting === "verify" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BadgeCheck className="w-3.5 h-3.5" />}
+                {verified ? "Unverify" : "Verify"}
               </button>
+            ) : null}
+            {databankId ? (
+              <Link
+                href={`/admin/databank/${databankId}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-ink hover:border-pasha-ink/30 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit listing
+              </Link>
+            ) : null}
+            <div className="flex-1" />
+            {!isApproved && row ? (
               <button
                 type="button"
-                onClick={() => act("watchlist")}
+                onClick={() => act("approved")}
                 disabled={!!acting}
-                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-tier-watchlist hover:bg-tier-watchlist/6 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full bg-pasha-red px-5 py-2 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark disabled:opacity-50 transition-colors"
               >
-                {acting === "watchlist" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Watchlist
+                {acting === "approve" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Approve
               </button>
-            </>
-          ) : null}
-          {databankId ? (
-            <Link
-              href={`/admin/databank/${databankId}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-ink hover:border-pasha-ink/30 transition-colors"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              Edit listing
-            </Link>
-          ) : null}
-          <div className="flex-1" />
-          {!isApproved && row ? (
-            <button
-              type="button"
-              onClick={() => act("approved")}
-              disabled={!!acting}
-              className="inline-flex items-center gap-1.5 rounded-full bg-pasha-red px-5 py-2 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark disabled:opacity-50 transition-colors"
-            >
-              {acting === "approve" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-              Approve
-            </button>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </motion.aside>
     </>

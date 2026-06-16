@@ -18,6 +18,7 @@ import {
 } from "@/lib/form-config";
 import { DynamicField } from "./DynamicField";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
+import { computeCompletion, fieldLabelMap } from "@/lib/profile-completion";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -83,6 +84,12 @@ export function DynamicForm({
 
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
+
+  // Spec §12 gate: submission requires Public Profile Ready (50%). We compute
+  // it live so the button enables the moment the last required field is filled.
+  const fieldLabels = useMemo(() => fieldLabelMap(config), [config]);
+  const completion = useMemo(() => computeCompletion(values, fieldLabels), [values, fieldLabels]);
+  const canSubmit = completion.publicProfileMet;
 
   // Hydrate draft once (localStorage only). In server-persist mode the draft is
   // seeded into `defaults` from the DB, so there's nothing to restore here.
@@ -358,6 +365,16 @@ export function DynamicForm({
               {error}
             </motion.div>
           )}
+
+          {isLast && !canSubmit && (
+            <div className="mt-6 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">Reach Public Profile Ready (50%) to submit</p>
+              <p className="mt-1 text-amber-800/90">
+                Still needed:{" "}
+                {completion.publicProfileMissing.map((m) => m.label).join(", ")}.
+              </p>
+            </div>
+          )}
         </form>
 
         <div className="px-6 sm:px-8 py-5 border-t border-pasha-line/60 bg-pasha-stone/30 flex items-center justify-between gap-3">
@@ -385,10 +402,11 @@ export function DynamicForm({
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                if (submitting) return;
+                if (submitting || !canSubmit) return;
                 form.handleSubmit(onSubmit, onInvalid)();
               }}
-              disabled={submitting}
+              disabled={submitting || !canSubmit}
+              title={canSubmit ? undefined : "Reach Public Profile Ready (50%) to submit"}
               className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-red px-7 py-3 text-sm font-medium text-white shadow-xl shadow-pasha-red/30 hover:bg-pasha-red-dark hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {submitting ? (

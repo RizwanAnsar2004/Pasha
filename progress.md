@@ -5,6 +5,39 @@
 
 _Last updated: 2026-06-16_
 
+### Profile completion ladder + 6-state workflow — spec §12 (2026-06-16)
+The applicant dashboard now shows the §12 completion ladder and the full
+submission workflow; submission is gated at 50%.
+
+- **Completion engine** `src/lib/profile-completion.ts` (isomorphic): the 5
+  cumulative levels (Draft 25 → Public Profile Ready 50 → Business Profile 75 →
+  Featured Eligible 90 → Investor Ready 100) + 5 dashboard modules, mapped to the
+  §4–§11 `field_key`s. `computeCompletion(data)` → percent/level/benefit/next +
+  per-module progress + `publicProfileMet/Missing`.
+- **Workflow** `src/lib/workflow.ts` (isomorphic): `deriveStage()` +
+  `STAGE_META` for the 6 states (Draft/Submitted/Needs Update/Approved/Verified/
+  Featured, + Rejected). Verified = `databank.pasha_verified`, Featured =
+  `featured_startups` (reused, not duplicated).
+- **Migration (PENDING)** `supabase/migrations/20260622_profile_workflow.sql`:
+  `pending`→`submitted` (+ default), adds `submissions.completion_score`. The new
+  `needs_update` status needs no DDL (status is free TEXT).
+- **Applicant dashboard** `apply/(portal)/page.tsx`: completion card (level + %
+  + milestones + next-level hint), workflow status card (badge + spec visibility
+  blurb + committee notes on Needs Update/Rejected + stage-aware CTA), 5 module
+  cards deep-linking to `/apply/form?step=N`. `getApplicantSubmissionStatus()`
+  (applicant-auth) loads status + verified/featured.
+- **50% gate**: `DynamicForm` disables Submit < 50% with a missing-field hint;
+  `api/submit` enforces it server-side, stores `completion_score`, and on
+  resubmit **updates the existing submission** (status→submitted) instead of
+  inserting a duplicate.
+- **Admin 6-state** `api/admin/submission` + `SubmissionsClient`: statuses extend
+  to submitted/needs_update; **Request update** (with notes) reopens the
+  applicant draft (`submitted_at=null`); **Verify** toggles `pasha_verified` on
+  the published row; approve→databank publish unchanged. Badges/filters driven by
+  `STAGE_META`.
+- `?step=` deep-link added to `apply/(portal)/form/page.tsx`.
+- Lint + `tsc --noEmit` clean.
+
 ### Registration form (spec §3) + email verification (2026-06-16)
 Sign-up now collects the §3 minimum fields, is **admin-customizable**, and
 requires **email verification** before login.
