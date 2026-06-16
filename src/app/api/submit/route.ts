@@ -5,6 +5,7 @@ import { scoreVetting } from "@/lib/vetting";
 import { getFormConfig } from "@/lib/form-config.server";
 import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/form-config";
 import { getApplicantUser } from "@/lib/applicant-auth";
+import { computeCompletion, fieldLabelMap } from "@/lib/profile-completion";
 
 export async function POST(req: Request) {
   try {
@@ -36,17 +37,40 @@ export async function POST(req: Request) {
     const labelMap = config ? buildFieldLabelMap(config) : {};
     let cols: Record<string, unknown>;
     let answers: Record<string, unknown> = {};
+    // Field-key-keyed values (before column routing) — what the §12 completion
+    // engine reads.
+    let formData: Record<string, unknown>;
 
     if (config && config.length > 0) {
       const parsed = buildZodSchema(config).safeParse(body);
       if (!parsed.success) return validationError(parsed.error.issues, labelMap);
-      const routed = routeValues(config, parsed.data as Record<string, unknown>);
+      formData = parsed.data as Record<string, unknown>;
+      const routed = routeValues(config, formData);
       cols = routed.columns;
       answers = routed.answers;
     } else {
       const parsed = submissionSchema.safeParse(body);
       if (!parsed.success) return validationError(parsed.error.issues, labelMap);
       cols = parsed.data as unknown as Record<string, unknown>;
+      formData = cols;
+    }
+
+    // Spec §12 gate: a profile must reach Public Profile Ready (50%) before it
+    // can be submitted for review. The client disables the button too, but the
+    // server is the authority.
+    const completion = computeCompletion(
+      formData,
+      config && config.length > 0 ? fieldLabelMap(config) : undefined
+    );
+    if (!completion.publicProfileMet) {
+      const missing = completion.publicProfileMissing.map((m) => m.label).join(", ");
+      return NextResponse.json(
+        {
+          error: `Complete the Public Profile (50%) before submitting${missing ? ` — still needed: ${missing}` : ""}.`,
+          completion: { percent: completion.percent, missing: completion.publicProfileMissing },
+        },
+        { status: 400 }
+      );
     }
 
     // Helper: read a column value, coercing undefined → null for the insert.
@@ -114,6 +138,7 @@ export async function POST(req: Request) {
       "tagline",
       "answers",
       "user_id",
+      "completion_score",
     ] as const;
 
     const record: Record<string, unknown> = {
@@ -200,19 +225,40 @@ export async function POST(req: Request) {
       // ---- computed + audit
       vetting_score: vetting.score,
       vetting_tier: vetting.tier,
+      completion_score: completion.percent,
       source_ip: ip,
       user_agent: ua,
     };
 
-    async function insertWith(rec: Record<string, unknown>) {
-      return supabase
-        .from("submissions")
-        .insert(rec)
-        .select("id, vetting_score, vetting_tier")
-        .single();
+    // Resubmission: if this applicant already has a submission (e.g. after a
+    // "Needs Update"), update that row in place and move it back to
+    // "submitted" — don't create a duplicate. First-time submitters insert.
+    const { data: existingDraft } = await supabase
+      .from("application_drafts")
+      .select("submission_id")
+      .eq("user_id", user.id)
+      .maybeSingle<{ submission_id: string | null }>();
+    const existingSubmissionId = existingDraft?.submission_id ?? null;
+
+    if (existingSubmissionId) {
+      record.status = "submitted";
+      record.reviewed_at = null;
     }
 
-    let { data: row, error } = await insertWith(record);
+    async function persist(rec: Record<string, unknown>) {
+      const cols = "id, vetting_score, vetting_tier";
+      if (existingSubmissionId) {
+        return supabase
+          .from("submissions")
+          .update(rec)
+          .eq("id", existingSubmissionId)
+          .select(cols)
+          .single();
+      }
+      return supabase.from("submissions").insert(rec).select(cols).single();
+    }
+
+    let { data: row, error } = await persist(record);
 
     // Strip missing columns and retry (bounded). Two error shapes:
     //   PG direct:  `column "X" of relation "submissions" does not exist`
@@ -224,7 +270,7 @@ export async function POST(req: Request) {
       const colName = pg?.[1] ?? rest?.[1];
       if (!colName || !(colName in record)) break;
       delete record[colName];
-      ({ data: row, error } = await insertWith(record));
+      ({ data: row, error } = await persist(record));
     }
 
     if (error || !row) {

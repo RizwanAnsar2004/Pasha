@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/apply/form" },
 };
 
-export default async function ApplicantFormPage() {
+export default async function ApplicantFormPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ step?: string }>;
+}) {
   // The layout gates this section, but a layout redirect doesn't stop the page
   // from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
@@ -31,6 +35,12 @@ export default async function ApplicantFormPage() {
 
   // Already submitted → there's nothing to edit; send them to the overview.
   if (draft.submitted) redirect("/apply");
+
+  // Module cards on the dashboard deep-link to a specific step (?step=N,
+  // 0-based). Fall back to the auto-saved step. DynamicForm clamps the range.
+  const { step } = await searchParams;
+  const stepParam = step != null ? Number.parseInt(step, 10) : NaN;
+  const initialStep = Number.isFinite(stepParam) ? Math.max(0, stepParam) : draft.current_step;
 
   return (
     <div>
@@ -54,7 +64,7 @@ export default async function ApplicantFormPage() {
         <DynamicForm
           config={config}
           initialValues={draft.data}
-          initialStep={draft.current_step}
+          initialStep={initialStep}
           serverPersist
           optionLists={optionLists}
         />
