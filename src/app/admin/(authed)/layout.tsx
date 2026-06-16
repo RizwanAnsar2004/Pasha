@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { readAdminSession } from "@/lib/admin-session";
+import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import { PashaLogo } from "@/components/PashaLogo";
 import { AdminNav } from "./AdminNav";
 import { AdminUserMenu } from "./AdminUserMenu";
@@ -25,6 +26,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-pasha-stone/30">
+      <ApiUnauthorizedHandler realm="admin" />
       <header className="border-b border-pasha-line bg-white">
         <div className="mx-auto max-w-7xl px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
