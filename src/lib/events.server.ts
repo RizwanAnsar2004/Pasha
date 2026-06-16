@@ -1,0 +1,122 @@
+import { createServiceClient } from "@/lib/supabase/server";
+import { idPrefixFromSlug } from "@/lib/slug";
+import type { EventRow } from "@/lib/events";
+
+const EVENT_COLS =
+  "id,title,summary,about,event_type,status,registration_status,event_date,start_time,end_time,timezone,venue,location,format,organizer,expected_attendees,capacity,capacity_note,entry_type,registration_url,audience_items,agenda_items,speakers,partners,author_email,created_at,updated_at";
+
+function normalizeEvent(row: Record<string, unknown>): EventRow {
+  return {
+    ...row,
+    audience_items: Array.isArray(row.audience_items) ? row.audience_items : [],
+    agenda_items: Array.isArray(row.agenda_items) ? row.agenda_items : [],
+    speakers: Array.isArray(row.speakers) ? row.speakers : [],
+    partners: Array.isArray(row.partners) ? row.partners : [],
+  } as EventRow;
+}
+
+function isMissingTable(msg: string) {
+  return /events|does not exist/i.test(msg);
+}
+
+function nextHex(hex: string): string | null {
+  const n = parseInt(hex, 16);
+  if (!Number.isFinite(n) || n >= 0xffffffff) return null;
+  return (n + 1).toString(16).padStart(8, "0");
+}
+
+async function fetchEventByIdPrefix(prefix: string, publishedOnly: boolean) {
+  const lower = `${prefix}-0000-0000-0000-000000000000`;
+  const upperPrefix = nextHex(prefix);
+  if (!upperPrefix) return null;
+  const upper = `${upperPrefix}-0000-0000-0000-000000000000`;
+
+  const supabase = createServiceClient();
+  let query = supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .gte("id", lower)
+    .lt("id", upper)
+    .limit(1);
+
+  if (publishedOnly) query = query.eq("status", "published");
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    if (isMissingTable(error.message)) return null;
+    throw new Error(error.message);
+  }
+  return data ? normalizeEvent(data as Record<string, unknown>) : null;
+}
+
+export async function getEventsForAdmin(): Promise<EventRow[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .order("event_date", { ascending: false });
+
+  if (error) {
+    if (isMissingTable(error.message)) return [];
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
+}
+
+export async function getPublishedEvents(limit = 50): Promise<EventRow[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .eq("status", "published")
+    .order("event_date", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isMissingTable(error.message)) return [];
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
+}
+
+export async function getEventById(id: string): Promise<EventRow | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingTable(error.message)) return null;
+    throw new Error(error.message);
+  }
+  return data ? normalizeEvent(data as Record<string, unknown>) : null;
+}
+
+export async function getEventBySlug(slug: string): Promise<EventRow | null> {
+  const prefix = idPrefixFromSlug(slug);
+  if (!prefix) return null;
+  return fetchEventByIdPrefix(prefix, true);
+}
+
+export async function getRelatedEvents(
+  currentId: string,
+  eventType: string,
+  limit = 3
+): Promise<EventRow[]> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .eq("status", "published")
+    .neq("id", currentId)
+    .order("event_date", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isMissingTable(error.message)) return [];
+    return [];
+  }
+  return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
+}

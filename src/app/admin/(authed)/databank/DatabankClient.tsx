@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -44,6 +44,31 @@ export function DatabankClient({
   const [rowsState, setRowsState] = useState<Row[]>(initial.rows);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 2) {
+      setRowsState(initial.rows);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `/api/admin/databank?q=${encodeURIComponent(needle)}`,
+          { cache: "no-store" }
+        );
+        const j = await res.json();
+        if (res.ok) setRowsState(j.rows ?? []);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [q, initial.rows]);
 
   async function toggleVerified(id: string, next: boolean) {
     setPending((p) => ({ ...p, [id]: true }));
@@ -80,11 +105,13 @@ export function DatabankClient({
 
   const filtered = useMemo(() => {
     const needle = q.toLowerCase().trim();
+    const apiSearch = needle.length >= 2;
     return rowsState.filter((r) => {
       if (sector !== "all" && r.primary_industry !== sector) return false;
       if (outreach !== "all" && r.outreach_status !== outreach) return false;
       if (verifiedFilter === "yes" && !r.pasha_verified) return false;
       if (verifiedFilter === "no" && r.pasha_verified) return false;
+      if (apiSearch) return true;
       if (!needle) return true;
       return [
         r.startup_name,
@@ -196,7 +223,9 @@ export function DatabankClient({
         <span className="font-mono uppercase tracking-[2px] text-pasha-muted">
           {filtered.length} results · page {page}/{totalPages}
         </span>
-        <span className="text-pasha-muted">· Top 200 by revenue loaded</span>
+        <span className="text-pasha-muted">
+          · {q.trim().length >= 2 ? "Search results" : `Newest ${initial.rows.length} loaded`}
+        </span>
       </div>
 
       <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden">
@@ -216,7 +245,10 @@ export function DatabankClient({
               </tr>
             </thead>
             <tbody>
-              {paginated.map((r) => (
+              {searching ? (
+                Array.from({ length: 8 }).map((_, i) => <DatabankRowShimmer key={i} />)
+              ) : (
+                paginated.map((r) => (
                 <tr key={r.id} className="border-b border-pasha-line/60 hover:bg-pasha-stone/40">
                   <Td>
                     <div className="flex flex-col">
@@ -306,7 +338,8 @@ export function DatabankClient({
                     </div>
                   </Td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -336,6 +369,49 @@ export function DatabankClient({
         </div>
       )}
     </div>
+  );
+}
+
+function DatabankRowShimmer() {
+  return (
+    <tr className="border-b border-pasha-line/60">
+      <Td>
+        <div className="space-y-2">
+          <div className="h-4 w-36 rounded bg-pasha-stone animate-pulse" />
+          <div className="h-3 w-52 rounded bg-pasha-stone/70 animate-pulse" />
+        </div>
+      </Td>
+      <Td>
+        <div className="h-6 w-16 rounded-md bg-pasha-stone animate-pulse" />
+      </Td>
+      <Td>
+        <div className="space-y-1.5">
+          <div className="h-3 w-24 rounded bg-pasha-stone animate-pulse" />
+          <div className="h-2.5 w-16 rounded bg-pasha-stone/70 animate-pulse" />
+        </div>
+      </Td>
+      <Td>
+        <div className="space-y-1.5">
+          <div className="h-3 w-20 rounded bg-pasha-stone animate-pulse" />
+          <div className="h-2.5 w-32 rounded bg-pasha-stone/70 animate-pulse" />
+        </div>
+      </Td>
+      <Td>
+        <div className="h-3 w-10 rounded bg-pasha-stone animate-pulse" />
+      </Td>
+      <Td>
+        <div className="h-3 w-20 rounded bg-pasha-stone animate-pulse" />
+      </Td>
+      <Td>
+        <div className="h-3 w-16 rounded bg-pasha-stone animate-pulse" />
+      </Td>
+      <Td>
+        <div className="h-5 w-20 rounded-md bg-pasha-stone animate-pulse" />
+      </Td>
+      <Td>
+        <div className="h-3 w-8 rounded bg-pasha-stone animate-pulse" />
+      </Td>
+    </tr>
   );
 }
 

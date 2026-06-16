@@ -1,4 +1,8 @@
-import { LogOut } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 function emailInitial(email: string) {
@@ -8,7 +12,20 @@ function emailInitial(email: string) {
 }
 
 export function AdminUserMenu({ email }: { email: string }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const initial = emailInitial(email);
+
+  async function signOut() {
+    setLoading(true);
+    try {
+      await fetch("/api/admin/auth", { method: "DELETE" });
+      router.replace("/admin/login");
+      router.refresh();
+    } catch {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="flex items-center gap-3">
@@ -26,12 +43,14 @@ export function AdminUserMenu({ email }: { email: string }) {
           {email}
         </span>
       </div>
-      <form action="/admin/logout" method="post">
-        <Button type="submit" variant="outline" size="sm">
+      <Button type="button" variant="outline" size="sm" onClick={signOut} disabled={loading}>
+        {loading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
           <LogOut className="w-3.5 h-3.5" />
-          Sign out
-        </Button>
-      </form>
+        )}
+        Sign out
+      </Button>
     </div>
   );
 }

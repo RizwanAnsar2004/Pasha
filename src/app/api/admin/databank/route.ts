@@ -92,6 +92,9 @@ const deleteSchema = z.object({
   id: z.string().uuid(),
 });
 
+const LIST_COLS =
+  "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,current_revenue,investment_raised,total_employees,website,pasha_verified,created_at,source";
+
 async function requireAdmin() {
   const sessionClient = await createSessionClient();
   const {
@@ -101,6 +104,37 @@ async function requireAdmin() {
     return { user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
   return { user, error: null };
+}
+
+export async function GET(req: Request) {
+  const { user, error } = await requireAdmin();
+  if (!user) return error!;
+
+  const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+  const supabase = createServiceClient();
+
+  let query = supabase.from("databank").select(LIST_COLS);
+
+  if (q.length >= 1) {
+    const pattern = `%${q}%`;
+    query = query
+      .or(
+        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+      )
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .limit(100);
+  } else {
+    query = query
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .order("current_revenue", { ascending: false, nullsFirst: false })
+      .limit(500);
+  }
+
+  const { data, error: dbErr } = await query;
+  if (dbErr) {
+    return NextResponse.json({ error: dbErr.message }, { status: 500 });
+  }
+  return NextResponse.json({ rows: data ?? [] });
 }
 
 export async function PATCH(req: Request) {

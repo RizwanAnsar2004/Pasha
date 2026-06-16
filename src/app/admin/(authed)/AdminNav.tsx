@@ -8,6 +8,10 @@ const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/submissions", label: "Submissions" },
   { href: "/admin/databank", label: "Data bank" },
+  { href: "/admin/featured-startups", label: "Featured startups" },
+  { href: "/admin/events", label: "Events" },
+  { href: "/admin/committee-activity", label: "Committee activity" },
+  { href: "/admin/committee-management", label: "Committee management" },
   { href: "/admin/forms", label: "Form builder" },
   { href: "/admin/option-lists", label: "Option lists" },
 ];
