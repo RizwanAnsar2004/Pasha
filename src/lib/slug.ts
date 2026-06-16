@@ -24,6 +24,11 @@ export function startupSlug(name: string | null | undefined, id: string): string
   return `${head}-${tail}`;
 }
 
+/** Same pattern as startupSlug — used for /events/[slug] detail URLs. */
+export function eventSlug(title: string | null | undefined, id: string): string {
+  return startupSlug(title, id);
+}
+
 /**
  * Parse the trailing 8-hex id prefix out of a slug. Returns null if the slug
  * doesn't end in 8 hex chars (e.g. someone hand-typed `/directory/bykea`).

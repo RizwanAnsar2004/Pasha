@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/safe-url";
@@ -25,6 +26,13 @@ type Row = {
 };
 
 type FullRow = Row & Record<string, unknown>;
+
+type FeaturedStatus = {
+  id: string;
+  featured_from: string;
+  featured_until: string;
+  status: "active" | "scheduled" | "expired";
+};
 
 export function SubmissionsClient({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
@@ -239,6 +247,34 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function FeaturedBadge({ status }: { status: FeaturedStatus }) {
+  const styles =
+    status.status === "active"
+      ? "bg-amber-50 text-amber-800"
+      : status.status === "scheduled"
+      ? "bg-sky-50 text-sky-700"
+      : "bg-pasha-stone text-pasha-muted";
+
+  const label =
+    status.status === "active"
+      ? "Featured"
+      : status.status === "scheduled"
+      ? "Featured · Scheduled"
+      : "Featured · Expired";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium",
+        styles
+      )}
+    >
+      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+      {label}
+    </span>
+  );
+}
+
 function SubmissionDrawer({
   id,
   onClose,
@@ -254,40 +290,35 @@ function SubmissionDrawer({
   // and materialised into the public directory. Powers the "Edit listing"
   // link in the drawer footer.
   const [databankId, setDatabankId] = useState<string | null>(null);
+  const [featuredStatus, setFeaturedStatus] = useState<FeaturedStatus | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     let cancel = false;
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("submissions")
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (cancel || !data) return;
-      setRow(data as FullRow);
+    setRow(null);
+    setDatabankId(null);
+    setFeaturedStatus(null);
 
-      // If approved, try to find the matching databank row. We set
-      // source_id = submissions.id on approval-insert, so that's the
-      // cheap lookup. If the row was already present (matched by name
-      // and updated in place instead of inserted), the source_id link
-      // may be absent — fall back to a name match.
-      if (data.status === "approved") {
-        let { data: dbk } = await supabase
-          .from("databank")
-          .select("id")
-          .eq("source_id", String(data.id))
-          .limit(1);
-        if (!dbk || dbk.length === 0) {
-          ({ data: dbk } = await supabase
-            .from("databank")
-            .select("id")
-            .ilike("startup_name", String(data.startup_name))
-            .limit(1));
-        }
-        if (!cancel && dbk && dbk[0]?.id) setDatabankId(dbk[0].id as string);
-      }
+    (async () => {
+      const res = await fetch(`/api/admin/submission?id=${encodeURIComponent(id)}`, {
+        cache: "no-store",
+      });
+      const j = await res.json().catch(() => ({}));
+      if (cancel || !res.ok) return;
+      setRow(j.submission as FullRow);
+      setDatabankId(j.databank_id ?? null);
+      setFeaturedStatus(j.featured ?? null);
     })();
+
     return () => {
       cancel = true;
     };
@@ -311,23 +342,26 @@ function SubmissionDrawer({
     }
   };
 
-  return (
+  const status = String(row?.status ?? "pending");
+  const isApproved = status === "approved";
+
+  const drawer = (
     <>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-pasha-ink/40 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] bg-pasha-ink/40 backdrop-blur-sm"
       />
       <motion.aside
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 360, damping: 36 }}
-        className="fixed inset-y-0 right-0 z-50 w-full sm:w-[540px] bg-white shadow-2xl flex flex-col"
+        className="fixed inset-y-0 right-0 z-[110] flex h-dvh max-h-dvh w-full flex-col bg-white shadow-2xl sm:w-[540px]"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-pasha-line">
+        <div className="flex shrink-0 items-center justify-between border-b border-pasha-line px-6 py-4">
           <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
             Submission
           </span>
@@ -343,7 +377,7 @@ function SubmissionDrawer({
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
             <div className="flex items-start gap-4 mb-6">
               {row.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -363,10 +397,21 @@ function SubmissionDrawer({
                     {String(row.website).replace(/^https?:\/\//, "")}
                   </a>
                 ) : null}
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   {row.vetting_tier ? <TierBadge tier={String(row.vetting_tier)} score={Number(row.vetting_score ?? 0)} /> : null}
                   <StatusBadge status={String(row.status ?? "pending")} />
+                  {featuredStatus ? <FeaturedBadge status={featuredStatus} /> : null}
                 </div>
+                {featuredStatus ? (
+                  <p className="mt-2 text-xs text-pasha-muted">
+                    {featuredStatus.status === "active" &&
+                      `Featured until ${format(new Date(featuredStatus.featured_until), "MMM d, yyyy")}`}
+                    {featuredStatus.status === "scheduled" &&
+                      `Featured from ${format(new Date(featuredStatus.featured_from), "MMM d, yyyy")} to ${format(new Date(featuredStatus.featured_until), "MMM d, yyyy")}`}
+                    {featuredStatus.status === "expired" &&
+                      `Featured period ended ${format(new Date(featuredStatus.featured_until), "MMM d, yyyy")}`}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -520,29 +565,29 @@ function SubmissionDrawer({
             ) : null}
           </div>
         )}
-        <div className="px-6 py-4 border-t border-pasha-line bg-pasha-stone/30 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => act("rejected")}
-            disabled={!!acting}
-            className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/[0.04] disabled:opacity-50 transition-colors"
-          >
-            {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-            Reject
-          </button>
-          <button
-            type="button"
-            onClick={() => act("watchlist")}
-            disabled={!!acting}
-            className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-tier-watchlist hover:bg-tier-watchlist/[0.06] disabled:opacity-50 transition-colors"
-          >
-            {acting === "watchlist" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            Watchlist
-          </button>
-          {/* Edit listing — only visible once the submission has been
-              approved (and therefore has a matching databank row). Routes
-              to the full editor where logo, key persons, socials, etc.
-              can be changed. */}
+        <div className="flex shrink-0 items-center gap-2 border-t border-pasha-line bg-pasha-stone/30 px-6 py-4">
+          {!isApproved && row ? (
+            <>
+              <button
+                type="button"
+                onClick={() => act("rejected")}
+                disabled={!!acting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
+              >
+                {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => act("watchlist")}
+                disabled={!!acting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-tier-watchlist hover:bg-tier-watchlist/6 disabled:opacity-50 transition-colors"
+              >
+                {acting === "watchlist" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                Watchlist
+              </button>
+            </>
+          ) : null}
           {databankId ? (
             <Link
               href={`/admin/databank/${databankId}`}
@@ -553,19 +598,24 @@ function SubmissionDrawer({
             </Link>
           ) : null}
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={() => act("approved")}
-            disabled={!!acting}
-            className="inline-flex items-center gap-1.5 rounded-full bg-pasha-red px-5 py-2 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark disabled:opacity-50 transition-colors"
-          >
-            {acting === "approve" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-            Approve
-          </button>
+          {!isApproved && row ? (
+            <button
+              type="button"
+              onClick={() => act("approved")}
+              disabled={!!acting}
+              className="inline-flex items-center gap-1.5 rounded-full bg-pasha-red px-5 py-2 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark disabled:opacity-50 transition-colors"
+            >
+              {acting === "approve" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              Approve
+            </button>
+          ) : null}
         </div>
       </motion.aside>
     </>
   );
+
+  if (!mounted) return null;
+  return createPortal(drawer, document.body);
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

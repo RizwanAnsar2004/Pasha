@@ -9,6 +9,7 @@ import { Criteria } from "@/components/landing/Criteria";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getActiveFeaturedStartups } from "@/lib/featured-startups.server";
 import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
 import type { HeroDeckStartup } from "@/components/landing/Hero";
 
@@ -18,14 +19,11 @@ async function loadHomeData(): Promise<{ databankCount: number; featured: Featur
   try {
     const supabase = createServiceClient();
     const cols = "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,number_of_customers,pasha_verified";
-    const [countRes, featuredRes, deckRes] = await Promise.all([
+
+    const { settings, startups: managedFeatured } = await getActiveFeaturedStartups();
+
+    const [countRes, deckRes] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
-      supabase
-        .from("databank")
-        .select(cols)
-        .order("pasha_verified", { ascending: false, nullsFirst: false })
-        .order("current_revenue", { ascending: false, nullsFirst: false })
-        .limit(5),
       supabase
         .from("databank")
         .select("id,startup_name,primary_industry,city,current_revenue,total_employees,number_of_customers,pasha_verified")
@@ -33,9 +31,23 @@ async function loadHomeData(): Promise<{ databankCount: number; featured: Featur
         .order("number_of_customers", { ascending: false, nullsFirst: false })
         .limit(5),
     ]);
+
+    let featured: FeaturedStartup[] = [];
+    if (settings.show_on_homepage && managedFeatured.length > 0) {
+      featured = managedFeatured as FeaturedStartup[];
+    } else {
+      const { data } = await supabase
+        .from("databank")
+        .select(cols)
+        .order("pasha_verified", { ascending: false, nullsFirst: false })
+        .order("current_revenue", { ascending: false, nullsFirst: false })
+        .limit(5);
+      featured = (data ?? []) as FeaturedStartup[];
+    }
+
     return {
       databankCount: countRes.count ?? 0,
-      featured: (featuredRes.data ?? []) as FeaturedStartup[],
+      featured,
       deck: (deckRes.data ?? []) as HeroDeckStartup[],
     };
   } catch {
