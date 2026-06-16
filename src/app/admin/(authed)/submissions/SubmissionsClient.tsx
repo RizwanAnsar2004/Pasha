@@ -459,7 +459,11 @@ function SubmissionDrawer({
       });
       if (res.ok) {
         onUpdated({ id, status: newStatus });
-        setRow((r) => (r ? { ...r, status: newStatus } : r));
+        if (newStatus === "approved") {
+          onClose();
+        } else {
+          setRow((r) => (r ? { ...r, status: newStatus } : r));
+        }
       }
     } finally {
       setActing(null);

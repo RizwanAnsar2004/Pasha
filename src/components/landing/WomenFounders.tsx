@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, MapPin } from "lucide-react";
 import { initials, formatNumber } from "@/lib/utils";
+import type { WomenLedStartup } from "@/lib/women-led";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -15,21 +17,39 @@ const ACCENTS = [
   "from-amber-500 to-orange-500",
 ];
 
-export type WomenFounderStartup = {
-  id: string;
-  startup_name: string;
-  founder_name?: string | null;
-  primary_industry?: string | null;
-};
+export type WomenFounderStartup = WomenLedStartup;
 
-export function WomenFounders({
-  startups,
-  totalCount,
-}: {
-  startups: WomenFounderStartup[];
-  totalCount: number;
-}) {
-  if (startups.length === 0) return null;
+export function WomenFounders() {
+  const [startups, setStartups] = useState<WomenFounderStartup[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/women-led-startups?limit=5")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: { startups: WomenFounderStartup[]; totalCount: number }) => {
+        if (cancelled) return;
+        setStartups(data.startups ?? []);
+        setTotalCount(data.totalCount ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStartups([]);
+          setTotalCount(0);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading || startups.length === 0) return null;
 
   const shown = startups.slice(0, 5);
   const remaining = Math.max(totalCount - shown.length, 0);
@@ -80,7 +100,7 @@ export function WomenFounders({
                 className="group relative flex flex-col h-full rounded-2xl bg-white border border-pasha-line hover:border-pasha-ink/30 hover:shadow-[0_20px_50px_-20px_rgba(14,14,16,0.16)] transition-shadow duration-300 p-4"
               >
                 <Link
-                  href="/directory"
+                  href={`/directory/${startup.slug}`}
                   className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
                 />
                 <div className="flex items-center gap-2.5">
