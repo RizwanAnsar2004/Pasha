@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
+import type { WatchlistStartup } from "@/components/landing/VerifiedStartupsToWatch";
 
 export type FeaturedSettings = {
   auto_rotate: boolean;
@@ -82,6 +83,33 @@ export async function getActiveFeaturedStartups(now = new Date()): Promise<{
     .filter((s): s is FeaturedStartup => s !== null);
 
   return { settings, startups };
+}
+
+type DatabankFeatured = FeaturedStartup & {
+  product_stage?: string | null;
+  incubation_stage?: string | null;
+};
+
+function toWatchlistStartup(s: DatabankFeatured): WatchlistStartup {
+  return {
+    id: s.id,
+    startup_name: s.startup_name,
+    tagline: s.tagline,
+    primary_industry: s.primary_industry,
+    city: s.city,
+    product_stage: stageLabel(s.product_stage, s.incubation_stage),
+    pasha_verified: s.pasha_verified,
+  };
+}
+
+export async function getHomepageFeaturedWatchlist(): Promise<WatchlistStartup[]> {
+  try {
+    const { settings, startups } = await getActiveFeaturedStartups();
+    if (!settings.show_on_homepage) return [];
+    return (startups as DatabankFeatured[]).map(toWatchlistStartup);
+  } catch {
+    return [];
+  }
 }
 
 export function isWomenLed(

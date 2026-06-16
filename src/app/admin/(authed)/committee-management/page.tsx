@@ -3,26 +3,28 @@ import { CommitteeManagementClient } from "./CommitteeManagementClient";
 
 export const dynamic = "force-dynamic";
 
-type MemberRow = {
+export type MemberRow = {
   email: string;
   added_at: string;
   added_by: string | null;
   roles: string | null;
+  org: string;
 };
 
 async function loadMembers(): Promise<MemberRow[]> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("admin_users")
-    .select("email, added_at, added_by, notes")
+    .select("email, added_at, added_by, notes, org")
     .order("added_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map((m: any) => ({
+  return (data ?? []).map((m) => ({
     email: m.email,
-    added_at: m.added_at,
+    added_at: m.added_at ?? "",
     added_by: m.added_by,
     roles: m.notes,
+    org: m.org ?? "",
   })) as MemberRow[];
 }
 

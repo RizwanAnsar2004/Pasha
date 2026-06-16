@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CommitteeContent } from "@/components/committee/CommitteeContent";
+import {
+  getCommitteeMembers,
+  getPublishedCommitteeActivities,
+} from "@/lib/committee.server";
 
 export const metadata: Metadata = {
   title: "Committee",
@@ -17,12 +21,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CommitteePage() {
+export const revalidate = 60;
+
+export default async function CommitteePage() {
+  const [members, activities] = await Promise.all([
+    getCommitteeMembers(),
+    getPublishedCommitteeActivities(),
+  ]);
+
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <CommitteeContent />
+        <CommitteeContent members={members} activities={activities} />
       </main>
       <SiteFooter />
     </>

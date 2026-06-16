@@ -19,7 +19,15 @@ import {
   Compass,
   Crown,
 } from "lucide-react";
-import { initials } from "@/lib/utils";
+import { initials, cn } from "@/lib/utils";
+import {
+  COMMITTEE_ACTIVITY_TYPE_STYLES,
+  COMMITTEE_CHAIR_TAG,
+  COMMITTEE_MEMBER_TAG,
+  committeeActivityTypeLabel,
+  type CommitteeActivityRow,
+  type CommitteeMemberRow,
+} from "@/lib/committee";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -71,41 +79,28 @@ const ACCENTS = [
   "from-amber-500 to-orange-500",
 ];
 
-const CHAIR = {
-  name: "Usman Akbar",
-  role: "Chairman",
-  org: "Founder & CEO, PureLogics",
-  tag: "P@SHA Startups & Entrepreneurship Committee",
-};
+function activityAuthorDisplay(email: string | null) {
+  if (!email) return "Committee";
+  const local = email.split("@")[0] ?? email;
+  const parts = local.replace(/[._-]/g, " ").trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return parts
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+  }
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
 
-const MEMBERS = [
-  {
-    name: "Muhammad Omer Khan",
-    role: "Founder & CEO",
-    org: "Bits Collision",
-    tag: "Committee Member",
-  },
-  {
-    name: "Hamad Pervaiz",
-    role: "Founder & CEO",
-    org: "BearPlex",
-    tag: "Committee Member",
-  },
-  {
-    name: "Talha Bin Afzal",
-    role: "Founder & CEO",
-    org: "Algoryte",
-    tag: "Committee Member",
-  },
-  {
-    name: "Noman Hassan",
-    role: "Founder & CEO",
-    org: "ResourceInn",
-    tag: "Committee Member",
-  },
-];
-
-export function CommitteeContent() {
+export function CommitteeContent({
+  members,
+  activities,
+}: {
+  members: CommitteeMemberRow[];
+  activities: CommitteeActivityRow[];
+}) {
+  const chair = members.length > 0 ? members[0] : null;
+  const committeeMembers = members.length > 1 ? members.slice(1) : [];
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
@@ -312,6 +307,7 @@ export function CommitteeContent() {
           </motion.div>
 
           {/* Featured chairman banner */}
+          {chair ? (
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -328,14 +324,14 @@ export function CommitteeContent() {
                   className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-pasha-red to-orange-500 opacity-0 group-hover:opacity-30 blur-md transition-opacity duration-300"
                 />
                 <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-pasha-red to-orange-500 grid place-items-center text-white font-bold text-lg shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  {initials(CHAIR.name)}
+                  {initials(chair.name)}
                 </div>
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-serif text-xl text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors">
-                    {CHAIR.name}
+                    {chair.name}
                   </h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-pasha-red/10 px-2.5 py-1">
                     <Crown className="w-3 h-3 text-pasha-red" />
@@ -344,23 +340,29 @@ export function CommitteeContent() {
                     </span>
                   </span>
                 </div>
-                <p className="mt-1 text-sm font-medium text-pasha-red">{CHAIR.role}</p>
-                <p className="mt-0.5 text-sm text-pasha-muted">{CHAIR.org}</p>
+                {chair.role ? (
+                  <p className="mt-1 text-sm font-medium text-pasha-red">{chair.role}</p>
+                ) : null}
+                {chair.org ? (
+                  <p className="mt-0.5 text-sm text-pasha-muted">{chair.org}</p>
+                ) : null}
               </div>
 
               <span className="inline-flex items-center self-start sm:self-center shrink-0 rounded-full bg-pasha-ink/5 px-3 py-1.5 text-[11px] font-medium text-pasha-muted group-hover:bg-pasha-red/[0.07] group-hover:text-pasha-red transition-colors">
-                {CHAIR.tag}
+                {COMMITTEE_CHAIR_TAG}
               </span>
             </div>
           </motion.div>
+          ) : null}
 
           {/* Member grid — fills evenly, no dangling cells */}
+          {committeeMembers.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-            {MEMBERS.map((member, i) => {
+            {committeeMembers.map((member, i) => {
               const accent = ACCENTS[(i + 1) % ACCENTS.length];
               return (
                 <motion.div
-                  key={member.name}
+                  key={member.email}
                   initial={{ opacity: 0, y: 28 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
@@ -388,23 +390,94 @@ export function CommitteeContent() {
                     <h3 className="mt-4 font-serif text-base text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors">
                       {member.name}
                     </h3>
-                    <p className="mt-1 text-sm font-medium text-pasha-red">
-                      {member.role}
-                    </p>
-                    <p className="mt-0.5 text-sm text-pasha-muted">
-                      {member.org}
-                    </p>
+                    {member.role ? (
+                      <p className="mt-1 text-sm font-medium text-pasha-red">{member.role}</p>
+                    ) : null}
+                    {member.org ? (
+                      <p className="mt-0.5 text-sm text-pasha-muted">{member.org}</p>
+                    ) : null}
 
                     <span className="mt-auto pt-4 inline-flex items-center justify-center rounded-full bg-pasha-ink/5 px-2.5 py-1 text-[11px] font-medium text-pasha-muted group-hover:bg-pasha-red/[0.07] group-hover:text-pasha-red transition-colors">
-                      {member.tag}
+                      {COMMITTEE_MEMBER_TAG}
                     </span>
                   </div>
                 </motion.div>
               );
             })}
           </div>
+          ) : !chair ? (
+            <p className="text-sm text-pasha-muted">Committee profiles will appear here soon.</p>
+          ) : null}
         </div>
       </section>
+
+      {/* ───────────────────────────────────────────────────────
+          ACTIVITY TIMELINE
+          ─────────────────────────────────────────────────────── */}
+      {activities.length > 0 ? (
+        <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6, ease: EASE }}
+              className="max-w-2xl mb-12"
+            >
+              <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
+                Updates
+              </span>
+              <h2 className="mt-4 font-serif text-3xl sm:text-4xl tracking-tight text-pasha-ink text-balance">
+                Committee Activity
+              </h2>
+              <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
+                Verification milestones, programmes, and ecosystem initiatives
+                from the committee.
+              </p>
+            </motion.div>
+
+            <ul className="rounded-2xl border border-pasha-line bg-white divide-y divide-pasha-line overflow-hidden">
+              {activities.map((row, i) => {
+                const styles = COMMITTEE_ACTIVITY_TYPE_STYLES[row.type];
+                return (
+                  <motion.li
+                    key={row.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.45, delay: i * 0.04, ease: EASE }}
+                    className="px-6 py-5"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cn("text-sm font-semibold tabular-nums", styles.date)}>
+                        {new Date(row.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          styles.badge
+                        )}
+                      >
+                        {committeeActivityTypeLabel(row.type)}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-base font-semibold text-pasha-ink">{row.title}</h3>
+                    <p className="mt-1 text-sm text-pasha-muted leading-relaxed">
+                      {row.description}
+                    </p>
+                    <p className="mt-2 text-xs text-pasha-muted/80">
+                      by {activityAuthorDisplay(row.author_email)}
+                    </p>
+                  </motion.li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       {/* ───────────────────────────────────────────────────────
           CTA

@@ -10,6 +10,8 @@ import { Process } from "@/components/landing/Process";
 import { Criteria } from "@/components/landing/Criteria";
 import { CommitteeBanner } from "@/components/landing/CommitteeBanner";
 import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
+import { getUpcomingPublishedEvents } from "@/lib/events.server";
+import { getHomepageFeaturedWatchlist } from "@/lib/featured-startups.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -45,14 +47,9 @@ async function loadHomeData(): Promise<{
 }> {
   try {
     const supabase = createServiceClient();
-    const [countRes, watchlistRes, keyPersonsRes, awardsRes] = await Promise.all([
+    const [countRes, watchlist, keyPersonsRes, awardsRes] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
-      supabase
-        .from("databank")
-        .select("id,startup_name,tagline,primary_industry,city,product_stage,pasha_verified")
-        .order("pasha_verified", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .limit(8),
+      getHomepageFeaturedWatchlist(),
       supabase
         .from("databank")
         .select("id,startup_name,primary_industry,key_persons,pasha_verified,created_at")
@@ -79,7 +76,7 @@ async function loadHomeData(): Promise<{
 
     return {
       databankCount: countRes.count ?? 0,
-      watchlist: (watchlistRes.data ?? []) as WatchlistStartup[],
+      watchlist,
       womenFounders,
       womenFoundersCount: womenLed.length,
       awardWinners: (awardsRes.data ?? []) as AwardWinningStartup[],
@@ -90,7 +87,8 @@ async function loadHomeData(): Promise<{
 }
 
 export default async function Home() {
-  const { databankCount, watchlist, womenFounders, womenFoundersCount, awardWinners } = await loadHomeData();
+  const [{ databankCount, watchlist, womenFounders, womenFoundersCount, awardWinners }, upcomingEvents] =
+    await Promise.all([loadHomeData(), getUpcomingPublishedEvents(4)]);
   const count = databankCount > 0 ? databankCount : 2481;
 
   return (
@@ -106,7 +104,7 @@ export default async function Home() {
         <Process />
         <Criteria />
         <CommitteeBanner />
-        <UpcomingEvents />
+        <UpcomingEvents events={upcomingEvents} />
         <FAQ />
         <CTA />
       </main>

@@ -79,6 +79,25 @@ export async function getPublishedEvents(limit = 50): Promise<EventRow[]> {
   return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
 }
 
+/** Published events on or after today, soonest first — for landing promos. */
+export async function getUpcomingPublishedEvents(limit = 4): Promise<EventRow[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLS)
+    .eq("status", "published")
+    .gte("event_date", today)
+    .order("event_date", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    if (isMissingTable(error.message)) return [];
+    throw new Error(error.message);
+  }
+  return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
+}
+
 export async function getEventById(id: string): Promise<EventRow | null> {
   const supabase = createServiceClient();
   const { data, error } = await supabase

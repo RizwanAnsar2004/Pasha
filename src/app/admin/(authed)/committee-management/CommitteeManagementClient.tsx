@@ -1,21 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Loader2, Trash2, UserPlus, Users } from "lucide-react";
+import { AlertCircle, Loader2, Pencil, Trash2, UserPlus, Users, X } from "lucide-react";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import type { MemberRow } from "./page";
 
-type MemberRow = {
-  email: string;
-  added_at: string;
-  added_by: string | null;
-  roles: string | null;
-};
+const inputCls =
+  "h-9 w-full rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15";
 
 export function CommitteeManagementClient({ initial }: { initial: MemberRow[] }) {
   const [rows, setRows] = useState<MemberRow[]>(initial);
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState("");
+  const [org, setOrg] = useState("");
   const [adding, setAdding] = useState(false);
+  const [editingEmail, setEditingEmail] = useState<string | null>(null);
+  const [editRoles, setEditRoles] = useState("");
+  const [editOrg, setEditOrg] = useState("");
+  const [savingEmail, setSavingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,46 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
     const res = await fetch("/api/admin/committee-members", { cache: "no-store" });
     const j = await res.json();
     setRows(j.members ?? []);
+  }
+
+  function startEdit(row: MemberRow) {
+    setEditingEmail(row.email);
+    setEditRoles(row.roles ?? "");
+    setEditOrg(row.org ?? "");
+    setError(null);
+    setSuccess(null);
+  }
+
+  function cancelEdit() {
+    setEditingEmail(null);
+    setEditRoles("");
+    setEditOrg("");
+  }
+
+  async function saveEdit(targetEmail: string) {
+    setError(null);
+    setSuccess(null);
+    setSavingEmail(targetEmail);
+    try {
+      const res = await fetch("/api/admin/committee-members", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: targetEmail,
+          roles: editRoles.trim() || undefined,
+          org: editOrg.trim(),
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "Could not update committee member");
+      setRows((prev) => prev.map((r) => (r.email === targetEmail ? j.member : r)));
+      setSuccess(`Updated ${targetEmail}.`);
+      cancelEdit();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update committee member");
+    } finally {
+      setSavingEmail(null);
+    }
   }
 
   async function add(e: React.FormEvent) {
@@ -39,6 +81,7 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           roles: roles.trim() || undefined,
+          org: org.trim() || undefined,
         }),
       });
       const j = await res.json();
@@ -46,6 +89,7 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
       setSuccess(`Added ${j.email}. They can now sign in to /admin.`);
       setEmail("");
       setRoles("");
+      setOrg("");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add committee member");
@@ -70,6 +114,7 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
       if (!res.ok) throw new Error(j.error ?? "Could not remove committee member");
       setSuccess(`Removed ${target}.`);
       setDeleteTarget(null);
+      if (editingEmail === target) cancelEdit();
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not remove committee member");
@@ -107,7 +152,7 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
           Add committee member
         </h2>
         <form onSubmit={add} className="mt-4 space-y-3">
-          <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3">
+          <div className="grid sm:grid-cols-3 gap-3">
             <input
               type="email"
               value={email}
@@ -120,18 +165,25 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
               type="text"
               value={roles}
               onChange={(e) => setRoles(e.target.value)}
-              placeholder="Current role (optional)"
+              placeholder="Role (e.g. Founder & CEO)"
               className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
-            <button
-              type="submit"
-              disabled={adding}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-pasha-red px-4 h-11 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-50"
-            >
-              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Add
-            </button>
+            <input
+              type="text"
+              value={org}
+              onChange={(e) => setOrg(e.target.value)}
+              placeholder="Company (e.g. Bits Collision)"
+              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            />
           </div>
+          <button
+            type="submit"
+            disabled={adding}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-pasha-red px-4 h-11 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-50"
+          >
+            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            Add
+          </button>
         </form>
       </section>
 
@@ -146,49 +198,112 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
           <thead className="bg-pasha-stone/40 border-b border-pasha-line">
             <tr className="text-left">
               <Th>Email</Th>
-              <Th>Roles</Th>
+              <Th>Role</Th>
+              <Th>Company</Th>
               <Th>Added</Th>
-              <Th>Added by</Th>
               <Th />
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr
-                key={r.email}
-                className="border-b border-pasha-line/60 last:border-0 hover:bg-pasha-stone/40"
-              >
-                <Td>
-                  <span className="font-medium text-pasha-ink">{r.email}</span>
-                </Td>
-                <Td>
-                  <span className="text-xs text-pasha-muted">{r.roles ?? "—"}</span>
-                </Td>
-                <Td>
-                  <span className="text-xs text-pasha-muted">
-                    {r.added_at ? new Date(r.added_at).toLocaleDateString("en-PK") : "—"}
-                  </span>
-                </Td>
-                <Td>
-                  <span className="text-xs text-pasha-muted">{r.added_by ?? "—"}</span>
-                </Td>
-                <Td>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteTarget(r.email)}
-                    disabled={removingEmail === r.email}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-pasha-line bg-white px-2.5 py-1 text-[11px] font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
-                  >
-                    {removingEmail === r.email ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+            {rows.map((r) => {
+              const isEditing = editingEmail === r.email;
+              const busy = savingEmail === r.email || removingEmail === r.email;
+
+              return (
+                <tr
+                  key={r.email}
+                  className="border-b border-pasha-line/60 last:border-0 hover:bg-pasha-stone/40"
+                >
+                  <Td>
+                    <span className="font-medium text-pasha-ink">{r.email}</span>
+                  </Td>
+                  <Td>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editRoles}
+                        onChange={(e) => setEditRoles(e.target.value)}
+                        placeholder="Role"
+                        className={inputCls}
+                      />
                     ) : (
-                      <Trash2 className="w-3 h-3" />
+                      <span className="text-xs text-pasha-muted">{r.roles ?? "—"}</span>
                     )}
-                    Remove
-                  </button>
-                </Td>
-              </tr>
-            ))}
+                  </Td>
+                  <Td>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editOrg}
+                        onChange={(e) => setEditOrg(e.target.value)}
+                        placeholder="Company"
+                        className={inputCls}
+                      />
+                    ) : (
+                      <span className="text-xs text-pasha-muted">{r.org || "—"}</span>
+                    )}
+                  </Td>
+                  <Td>
+                    <span className="text-xs text-pasha-muted">
+                      {r.added_at ? new Date(r.added_at).toLocaleDateString("en-PK") : "—"}
+                    </span>
+                  </Td>
+                  <Td>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      {isEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(r.email)}
+                            disabled={busy}
+                            className="inline-flex items-center gap-1 rounded-md bg-pasha-red px-2.5 py-1 text-[11px] font-medium text-white hover:bg-pasha-red-dark disabled:opacity-50"
+                          >
+                            {savingEmail === r.email ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : null}
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={busy}
+                            aria-label="Cancel edit"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-pasha-line bg-white text-pasha-muted hover:text-pasha-ink disabled:opacity-50"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(r)}
+                            disabled={busy || editingEmail !== null}
+                            aria-label={`Edit ${r.email}`}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-pasha-line bg-white text-pasha-muted hover:text-pasha-ink disabled:opacity-50"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(r.email)}
+                            disabled={busy || editingEmail !== null}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-pasha-line bg-white px-2.5 py-1 text-[11px] font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
+                          >
+                            {removingEmail === r.email ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </Td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-pasha-muted text-sm">
