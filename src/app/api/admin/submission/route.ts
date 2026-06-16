@@ -10,6 +10,7 @@ import { createClient as createSessionClient, createServiceClient } from "@/lib/
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
+import { getFieldLabelMap } from "@/lib/form-config.server";
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -85,7 +86,9 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ submission, databank_id, featured });
+  const field_labels = await getFieldLabelMap("application");
+
+  return NextResponse.json({ submission, databank_id, featured, field_labels });
 }
 
 export async function PATCH(req: Request) {

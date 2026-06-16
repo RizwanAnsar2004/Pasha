@@ -422,3 +422,75 @@ export function routeValues(
   }
   return { columns, answers };
 }
+
+// ---------------------------------------------------------------------------
+// Field labels (from admin-defined form_fields.label)
+// ---------------------------------------------------------------------------
+
+export type FieldLabelMap = Record<string, string>;
+
+function addFieldLabels(map: FieldLabelMap, field: FormFieldConfig): void {
+  if (field.input_type === InputType.HEADING) return;
+
+  const label = field.label?.trim();
+  if (!label) {
+    if (field.input_type === InputType.GROUP) {
+      for (const child of field.children ?? []) addFieldLabels(map, child);
+    }
+    return;
+  }
+
+  if (field.input_type === InputType.CITY_COMPOSITE) {
+    for (const k of CITY_COMPOSITE_KEYS) {
+      if (!map[k]) map[k] = label;
+    }
+    return;
+  }
+
+  if (field.field_key && !map[field.field_key]) map[field.field_key] = label;
+  if (field.column_map && !map[field.column_map]) map[field.column_map] = label;
+
+  if (field.input_type === InputType.GROUP) {
+    for (const child of field.children ?? []) addFieldLabels(map, child);
+  }
+}
+
+/** Build field_key / column_map → label from the application form config. */
+export function buildFieldLabelMap(config: FormConfig): FieldLabelMap {
+  const map: FieldLabelMap = {};
+  for (const section of config) {
+    for (const field of section.fields) addFieldLabels(map, field);
+  }
+  return map;
+}
+
+const FOUNDER_SUBFIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  role: "Role",
+  email: "Email",
+  mobile: "Mobile",
+  linkedin: "LinkedIn",
+  x: "X / Twitter",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  custom_links: "Custom links",
+  photo_url: "Photo",
+  gender: "Gender",
+  is_primary: "Primary contact",
+};
+
+function humanizeFieldKey(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Resolve a field path (incl. `founders.0.role`) to a human-readable label. */
+export function resolveFieldLabel(map: FieldLabelMap, field: string): string {
+  const founderPath = field.match(/^founders\.(\d+)\.(.+)$/);
+  if (founderPath) {
+    const [, idx, prop] = founderPath;
+    const human =
+      map[prop] ?? FOUNDER_SUBFIELD_LABELS[prop] ?? humanizeFieldKey(prop);
+    return `${human} (founder #${Number(idx) + 1})`;
+  }
+  return map[field] ?? humanizeFieldKey(field);
+}

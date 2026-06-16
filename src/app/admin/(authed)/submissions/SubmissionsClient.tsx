@@ -4,11 +4,105 @@ import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star } from "lucide-react";
+import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, FileText } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/safe-url";
+
+type FieldLabelMap = Record<string, string>;
+type LabelFn = (key: string) => string;
+
+const defaultLabel: LabelFn = (key) => key;
+
+/** `submissions.answers` bag — new dynamic-form fields land here. */
+function submissionAnswers(row: Record<string, unknown>): Record<string, unknown> {
+  let raw = row.answers;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      return {};
+    }
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
+
+function answerOf(row: Record<string, unknown>, key: string): unknown {
+  return submissionAnswers(row)[key];
+}
+
+/** Yes when `pasha_membership_number` is present (new form); legacy boolean fallback. */
+function renderPashaMember(row: Record<string, unknown>): React.ReactNode {
+  const num = answerOf(row, "pasha_membership_number");
+  if (typeof num === "string" && num.trim()) return `Yes · ${num.trim()}`;
+  if (row.is_pasha_member === true) return "Yes";
+  if (row.is_pasha_member === false) return "No";
+  return "—";
+}
+
+/** New form: `answers.total_funding_raised`; legacy: raised_funding + funding_stage. */
+function renderRaisedFunding(row: Record<string, unknown>): React.ReactNode {
+  const raised = answerOf(row, "total_funding_raised");
+  if (raised != null && raised !== "") return String(raised);
+  if (row.raised_funding === true) {
+    return row.funding_stage ? `Yes · ${String(row.funding_stage)}` : "Yes";
+  }
+  if (row.raised_funding === false) return "No";
+  return "—";
+}
+
+function renderAnswerField(row: Record<string, unknown>, key: string): React.ReactNode {
+  const val = answerOf(row, key);
+  if (val == null || val === "") return "—";
+  return renderAnswerValue(val);
+}
+
+/** KV row for an answers field — omitted when empty. */
+function AnswerKV({
+  row,
+  fieldKey,
+  label = defaultLabel,
+}: {
+  row: Record<string, unknown>;
+  fieldKey: string;
+  label?: LabelFn;
+}) {
+  const val = answerOf(row, fieldKey);
+  if (val == null || val === "") return null;
+  return <KV k={label(fieldKey)} v={renderAnswerValue(val)} />;
+}
+
+function answerUrl(row: Record<string, unknown>, key: string): string | null {
+  const val = answerOf(row, key);
+  return typeof val === "string" && val.trim() ? val.trim() : null;
+}
+
+/** Answer keys already rendered in structured sections — hide from Additional fields. */
+const DRAWER_ANSWER_KEYS = new Set([
+  "total_funding_raised",
+  "funding_status",
+  "amount_raising",
+  "open_to_investor_contact",
+  "pasha_membership_number",
+  "founder_bio",
+  "competitors_global",
+  "competitors_pk",
+  "competitor_notes",
+  "tam_amount",
+  "sam_amount",
+  "som_amount",
+  "market_notes",
+  "market_source",
+  "business_profile_pdf",
+  "company_reg_cert",
+  "authorization_letter",
+  "founder_cnic",
+  "ntn_number",
+]);
 
 type Row = {
   id: string;
@@ -291,7 +385,13 @@ function SubmissionDrawer({
   // link in the drawer footer.
   const [databankId, setDatabankId] = useState<string | null>(null);
   const [featuredStatus, setFeaturedStatus] = useState<FeaturedStatus | null>(null);
+  const [fieldLabels, setFieldLabels] = useState<FieldLabelMap>({});
   const [mounted, setMounted] = useState(false);
+
+  const label = useMemo<LabelFn>(
+    () => (key: string) => fieldLabels[key] ?? key,
+    [fieldLabels]
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -307,6 +407,7 @@ function SubmissionDrawer({
     setRow(null);
     setDatabankId(null);
     setFeaturedStatus(null);
+    setFieldLabels({});
 
     (async () => {
       const res = await fetch(`/api/admin/submission?id=${encodeURIComponent(id)}`, {
@@ -317,6 +418,7 @@ function SubmissionDrawer({
       setRow(j.submission as FullRow);
       setDatabankId(j.databank_id ?? null);
       setFeaturedStatus(j.featured ?? null);
+      setFieldLabels((j.field_labels as FieldLabelMap) ?? {});
     })();
 
     return () => {
@@ -416,13 +518,13 @@ function SubmissionDrawer({
             </div>
 
             <Section title="Description">
-              <p className="text-sm text-pasha-ink leading-relaxed">
-                {String(row.description ?? "—")}
-              </p>
+              <div className="text-sm text-pasha-ink leading-relaxed">
+                {typeof row.description === "string"
+                  ? renderMultilineText(row.description)
+                  : "—"}
+              </div>
             </Section>
 
-            {/* Founders. Prefer the v2 JSONB array; fall back to the legacy
-                flat columns for pre-v2 submissions that never wrote founders. */}
             <FoundersSection row={row as Record<string, unknown>} />
 
             <Section title="Company socials">
@@ -449,115 +551,188 @@ function SubmissionDrawer({
             </Section>
 
             <Section title="Startup">
+              <KV k={label("tagline")} v={String((row as Record<string, unknown>).tagline ?? "—")} />
               <KV
-                k="Location"
+                k={label("hq_city")}
                 v={
                   (row as Record<string, unknown>).outside_pakistan
                     ? `${String((row as Record<string, unknown>).hq_country ?? "—")} (outside Pakistan)`
                     : String(row.hq_city ?? row.hq_other ?? "—")
                 }
               />
-              <KV k="Stage" v={String(row.stage ?? "—")} />
-              <KV k="Primary sector" v={String(row.primary_sector ?? "—")} />
-              <KV k="Secondary sector" v={String((row as Record<string, unknown>).secondary_sector ?? "—")} />
-              <KV k="Business model" v={String(row.business_model ?? "—")} />
+              <KV k={label("stage")} v={String(row.stage ?? "—")} />
+              <KV k={label("primary_sector")} v={String(row.primary_sector ?? "—")} />
+              <KV k={label("secondary_sector")} v={String((row as Record<string, unknown>).secondary_sector ?? "—")} />
+              <KV k={label("business_model")} v={String(row.business_model ?? "—")} />
               <KV
-                k="Revenue model"
+                k={label("revenue_models")}
                 v={
                   Array.isArray(row.revenue_models)
                     ? (row.revenue_models as string[]).join(", ")
                     : "—"
                 }
               />
-              <KV k="Year founded" v={String(row.year_founded ?? "—")} />
-              <KV k="P@SHA member" v={renderYesNo(row.is_pasha_member)} />
+              <KV k={label("year_founded")} v={String(row.year_founded ?? "—")} />
+              <KV k={label("pasha_membership_number")} v={renderPashaMember(row as Record<string, unknown>)} />
             </Section>
 
             <Section title="Team & traction">
-              <KV k="Founding team" v={String(row.founding_team_composition ?? "—")} />
-              <KV k="Total employees" v={String(row.total_employees ?? "—")} />
-              <KV k="Female employees" v={String(row.female_employees ?? "—")} />
-              <KV k="Revenue band" v={String(row.revenue_band ?? "—")} />
+              <KV k={label("total_employees")} v={String(row.total_employees ?? "—")} />
+              <KV k={label("female_employees")} v={String(row.female_employees ?? "—")} />
+              <KV k={label("revenue_band")} v={String(row.revenue_band ?? "—")} />
             </Section>
 
             <Section title="Funding">
-              <KV k="Raised funding" v={renderYesNo(row.raised_funding)} />
-              <KV k="Stage" v={String(row.funding_stage ?? "—")} />
-              <KV k="Currently raising" v={renderYesNo(row.currently_raising)} />
+              <KV
+                k={label("total_funding_raised")}
+                v={renderRaisedFunding(row as Record<string, unknown>)}
+              />
+              <KV
+                k={label("funding_status")}
+                v={renderAnswerField(row as Record<string, unknown>, "funding_status")}
+              />
+              <KV k={label("currently_raising")} v={renderYesNo(row.currently_raising)} />
+              <KV
+                k={label("amount_raising")}
+                v={renderAnswerField(row as Record<string, unknown>, "amount_raising")}
+              />
+              <KV
+                k={label("open_to_investor_contact")}
+                v={renderAnswerField(row as Record<string, unknown>, "open_to_investor_contact")}
+              />
+            </Section>
+
+            <Section title="Market & competition">
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_global" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_pk" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitor_notes" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="tam_amount" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="sam_amount" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="som_amount" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_notes" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_source" label={label} />
             </Section>
 
             <Section title="Ecosystem & IP">
               <KV
-                k="NIC"
+                k={label("incubated_in_nic")}
                 v={
                   row.incubated_in_nic
                     ? `Yes${row.nic_name ? ` · ${row.nic_name}` : ""}`
-                    : "No"
+                    : row.incubated_in_nic === false
+                      ? "No"
+                      : "—"
                 }
               />
-              <KV k="Cohort" v={String(row.nic_cohort ?? "—")} />
+              <KV k={label("nic_cohort")} v={String(row.nic_cohort ?? "—")} />
               <KV
-                k="Patents"
+                k={label("has_patents")}
                 v={
                   row.has_patents
                     ? `Yes${row.patents_count ? ` · ${row.patents_count}` : ""}`
-                    : "No"
+                    : row.has_patents === false
+                      ? "No"
+                      : "—"
                 }
               />
-              <KV k="FBR" v={renderYesNo(row.fbr_registered)} />
-              <KV k="SECP" v={renderYesNo(row.secp_registered)} />
+              <KV k={label("fbr_registered")} v={renderYesNo(row.fbr_registered)} />
+              <KV k={label("secp_registered")} v={renderYesNo(row.secp_registered)} />
               <KV
-                k="Engagement"
+                k={label("engagement_interests")}
                 v={
                   Array.isArray(row.engagement_interests)
                     ? (row.engagement_interests as string[]).join(", ")
                     : "—"
                 }
               />
-              <KV k="Awards" v={String((row as Record<string, unknown>).awards ?? "—")} />
               <KV
-                k="Certifications"
-                v={String((row as Record<string, unknown>).certifications ?? "—")}
+                k={label("awards")}
+                v={
+                  typeof (row as Record<string, unknown>).awards === "string"
+                    ? renderMultilineText((row as Record<string, unknown>).awards as string)
+                    : "—"
+                }
               />
-            </Section>
-
-            <Section title="Files">
-              {row.pitch_deck_url ? (
-                <a href={safeHref(String(row.pitch_deck_url))} target="_blank" rel="noopener noreferrer" className="text-sm text-pasha-red hover:underline block">
-                  → Open pitch deck
-                </a>
-              ) : <p className="text-sm text-pasha-muted">No pitch deck</p>}
-              {row.pitch_video ? (
-                <a href={safeHref(String(row.pitch_video))} target="_blank" rel="noopener noreferrer" className="text-sm text-pasha-red hover:underline block mt-1.5">
-                  → Pitch video
-                </a>
-              ) : null}
-            </Section>
-
-            <Section title="Closing notes">
-              <p className="text-sm text-pasha-ink leading-relaxed">{String(row.closing_notes ?? "—")}</p>
-              <div className="mt-3 flex gap-3 text-[11px] text-pasha-muted">
+              <KV
+                k={label("certifications")}
+                v={
+                  typeof (row as Record<string, unknown>).certifications === "string"
+                    ? renderMultilineText((row as Record<string, unknown>).certifications as string)
+                    : "—"
+                }
+              />
+              <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-pasha-muted">
                 {row.whatsapp_optin ? <span>✓ WhatsApp opt-in</span> : null}
                 {row.facebook_optin ? <span>✓ Facebook opt-in</span> : null}
               </div>
             </Section>
 
-            {/* Admin-defined fields (form builder) land in the answers JSONB. */}
+            <Section title="Documents">
+              {row.pitch_deck_url ? (
+                <PdfFileLink url={String(row.pitch_deck_url)} label={label("pitch_deck_url")} />
+              ) : null}
+              {answerUrl(row as Record<string, unknown>, "business_profile_pdf") ? (
+                <PdfFileLink
+                  url={answerUrl(row as Record<string, unknown>, "business_profile_pdf")!}
+                  label={label("business_profile_pdf")}
+                />
+              ) : null}
+              {answerUrl(row as Record<string, unknown>, "company_reg_cert") ? (
+                <PdfFileLink
+                  url={answerUrl(row as Record<string, unknown>, "company_reg_cert")!}
+                  label={label("company_reg_cert")}
+                />
+              ) : null}
+              {answerUrl(row as Record<string, unknown>, "authorization_letter") ? (
+                <PdfFileLink
+                  url={answerUrl(row as Record<string, unknown>, "authorization_letter")!}
+                  label={label("authorization_letter")}
+                />
+              ) : null}
+              {answerUrl(row as Record<string, unknown>, "founder_cnic") ? (
+                <PdfFileLink
+                  url={answerUrl(row as Record<string, unknown>, "founder_cnic")!}
+                  label={label("founder_cnic")}
+                />
+              ) : null}
+              
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="ntn_number" label={label} />
+              {row.pitch_video ? (
+                <a
+                  href={safeHref(String(row.pitch_video))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-pasha-red hover:underline block mt-2"
+                >
+                  → {label("pitch_video")}
+                </a>
+              ) : null}
+              {!row.pitch_deck_url &&
+              !answerUrl(row as Record<string, unknown>, "business_profile_pdf") &&
+              !answerUrl(row as Record<string, unknown>, "company_reg_cert") &&
+              !answerUrl(row as Record<string, unknown>, "authorization_letter") &&
+              !answerUrl(row as Record<string, unknown>, "founder_cnic") &&
+              !answerOf(row as Record<string, unknown>, "ntn_number") &&
+              !row.pitch_video ? (
+                <p className="text-sm text-pasha-muted">No documents uploaded.</p>
+              ) : null}
+            </Section>
+
             {row.answers &&
             typeof row.answers === "object" &&
-            Object.keys(row.answers as Record<string, unknown>).length > 0 ? (
+            Object.entries(row.answers as Record<string, unknown>).some(
+              ([key]) => !DRAWER_ANSWER_KEYS.has(key)
+            ) ? (
               <Section title="Additional fields">
                 <dl className="space-y-2">
-                  {Object.entries(row.answers as Record<string, unknown>).map(([key, val]) => (
-                    <div key={key} className="flex flex-col">
-                      <dt className="text-[11px] uppercase tracking-wide text-pasha-muted">{key}</dt>
-                      <dd className="text-sm text-pasha-ink break-words">
-                        {Array.isArray(val)
-                          ? val.join(", ")
-                          : typeof val === "object" && val !== null
-                          ? JSON.stringify(val)
-                          : String(val ?? "—")}
-                      </dd>
+                  {Object.entries(row.answers as Record<string, unknown>)
+                    .filter(([key]) => !DRAWER_ANSWER_KEYS.has(key))
+                    .map(([key, val]) => (
+                    <div key={key} className="flex flex-col gap-1">
+                      <dt className="text-[11px] uppercase tracking-wide text-pasha-muted">
+                        {label(key)}
+                      </dt>
+                      <dd className="text-sm text-pasha-ink break-words">{renderAnswerValue(val)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -644,7 +819,146 @@ function renderYesNo(v: unknown): string {
   return "—";
 }
 
-/** Stringified URL → KV row with "View" link, falling back to —. */
+const IMAGE_URL = /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i;
+const PDF_URL = /\.pdf(\?|$)/i;
+
+function isSafeHttpUrl(url: string): boolean {
+  return safeHref(url) !== "#";
+}
+
+function isImageUrl(url: string): boolean {
+  try {
+    return IMAGE_URL.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
+function isPdfUrl(url: string): boolean {
+  try {
+    return PDF_URL.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
+function fileNameFromUrl(url: string): string {
+  try {
+    const base = new URL(url).pathname.split("/").pop() ?? "file";
+    return decodeURIComponent(base);
+  } catch {
+    return "file";
+  }
+}
+
+function PdfFileLink({ url, label }: { url: string; label?: string }) {
+  const href = safeHref(url);
+  if (href === "#") return <span className="text-pasha-muted">—</span>;
+  const name = label ?? fileNameFromUrl(url);
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2.5 rounded-lg border border-pasha-line bg-pasha-stone/30 px-3 py-2 hover:border-pasha-red/30 hover:bg-pasha-red/4 transition-colors group"
+    >
+      <div className="w-9 h-9 rounded-md bg-white border border-pasha-line grid place-items-center shrink-0">
+        <FileText className="w-4 h-4 text-pasha-red" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-pasha-ink truncate group-hover:text-pasha-red">{name}</p>
+        {/* <p className="text-[11px] text-pasha-muted">Open PDF in new tab</p> */}
+      </div>
+    </a>
+  );
+}
+
+function ImageFileLink({ url, alt }: { url: string; alt?: string }) {
+  const href = safeHref(url);
+  const src = safeImageSrc(url);
+  if (href === "#" || !src) return <span className="text-pasha-muted">—</span>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Open image in new tab"
+      className="inline-block rounded-lg border border-pasha-line overflow-hidden hover:border-pasha-red/40 transition-colors"
+    >
+      <img
+        src={src}
+        alt={alt ?? "Uploaded image"}
+        className="max-h-36 max-w-[220px] object-contain bg-pasha-stone/30"
+      />
+    </a>
+  );
+}
+
+function renderFileUrl(url: string): React.ReactNode {
+  if (isImageUrl(url)) return <ImageFileLink url={url} />;
+  if (isPdfUrl(url) || url.includes("/pitch-decks/")) return <PdfFileLink url={url} />;
+  if (isSafeHttpUrl(url)) {
+    let label = fileNameFromUrl(url);
+    if (!label || label === "/" || label === "file") {
+      try {
+        label = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        label = url;
+      }
+    }
+    return (
+      <a
+        href={safeHref(url)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-pasha-red hover:underline"
+      >
+        {label}
+      </a>
+    );
+  }
+  return url;
+}
+
+function renderMultilineText(text: string): React.ReactNode {
+  const trimmed = text.trim();
+  if (!trimmed) return "—";
+  // Single-line URL → file/link preview; multiline text keeps line breaks.
+  if (!trimmed.includes("\n") && isSafeHttpUrl(trimmed)) return renderFileUrl(trimmed);
+  return <span className="whitespace-pre-line">{trimmed}</span>;
+}
+
+function renderAnswerValue(val: unknown): React.ReactNode {
+  if (val == null || val === "") return "—";
+
+  if (typeof val === "boolean") {
+    return renderYesNo(val);
+  }
+
+  if (Array.isArray(val)) {
+    const urls = val.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+    if (urls.length === 0) return "—";
+    if (urls.every(isSafeHttpUrl)) {
+      return (
+        <div className="flex flex-wrap gap-2">
+          {urls.map((url, i) => (
+            <div key={`${url}-${i}`}>{renderFileUrl(url)}</div>
+          ))}
+        </div>
+      );
+    }
+    return urls.join(", ");
+  }
+
+  if (typeof val === "string") {
+    return renderMultilineText(val);
+  }
+
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
+/** Stringified URL → KV row with link, falling back to —. */
 function SocialKV({ k, v }: { k: string; v: unknown }) {
   if (!v || typeof v !== "string") return <KV k={k} v="—" />;
   return (
@@ -679,17 +993,40 @@ function SocialKV({ k, v }: { k: string; v: unknown }) {
  */
 function FoundersSection({ row }: { row: Record<string, unknown> }) {
   const list = Array.isArray(row.founders) ? (row.founders as Record<string, unknown>[]) : [];
+  const founderBio = answerOf(row, "founder_bio");
+  const femaleCount = list.filter((f) => f.gender === "female").length;
+
+  const teamSummary =
+    list.length > 0
+      ? `${list.length} founder${list.length === 1 ? "" : "s"}${
+          femaleCount > 0 ? ` · ${femaleCount} female` : ""
+        }`
+      : null;
+
+  const body = (
+    <>
+      {teamSummary ? (
+        <p className="text-xs text-pasha-muted mb-3">{teamSummary}</p>
+      ) : null}
+      {typeof founderBio === "string" && founderBio.trim() ? (
+        <div className="mb-4 text-sm text-pasha-ink">{renderMultilineText(founderBio)}</div>
+      ) : null}
+    </>
+  );
+
   if (list.length === 0) {
     // Legacy fallback — pre-v2 rows only have the flat columns.
     if (!row.founder_name && !row.founder_email && !row.founder_mobile) {
       return (
         <Section title="Founders">
+          {body}
           <p className="text-sm text-pasha-muted">No founder information.</p>
         </Section>
       );
     }
     return (
       <Section title="Founders">
+        {body}
         <FounderCard
           founder={{
             name: row.founder_name,
@@ -707,6 +1044,7 @@ function FoundersSection({ row }: { row: Record<string, unknown> }) {
   }
   return (
     <Section title={`Founders (${list.length})`}>
+      {body}
       {list.map((f, i) => (
         <FounderCard key={i} founder={f} />
       ))}

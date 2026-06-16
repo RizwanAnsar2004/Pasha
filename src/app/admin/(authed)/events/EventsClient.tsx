@@ -196,7 +196,7 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
       if (editingId) {
         const { event } = await api("PATCH", { id: editingId, ...payload });
         setRows((prev) => prev.map((r) => (r.id === editingId ? event : r)));
-        setMsg("Event updated");
+        closeForm();
       } else {
         const { event } = await api("POST", payload);
         setRows((prev) => [event, ...prev]);

@@ -1,7 +1,13 @@
 import "server-only";
 import { cache } from "react";
 import { createServiceClient } from "./supabase/server";
-import type { FormConfig, FormFieldConfig, FormSectionConfig } from "./form-config";
+import {
+  buildFieldLabelMap,
+  type FieldLabelMap,
+  type FormConfig,
+  type FormFieldConfig,
+  type FormSectionConfig,
+} from "./form-config";
 
 type FieldRow = {
   id: string;
@@ -137,3 +143,11 @@ export const getFormConfig = cache(
 /** The sign-up form (spec §3). Cached per-request via getFormConfig. */
 export const getRegistrationConfig = (): Promise<FormConfig | null> =>
   getFormConfig("registration");
+
+/** field_key / column_map → label for the application form. Cached per-request. */
+export const getFieldLabelMap = cache(
+  async (formKey: string = "application"): Promise<FieldLabelMap> => {
+    const config = await getFormConfig(formKey);
+    return config ? buildFieldLabelMap(config) : {};
+  }
+);

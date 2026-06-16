@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,6 +67,9 @@ export function DynamicForm({
   const [draftRestored, setDraftRestored] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const draftRestoredOnce = useRef(false);
+  const stepRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [progressWidth, setProgressWidth] = useState(0);
   // Serialized snapshot of the last payload we persisted — lets us skip saves
   // when nothing actually changed (form.watch() returns a fresh object every
   // render, and setSaveState re-renders, so a naive effect would loop forever).
@@ -225,7 +228,32 @@ export function DynamicForm({
 
   const stepInfo = titles[stepIdx];
   const isLast = stepIdx === totalSteps - 1;
-  const progress = ((stepIdx + 1) / totalSteps) * 100;
+
+  const updateProgressWidth = useCallback(() => {
+    const first = stepRefs.current[0];
+    const current = stepRefs.current[stepIdx];
+    const track = trackRef.current;
+    if (!first || !current || !track) return;
+    const trackRect = track.getBoundingClientRect();
+    const firstRect = first.getBoundingClientRect();
+    const currentRect = current.getBoundingClientRect();
+    setProgressWidth(currentRect.right - Math.max(trackRect.left, firstRect.left));
+  }, [stepIdx]);
+
+  useEffect(() => {
+    updateProgressWidth();
+    const row = trackRef.current?.previousElementSibling;
+    if (!(row instanceof HTMLElement)) return;
+
+    const ro = new ResizeObserver(updateProgressWidth);
+    ro.observe(row);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", updateProgressWidth);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateProgressWidth);
+    };
+  }, [updateProgressWidth, titles]);
 
   return (
     <FormProvider {...form}>
@@ -262,6 +290,9 @@ export function DynamicForm({
           {titles.map((t, i) => (
             <button
               key={t.num}
+              ref={(el) => {
+                stepRefs.current[i] = el;
+              }}
               type="button"
               onClick={() => i < stepIdx && setStepIdx(i)}
               className={
@@ -280,11 +311,11 @@ export function DynamicForm({
             </button>
           ))}
         </div>
-        <div className="h-1.5 rounded-full bg-pasha-line/60 overflow-hidden">
+        <div ref={trackRef} className="relative h-1.5 rounded-full bg-pasha-line/60 overflow-hidden">
           <motion.div
-            className="h-full bg-pasha-red rounded-full"
+            className="absolute top-0 left-0 h-full bg-pasha-red rounded-full"
             initial={false}
-            animate={{ width: `${progress}%` }}
+            animate={{ width: progressWidth }}
             transition={{ duration: 0.3 }}
           />
         </div>

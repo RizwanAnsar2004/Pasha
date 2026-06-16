@@ -18,7 +18,7 @@ import {
   stepTitles,
   stepFields,
 } from "@/lib/schema";
-import { labelFor } from "@/lib/field-labels";
+import { resolveFieldLabel } from "@/lib/form-config";
 
 // v2 draft key — bumping forces old v1 drafts to be ignored cleanly so users
 // with stale 7-step drafts don't get hydrated into the new 3-step form with
@@ -179,7 +179,7 @@ const form = useForm<SubmissionInput>({
       const badFields = fieldsForStep
         .map((f) => f as string)
         .filter((f) => f in errs);
-      const labels = badFields.map(labelFor).join(", ");
+      const labels = badFields.map((f) => resolveFieldLabel({}, f)).join(", ");
       const stepInfo = stepTitles[step - 1];
       setError(`Step ${step} (${stepInfo.title}) needs: ${labels}`);
       return;
@@ -278,7 +278,7 @@ const form = useForm<SubmissionInput>({
       }
     }
     const stepInfo = stepTitles[firstBadStep - 1];
-    const labels = firstBadStepFields.map(labelFor).join(", ");
+    const labels = firstBadStepFields.map((f) => resolveFieldLabel({}, f)).join(", ");
     setError(`Step ${firstBadStep} (${stepInfo.title}) needs: ${labels}`);
     if (step !== firstBadStep) {
       setStep(firstBadStep);

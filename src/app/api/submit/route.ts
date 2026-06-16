@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { submissionSchema, type Founder } from "@/lib/schema";
 import { scoreVetting } from "@/lib/vetting";
-import { labelFor } from "@/lib/field-labels";
 import { getFormConfig } from "@/lib/form-config.server";
-import { buildZodSchema, routeValues } from "@/lib/form-config";
+import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/form-config";
 import { getApplicantUser } from "@/lib/applicant-auth";
 
 export async function POST(req: Request) {
@@ -34,18 +33,19 @@ export async function POST(req: Request) {
     // (+ an `answers` JSONB bag for admin-added fields). Without a config we use
     // the original static schema — values are already keyed by column name.
     const config = await getFormConfig();
+    const labelMap = config ? buildFieldLabelMap(config) : {};
     let cols: Record<string, unknown>;
     let answers: Record<string, unknown> = {};
 
     if (config && config.length > 0) {
       const parsed = buildZodSchema(config).safeParse(body);
-      if (!parsed.success) return validationError(parsed.error.issues);
+      if (!parsed.success) return validationError(parsed.error.issues, labelMap);
       const routed = routeValues(config, parsed.data as Record<string, unknown>);
       cols = routed.columns;
       answers = routed.answers;
     } else {
       const parsed = submissionSchema.safeParse(body);
-      if (!parsed.success) return validationError(parsed.error.issues);
+      if (!parsed.success) return validationError(parsed.error.issues, labelMap);
       cols = parsed.data as unknown as Record<string, unknown>;
     }
 
@@ -251,11 +251,14 @@ export async function POST(req: Request) {
 }
 
 // Shared field-level validation error response.
-function validationError(issues: { path: PropertyKey[]; message: string }[]) {
+function validationError(
+  issues: { path: PropertyKey[]; message: string }[],
+  labelMap: Record<string, string>
+) {
   const fieldErrors: Record<string, string> = {};
   for (const issue of issues) {
     const pathKey = issue.path.length > 0 ? issue.path.join(".") : "_root";
-    fieldErrors[pathKey] = `${labelFor(pathKey)}: ${issue.message}`;
+    fieldErrors[pathKey] = `${resolveFieldLabel(labelMap, pathKey)}: ${issue.message}`;
   }
   const firstField = Object.keys(fieldErrors)[0];
   const summary = firstField ? fieldErrors[firstField] : "Validation failed";
