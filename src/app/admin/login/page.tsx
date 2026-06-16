@@ -1,9 +1,5 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  clearAdminSessionCookie,
-  readAdminSession,
-} from "@/lib/admin-session";
+import { readAdminSession } from "@/lib/admin-session";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { createClient } from "@/lib/supabase/server";
 import { AdminLoginForm } from "./LoginForm";
@@ -38,12 +34,6 @@ export default async function LoginPage({
 
   if (sessionMatches) {
     redirect(params.redirect ?? "/admin");
-  }
-
-  // Stale committee cookie (e.g. signed in as applicant after admin) — drop it.
-  if (cookieEmail && !sessionMatches) {
-    const jar = await cookies();
-    jar.set(clearAdminSessionCookie());
   }
 
   return <AdminLoginForm />;
