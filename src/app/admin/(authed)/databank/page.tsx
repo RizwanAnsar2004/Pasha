@@ -17,14 +17,16 @@ async function load() {
     const res = await supabase
       .from("databank")
       .select(FULL, { count: "exact" })
+      .order("created_at", { ascending: false, nullsFirst: false })
       .order("current_revenue", { ascending: false, nullsFirst: false })
-      .limit(200);
+      .limit(500);
     if (res.error && /pasha_verified/.test(res.error.message ?? "")) {
       const fallback = await supabase
         .from("databank")
         .select(LEGACY, { count: "exact" })
+        .order("created_at", { ascending: false, nullsFirst: false })
         .order("current_revenue", { ascending: false, nullsFirst: false })
-        .limit(200);
+        .limit(500);
       data = (fallback.data as unknown as DataRow[] | null) ?? null;
       count = fallback.count ?? null;
     } else {

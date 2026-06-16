@@ -62,19 +62,30 @@ function toFieldConfig(row: FieldRow, childrenByParent: Map<string, FieldRow[]>)
 }
 
 /**
- * Load the full form config (sections + recursively nested fields) from the DB.
- * Returns null when the form_builder tables don't exist yet (pre-migration) or
- * when nothing has been seeded — callers fall back to the static form/schema.
- * Cached per-request via React cache().
+ * Load a form's config (sections + recursively nested fields) from the DB.
+ * `formKey` selects which form to load — 'application' (the post-login apply
+ * form, default) or 'registration' (the sign-up form). Returns null when the
+ * form_builder tables don't exist yet (pre-migration) or when nothing has been
+ * seeded for that form — callers fall back to the static form/schema.
+ * Cached per-request (per formKey) via React cache().
  */
-export const getFormConfig = cache(async (): Promise<FormConfig | null> => {
+export const getFormConfig = cache(
+  async (formKey: string = "application"): Promise<FormConfig | null> => {
   const supabase = createServiceClient();
 
+  // `form_key` only exists after 20260618; if the column is missing the query
+  // errors and we fall back. Application is the historical (column-less) form,
+  // so only filter when asking for a non-default form to stay back-compatible.
+  let sectionsQuery = supabase
+    .from("form_sections")
+    .select("*")
+    .eq("is_active", true);
+  if (formKey !== "application") {
+    sectionsQuery = sectionsQuery.eq("form_key", formKey);
+  }
+
   const [{ data: sections, error: secErr }, { data: fields, error: fieldErr }] = await Promise.all([
-    supabase
-      .from("form_sections")
-      .select("*")
-      .eq("is_active", true)
+    sectionsQuery
       .order("step", { ascending: true })
       .order("sort_order", { ascending: true }),
     supabase.from("form_fields").select("*").order("sort_order", { ascending: true }),
@@ -83,6 +94,16 @@ export const getFormConfig = cache(async (): Promise<FormConfig | null> => {
   // Missing tables / any load error → signal "use the static fallback".
   if (secErr || fieldErr) return null;
   if (!sections || sections.length === 0) return null;
+
+  // For the default 'application' form, exclude any registration sections (the
+  // column may or may not exist — guard defensively).
+  const scoped =
+    formKey === "application"
+      ? (sections as SectionRow[]).filter(
+          (s) => (s as { form_key?: string }).form_key == null || (s as { form_key?: string }).form_key === "application"
+        )
+      : (sections as SectionRow[]);
+  if (scoped.length === 0) return null;
 
   const fieldRows = (fields ?? []) as FieldRow[];
   const childrenByParent = new Map<string, FieldRow[]>();
@@ -99,7 +120,7 @@ export const getFormConfig = cache(async (): Promise<FormConfig | null> => {
     }
   }
 
-  return (sections as SectionRow[]).map<FormSectionConfig>((s) => ({
+  return scoped.map<FormSectionConfig>((s) => ({
     id: s.id,
     key: s.key,
     title: s.title,
@@ -112,3 +133,7 @@ export const getFormConfig = cache(async (): Promise<FormConfig | null> => {
       .map((f) => toFieldConfig(f, childrenByParent)),
   }));
 });
+
+/** The sign-up form (spec §3). Cached per-request via getFormConfig. */
+export const getRegistrationConfig = (): Promise<FormConfig | null> =>
+  getFormConfig("registration");

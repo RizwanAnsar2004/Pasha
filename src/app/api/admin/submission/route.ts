@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -16,15 +17,80 @@ const updateSchema = z.object({
   reviewer_notes: z.string().max(2000).optional(),
 });
 
-export async function PATCH(req: Request) {
-  // 1. Auth check via session cookie + DB-backed admin allowlist
+async function requireAdmin() {
   const sessionClient = await createSessionClient();
-  const { data: { user } } = await sessionClient.auth.getUser();
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
   if (!user || !(await isAdminEmail(user.email))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return { user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  return { user, error: null };
+}
+
+async function resolveDatabankId(
+  supabase: ReturnType<typeof createServiceClient>,
+  submissionId: string,
+  startupName: string | null
+) {
+  const { data: bySource } = await supabase
+    .from("databank")
+    .select("id")
+    .eq("source_id", submissionId)
+    .maybeSingle();
+  if (bySource?.id) return bySource.id as string;
+
+  if (!startupName) return null;
+
+  const { data: byName } = await supabase
+    .from("databank")
+    .select("id")
+    .ilike("startup_name", startupName)
+    .limit(1)
+    .maybeSingle();
+  return (byName?.id as string | undefined) ?? null;
+}
+
+export async function GET(req: Request) {
+  const { user, error } = await requireAdmin();
+  if (!user) return error!;
+
+  const id = new URL(req.url).searchParams.get("id")?.trim();
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  // 2. Validate payload
+  const supabase = createServiceClient();
+  const { data: submission, error: subErr } = await supabase
+    .from("submissions")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (subErr || !submission) {
+    return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  }
+
+  let databank_id: string | null = null;
+  let featured = null;
+
+  if (submission.status === "approved") {
+    databank_id = await resolveDatabankId(
+      supabase,
+      id,
+      submission.startup_name as string | null
+    );
+    if (databank_id) {
+      featured = await getFeaturedStatusByDatabankId(databank_id);
+    }
+  }
+
+  return NextResponse.json({ submission, databank_id, featured });
+}
+
+export async function PATCH(req: Request) {
+  const { user, error } = await requireAdmin();
+  if (!user) return error!;
   let body: unknown;
   try {
     body = await req.json();
@@ -88,7 +154,33 @@ export async function PATCH(req: Request) {
       .maybeSingle();
 
     if (full?.startup_name) {
-      const enrichment = {
+      const founded_date = full.year_founded ? `${full.year_founded}-01-01` : null;
+      const city = full.outside_pakistan
+        ? null
+        : full.hq_city === "Other"
+          ? full.hq_other ?? null
+          : full.hq_city ?? null;
+
+      const databankRow = {
+        source: "submission",
+        source_id: full.id,
+        source_status: "Approved",
+        startup_name: full.startup_name,
+        company_name: full.startup_name,
+        tagline: full.tagline ?? null,
+        website: full.website ?? null,
+        founded_date,
+        primary_industry: full.primary_sector ?? null,
+        secondary_industries: full.secondary_sector ?? null,
+        business_types: full.business_model ?? null,
+        city,
+        nic_name: full.nic_name ?? null,
+        contact_person: full.founder_name ?? null,
+        contact_email: full.founder_email ?? null,
+        total_employees: full.total_employees ?? null,
+        female_employees: full.female_employees ?? null,
+        logo_url: full.logo_url ?? null,
+        startup_idea: full.description ?? null,
         key_persons: full.founders ?? [],
         company_linkedin: full.company_linkedin ?? null,
         company_x: full.company_x ?? null,
@@ -98,62 +190,35 @@ export async function PATCH(req: Request) {
         hq_country: full.hq_country ?? null,
         awards: full.awards ?? null,
         certifications: full.certifications ?? null,
+        updated_at: new Date().toISOString(),
       };
 
-      // Try update by startup_name first. Use .select("id") so we know
-      // whether any row was actually updated.
-      const { data: updated, error: updErr } = await supabase
+      const { data: bySource } = await supabase
         .from("databank")
-        .update(enrichment)
-        .ilike("startup_name", full.startup_name)
-        .select("id");
+        .select("id")
+        .eq("source_id", full.id)
+        .maybeSingle();
 
-      if (updErr) {
-        console.error("databank update failed:", updErr.message);
-      }
-
-      // No existing row → insert a fresh databank row from the submission.
-      if (!updErr && (!updated || updated.length === 0)) {
-        // year_founded comes in as a 4-digit string. founded_date column
-        // expects a date — fall back to 01 Jan of that year so the detail
-        // page can display "Founded January 2024" etc.
-        const founded_date = full.year_founded
-          ? `${full.year_founded}-01-01`
-          : null;
-        const city = full.outside_pakistan
-          ? null
-          : full.hq_city === "Other"
-            ? full.hq_other ?? null
-            : full.hq_city ?? null;
-
-        const insertRow = {
-          source: "submission",
-          source_id: full.id,
-          source_status: "Approved",
-          startup_name: full.startup_name,
-          company_name: full.startup_name,
-          tagline: full.tagline ?? null,
-          website: full.website ?? null,
-          founded_date,
-          primary_industry: full.primary_sector ?? null,
-          secondary_industries: full.secondary_sector ?? null,
-          business_types: full.business_model ?? null,
-          city,
-          nic_name: full.nic_name ?? null,
-          contact_person: full.founder_name ?? null,
-          contact_email: full.founder_email ?? null,
-          total_employees: full.total_employees ?? null,
-          female_employees: full.female_employees ?? null,
-          logo_url: full.logo_url ?? null,
-          startup_idea: full.description ?? null,
-          ...enrichment,
-        };
-
-        const { error: insErr } = await supabase
+      if (bySource?.id) {
+        const { error: updErr } = await supabase
           .from("databank")
-          .insert(insertRow);
-        if (insErr) {
-          console.error("databank insert from submission failed:", insErr.message);
+          .update(databankRow)
+          .eq("id", bySource.id);
+        if (updErr) console.error("databank update by source_id failed:", updErr.message);
+      } else {
+        const { data: updated, error: updErr } = await supabase
+          .from("databank")
+          .update(databankRow)
+          .ilike("startup_name", full.startup_name)
+          .select("id");
+
+        if (updErr) {
+          console.error("databank update failed:", updErr.message);
+        } else if (!updated || updated.length === 0) {
+          const { error: insErr } = await supabase.from("databank").insert(databankRow);
+          if (insErr) {
+            console.error("databank insert from submission failed:", insErr.message);
+          }
         }
       }
     }

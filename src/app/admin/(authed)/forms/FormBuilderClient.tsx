@@ -19,6 +19,8 @@ import { InputType, INPUT_TYPE_LABELS } from "@/lib/form-enums";
 // typing a magic string that silently yields an empty field on a typo.
 const OptionNamesContext = createContext<string[]>([]);
 
+export type FormKey = "application" | "registration";
+
 export type SectionRow = {
   id: string;
   key: string;
@@ -27,6 +29,7 @@ export type SectionRow = {
   step: number;
   sort_order: number;
   is_active: boolean;
+  form_key?: string | null;
 };
 
 export type FieldRow = {
@@ -127,6 +130,9 @@ export function FormBuilderClient({
   const [fields, setFields] = useState(initialFields);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Which form is being edited. The same builder drives both the post-login
+  // application form and the sign-up registration form (scoped by form_key).
+  const [activeForm, setActiveForm] = useState<FormKey>("application");
   // The step just created via "Add step" — it mounts expanded; all others
   // start collapsed so the builder is compact on load.
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -170,13 +176,20 @@ export function FormBuilderClient({
       await api("PATCH", { type: "section", id, updates });
     }, "Saved");
 
-  const steps = useMemo(
-    () => Array.from(new Set(sections.map((s) => s.step))).sort((a, b) => a - b),
-    [sections]
+  // Sections belonging to the form currently being edited. Rows without a
+  // form_key are legacy application sections (column added in 20260618).
+  const visibleSections = useMemo(
+    () => sections.filter((s) => (s.form_key ?? "application") === activeForm),
+    [sections, activeForm]
   );
 
-  // Each section IS a step. "Add step" appends a new section at step = max+1,
-  // then scrolls the freshly-created card into view.
+  const steps = useMemo(
+    () => Array.from(new Set(visibleSections.map((s) => s.step))).sort((a, b) => a - b),
+    [visibleSections]
+  );
+
+  // Each section IS a step. "Add step" appends a new section at step = max+1
+  // within the active form, then scrolls the freshly-created card into view.
   const addStep = () =>
     run(async () => {
       const nextStep = (steps[steps.length - 1] ?? 0) + 1;
@@ -188,6 +201,7 @@ export function FormBuilderClient({
           step: nextStep,
           sort_order: nextStep,
           is_active: true,
+          form_key: activeForm,
         },
       });
       if (id) setJustAddedId(id);
@@ -202,10 +216,11 @@ export function FormBuilderClient({
       }
     });
 
-  // Reorder a step by swapping its `step` with the neighbour in `dir`.
+  // Reorder a step by swapping its `step` with the neighbour in `dir`
+  // (within the active form only).
   const moveStep = (sectionId: string, dir: -1 | 1) =>
     run(async () => {
-      const ordered = [...sections].sort((a, b) => a.step - b.step);
+      const ordered = [...visibleSections].sort((a, b) => a.step - b.step);
       const i = ordered.findIndex((s) => s.id === sectionId);
       const j = i + dir;
       if (i < 0 || j < 0 || j >= ordered.length) return;
@@ -264,6 +279,43 @@ export function FormBuilderClient({
   return (
     <OptionNamesContext.Provider value={optionListNames}>
     <div className="space-y-8">
+      {/* Form switcher — the same builder edits both forms. */}
+      <div className="inline-flex rounded-lg border border-pasha-line bg-white p-1 text-sm">
+        {([
+          ["application", "Application form"],
+          ["registration", "Registration form"],
+        ] as [FormKey, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActiveForm(key)}
+            className={
+              "rounded-md px-3 py-1.5 transition-colors " +
+              (activeForm === key
+                ? "bg-pasha-ink text-white"
+                : "text-pasha-muted hover:text-pasha-ink")
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeForm === "registration" ? (
+        <p className="text-xs text-pasha-muted -mt-4 max-w-2xl">
+          These fields appear on the sign-up page after the email &amp; password
+          step. Email and password are always collected and aren&apos;t shown here.
+          Field keys that match the application form (e.g. <span className="font-mono">startup_name</span>,{" "}
+          <span className="font-mono">stage</span>) prefill the applicant&apos;s
+          full application after they sign in.
+        </p>
+      ) : (
+        <p className="text-xs text-pasha-muted -mt-4 max-w-2xl">
+          The post-login application form. Fields mapped to a database column feed
+          vetting and the public directory.
+        </p>
+      )}
+
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -277,7 +329,13 @@ export function FormBuilderClient({
         {msg && <span className="text-sm text-pasha-muted">{msg}</span>}
       </div>
 
-      {[...sections]
+      {visibleSections.length === 0 && (
+        <p className="rounded-lg border border-dashed border-pasha-line bg-pasha-stone/30 px-4 py-6 text-center text-sm text-pasha-muted">
+          No steps yet for this form. Click <strong>Add step</strong> to create one.
+        </p>
+      )}
+
+      {[...visibleSections]
         .sort((a, b) => a.step - b.step)
         .map((section, idx, arr) => (
           <SectionCard

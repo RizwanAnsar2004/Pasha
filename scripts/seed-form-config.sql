@@ -28,19 +28,26 @@ SELECT s.id, x.parent_field_id, x.field_key, x.label, x.hint, x.placeholder, x.i
 FROM form_sections s
 CROSS JOIN (VALUES
   (NULL::uuid,'h_basics','Basics',NULL::text,NULL::text,30,false,'{}'::jsonb,NULL::jsonb,NULL::text,false,NULL::int,NULL::int,NULL::text,NULL::text,true,0,NULL::jsonb),
-  (NULL,'startup_name','Startup name',NULL,'Acme Inc.',0,true,'{"minLength":2}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'startup_name',true,1,NULL),
-  (NULL,'tagline','Tagline',NULL,'One line on what you do',0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'tagline',true,2,NULL),
+  -- startup_name + tagline are collected at registration (spec §3) and prefill
+  -- the draft; hidden here (visible=false) so they still route to their columns
+  -- without re-asking. See 20260619_dedupe_registration_fields.sql.
+  (NULL,'startup_name','Startup name',NULL,'Acme Inc.',0,false,'{"minLength":2}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'startup_name',false,1,NULL),
+  (NULL,'tagline','Tagline',NULL,'One line on what you do',0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'tagline',false,2,NULL),
   (NULL,'website','Website',NULL,'https://',2,true,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'website',true,3,NULL),
   (NULL,'year_founded','Year founded',NULL,'2021',0,true,'{"pattern":"^(19|20)\\d{2}$"}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'year_founded',true,4,NULL),
   (NULL,'description','Brief description','At least 50 characters.',NULL,5,true,'{"minLength":50,"maxLength":2000}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'description',true,5,NULL),
   (NULL,'logo_url','Startup logo',NULL,NULL,90,false,'{"bucket":"logos","maxSizeMB":5,"accept":{"image/*":[".png",".jpg",".jpeg",".webp"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'logo_url',true,6,NULL),
-  (NULL,'h_location','Location',NULL,NULL,30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,7,NULL),
-  (NULL,'location','Headquarters',NULL,NULL,91,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,8,NULL),
+  -- location is collected at registration and prefills the draft; hidden here
+  -- (with its now-empty heading). See 20260619_dedupe_registration_fields.sql.
+  (NULL,'h_location','Location',NULL,NULL,30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,false,7,NULL),
+  (NULL,'location','Headquarters',NULL,NULL,91,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,false,8,NULL),
   (NULL,'h_category','Category',NULL,NULL,30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,9,NULL),
-  (NULL,'primary_sector','Primary sector',NULL,'Pick a sector',6,true,'{}'::jsonb,NULL,'SECTORS',false,NULL,NULL,NULL,'primary_sector',true,10,NULL),
+  -- primary_sector + stage are collected at registration; hidden here, still
+  -- routed via prefill. See 20260619_dedupe_registration_fields.sql.
+  (NULL,'primary_sector','Primary sector',NULL,'Pick a sector',6,false,'{}'::jsonb,NULL,'SECTORS',false,NULL,NULL,NULL,'primary_sector',false,10,NULL),
   (NULL,'secondary_sector','Secondary sector',NULL,NULL,0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'secondary_sector',true,11,NULL),
   (NULL,'business_model','Business model',NULL,'Select…',6,false,'{}'::jsonb,NULL,'BUSINESS_MODELS',false,NULL,NULL,NULL,'business_model',true,12,NULL),
-  (NULL,'stage','Current stage',NULL,'Pick a stage',6,true,'{}'::jsonb,NULL,'STAGES',false,NULL,NULL,NULL,'stage',true,13,NULL),
+  (NULL,'stage','Current stage',NULL,'Pick a stage',6,false,'{}'::jsonb,NULL,'STAGES',false,NULL,NULL,NULL,'stage',false,13,NULL),
   (NULL,'revenue_models','Revenue model',NULL,NULL,7,false,'{}'::jsonb,NULL,'REVENUE_MODELS',false,NULL,NULL,NULL,'revenue_models',true,14,NULL),
   (NULL,'h_team','Team & Legal',NULL,NULL,30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,15,NULL),
   (NULL,'total_employees','Total employees',NULL,NULL,4,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'total_employees',true,16,NULL),

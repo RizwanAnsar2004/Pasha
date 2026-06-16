@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 
@@ -87,44 +87,111 @@ export const getApplicantDraft = cache(async (userId: string): Promise<Applicant
   };
 });
 
-/**
- * Create a Supabase Auth user for a new applicant (email_confirm=true so they
- * can sign in immediately). Returns:
- *   - "created"  — a brand new account was provisioned
- *   - "exists"   — the email is already registered
- *   - "error"    — provisioning failed (message logged)
- */
-export async function provisionApplicantAuthUser(
-  email: string,
-  password: string
-): Promise<"created" | "exists" | "error"> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return "error";
+export type RegisterResult =
+  | { status: "needs_verification"; userId: string }
+  | { status: "signed_in"; userId: string }
+  | { status: "exists" }
+  | { status: "error"; message?: string };
 
-  const res = await fetch(`${url}/auth/v1/admin/users`, {
-    method: "POST",
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "content-type": "application/json",
+/**
+ * Register a new applicant via Supabase `signUp` (NOT the admin auto-confirm
+ * API). With the project's "Confirm email" setting ON this creates an
+ * unconfirmed user, sends the verification email, and returns NO session — so
+ * the applicant cannot sign in until they click the link. We classify the
+ * outcome for the caller:
+ *   - needs_verification — created, must confirm email before logging in
+ *   - signed_in          — created with a live session ("Confirm email" OFF)
+ *   - exists             — the email is already registered
+ *   - error              — sign-up failed
+ *
+ * `supabase` must be the route-handler client so any returned session is
+ * persisted to the response cookies.
+ */
+export async function registerApplicant(
+  supabase: SupabaseClient,
+  params: { email: string; password: string; fullName?: string | null; emailRedirectTo: string }
+): Promise<RegisterResult> {
+  const { data, error } = await supabase.auth.signUp({
+    email: params.email.toLowerCase(),
+    password: params.password,
+    options: {
+      data: { role: "applicant", full_name: params.fullName ?? null },
+      emailRedirectTo: params.emailRedirectTo,
     },
-    body: JSON.stringify({
-      email: email.toLowerCase(),
-      password,
-      email_confirm: true,
-      app_metadata: { role: "applicant" },
-    }),
   });
 
-  if (res.ok) return "created";
-
-  const body = await res.text();
-  // Supabase returns 422 when the email is already registered.
-  if (res.status === 422 || /already|exists|registered/i.test(body)) {
-    return "exists";
+  if (error) {
+    if (/already|registered|exists/i.test(error.message)) return { status: "exists" };
+    console.error("registerApplicant signUp failed:", error.message);
+    return { status: "error", message: error.message };
   }
 
-  console.error("provisionApplicantAuthUser failed:", res.status, body);
-  return "error";
+  const user = data.user;
+  if (!user) return { status: "error" };
+
+  // Supabase obfuscates "email already registered" by returning a user with an
+  // empty identities array (and no session) to prevent account enumeration.
+  if (Array.isArray(user.identities) && user.identities.length === 0) {
+    return { status: "exists" };
+  }
+
+  if (data.session) return { status: "signed_in", userId: user.id };
+  return { status: "needs_verification", userId: user.id };
+}
+
+/**
+ * Seed (or overwrite) the applicant's draft with the values they entered at
+ * registration, keyed by field_key so they prefill the application form later.
+ * Also records the terms consent (timestamp/IP/version — spec §3).
+ *
+ * Resilient to a pre-migration DB: if a consent column doesn't exist yet we
+ * strip it and retry (same strip-and-retry pattern as api/submit/route.ts).
+ */
+export async function seedApplicantDraft(
+  userId: string,
+  email: string,
+  data: Record<string, unknown>,
+  consent: { at: string; ip: string | null; version: string }
+): Promise<void> {
+  const supabase = createServiceClient();
+
+  // Prefill the application's primary founder from the §3 account fields. At
+  // registration `full_name` and `founder_mobile` are flat keys, but the
+  // application form keys founders under a `founders` array — without this the
+  // founder card would render empty even though we already have the details.
+  const seedData: Record<string, unknown> = { ...data };
+  const fullName = typeof seedData.full_name === "string" ? seedData.full_name.trim() : "";
+  const founderMobile =
+    typeof seedData.founder_mobile === "string" ? seedData.founder_mobile.trim() : "";
+  if (!Array.isArray(seedData.founders) && (fullName || founderMobile)) {
+    seedData.founders = [
+      { name: fullName, email, mobile: founderMobile, is_primary: true },
+    ];
+  }
+
+  const rec: Record<string, unknown> = {
+    user_id: userId,
+    email,
+    data: seedData,
+    current_step: 0,
+    consent_at: consent.at,
+    consent_ip: consent.ip,
+    consent_version: consent.version,
+    updated_at: new Date().toISOString(),
+  };
+
+  const upsert = () =>
+    supabase.from("application_drafts").upsert(rec, { onConflict: "user_id" });
+
+  let { error } = await upsert();
+  let safety = 5;
+  while (error && safety-- > 0) {
+    const pg = error.message.match(/column "([^"]+)"/);
+    const rest = error.message.match(/the '([^']+)' column/);
+    const colName = pg?.[1] ?? rest?.[1];
+    if (!colName || !(colName in rec)) break;
+    delete rec[colName];
+    ({ error } = await upsert());
+  }
+  if (error) console.error("seedApplicantDraft failed:", error.message);
 }
