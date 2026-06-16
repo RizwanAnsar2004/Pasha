@@ -139,6 +139,14 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("id");
   });
+  const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Auto-dismiss the toast.
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   // Realtime: listen for inserts/updates
   useEffect(() => {
@@ -289,7 +297,38 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
       </div>
 
       <AnimatePresence>
-        {openId && <SubmissionDrawer id={openId} onClose={() => setOpenId(null)} onUpdated={(r) => setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...r } : x)))} />}
+        {openId && (
+          <SubmissionDrawer
+            id={openId}
+            onClose={() => setOpenId(null)}
+            onUpdated={(r) => setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...r } : x)))}
+            onToast={(text, ok) => setToast({ text, ok })}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Action toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200]"
+            role="status"
+            aria-live="polite"
+          >
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg",
+                toast.ok ? "bg-pasha-ink text-white" : "bg-pasha-red text-white"
+              )}
+            >
+              {toast.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              {toast.text}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -388,10 +427,12 @@ function SubmissionDrawer({
   id,
   onClose,
   onUpdated,
+  onToast,
 }: {
   id: string;
   onClose: () => void;
   onUpdated: (r: Partial<Row> & { id: string }) => void;
+  onToast: (text: string, ok: boolean) => void;
 }) {
   const [row, setRow] = useState<FullRow | null>(null);
   const [acting, setActing] = useState<null | "approve" | "reject" | "needs_update" | "verify">(null);
@@ -459,11 +500,20 @@ function SubmissionDrawer({
       });
       if (res.ok) {
         onUpdated({ id, status: newStatus });
-        if (newStatus === "approved") {
-          onClose();
-        } else {
-          setRow((r) => (r ? { ...r, status: newStatus } : r));
-        }
+        // Approve / Reject / Request-update all resolve the review → close the
+        // drawer, show a toast, and the listing reflects the new status (the
+        // row was updated above + realtime).
+        const text =
+          newStatus === "approved"
+            ? "Submission approved"
+            : newStatus === "rejected"
+            ? "Submission rejected"
+            : "Update requested from applicant";
+        onToast(text, true);
+        onClose();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        onToast(j.error ?? "Couldn't update the submission", false);
       }
     } finally {
       setActing(null);
@@ -478,7 +528,14 @@ function SubmissionDrawer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, action: "verify", verified: !verified }),
       });
-      if (res.ok) setVerified((v) => !v);
+      if (res.ok) {
+        const next = !verified;
+        setVerified(next);
+        onToast(next ? "Marked as P@SHA Verified" : "Verification removed", true);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        onToast(j.error ?? "Couldn't update verification", false);
+      }
     } finally {
       setActing(null);
     }

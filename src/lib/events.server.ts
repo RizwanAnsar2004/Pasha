@@ -63,13 +63,20 @@ export async function getEventsForAdmin(): Promise<EventRow[]> {
   return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));
 }
 
+/**
+ * Published events that haven't happened yet — for the public /events page.
+ * "Future" is date-only against the current UTC date, so an event dated today
+ * still shows for the whole day regardless of viewer timezone. Soonest first.
+ */
 export async function getPublishedEvents(limit = 50): Promise<EventRow[]> {
+  const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("events")
     .select(EVENT_COLS)
     .eq("status", "published")
-    .order("event_date", { ascending: false })
+    .gte("event_date", today)
+    .order("event_date", { ascending: true })
     .limit(limit);
 
   if (error) {
