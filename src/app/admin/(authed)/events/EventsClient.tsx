@@ -153,6 +153,7 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
+  const [savingAs, setSavingAs] = useState<EventStatus | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventListRow | null>(null);
 
@@ -190,19 +191,27 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
     }
   }, []);
 
-  const save = () =>
-    run(async () => {
-      const payload = formToPayload(form);
-      if (editingId) {
-        const { event } = await api("PATCH", { id: editingId, ...payload });
-        setRows((prev) => prev.map((r) => (r.id === editingId ? event : r)));
-        closeForm();
-      } else {
-        const { event } = await api("POST", payload);
-        setRows((prev) => [event, ...prev]);
-        closeForm();
-      }
-    });
+  // Two explicit actions — "Save as draft" and "Publish" — each set the status
+  // on save, so admins control visibility with a clear button rather than a
+  // dropdown.
+  const save = (status: EventStatus) => {
+    setSavingAs(status);
+    return run(
+      async () => {
+        const payload = formToPayload({ ...form, status });
+        if (editingId) {
+          const { event } = await api("PATCH", { id: editingId, ...payload });
+          setRows((prev) => prev.map((r) => (r.id === editingId ? event : r)));
+          closeForm();
+        } else {
+          const { event } = await api("POST", payload);
+          setRows((prev) => [event, ...prev]);
+          closeForm();
+        }
+      },
+      status === "published" ? "Event published" : "Saved as draft"
+    );
+  };
 
   const confirmDelete = () =>
     run(async () => {
@@ -259,12 +268,23 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
             )}
             <button
               type="button"
-              onClick={save}
+              onClick={() => save("draft")}
+              disabled={busy || !form.title.trim() || !form.event_date}
+              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-5 py-2 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 disabled:opacity-50"
+            >
+              {busy && savingAs === "draft" && <Loader2 className="w-4 h-4 animate-spin" />}
+              Save as draft
+            </button>
+            <button
+              type="button"
+              onClick={() => save("published")}
               disabled={busy || !form.title.trim() || !form.event_date}
               className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red-dark disabled:opacity-50"
             >
-              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-              {editingId ? "Save changes" : "Create event"}
+              {busy && savingAs === "published" && <Loader2 className="w-4 h-4 animate-spin" />}
+              {editingId && rows.find((r) => r.id === editingId)?.status === "published"
+                ? "Update & keep published"
+                : "Publish"}
             </button>
           </div>
         </div>
@@ -310,10 +330,18 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Status">
-                <select className={inputCls} value={form.status} onChange={(e) => set("status", e.target.value as EventStatus)}>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
+                <div className={`${inputCls} flex items-center`}>
+                  <span
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
+                      form.status === "published"
+                        ? "bg-tier-featured/10 text-tier-featured"
+                        : "bg-pasha-stone text-pasha-muted"
+                    }`}
+                  >
+                    {form.status === "published" ? "Published" : "Draft"}
+                  </span>
+                  <span className="ml-2 text-xs text-pasha-muted">— use the buttons above to change</span>
+                </div>
               </Field>
               <Field label="Organizer">
                 <input className={inputCls} value={form.organizer} onChange={(e) => set("organizer", e.target.value)} />
