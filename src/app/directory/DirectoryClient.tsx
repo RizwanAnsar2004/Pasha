@@ -530,7 +530,7 @@ function ListCard({
         className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
       />
 
-      <div className="relative z-20 p-4 sm:p-5 flex items-center gap-4 sm:gap-5">
+      <div className="relative z-20 pointer-events-none p-4 sm:p-5 flex items-center gap-4 sm:gap-5">
         {/* Logo */}
         <div className="shrink-0 relative pointer-events-none">
           <span
