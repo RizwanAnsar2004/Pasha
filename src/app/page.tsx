@@ -2,61 +2,111 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
-import { FeaturedStartups } from "@/components/landing/FeaturedStartups";
+import { VerifiedStartupsToWatch } from "@/components/landing/VerifiedStartupsToWatch";
+import { WomenFounders } from "@/components/landing/WomenFounders";
+import { AwardWinningStartups } from "@/components/landing/AwardWinningStartups";
 import { Pillars } from "@/components/landing/Pillars";
 import { Process } from "@/components/landing/Process";
 import { Criteria } from "@/components/landing/Criteria";
+import { CommitteeBanner } from "@/components/landing/CommitteeBanner";
+import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
-import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
-import type { HeroDeckStartup } from "@/components/landing/Hero";
+import type { WatchlistStartup } from "@/components/landing/VerifiedStartupsToWatch";
+import type { WomenFounderStartup } from "@/components/landing/WomenFounders";
+import type { AwardWinningStartup } from "@/components/landing/AwardWinningStartups";
 
 export const revalidate = 60;
 
-async function loadHomeData(): Promise<{ databankCount: number; featured: FeaturedStartup[]; deck: HeroDeckStartup[] }> {
+type KeyPerson = { name?: string; gender?: string; [key: string]: unknown };
+
+function isWomanLed(keyPersons: unknown): boolean {
+  if (!Array.isArray(keyPersons)) return false;
+  return keyPersons.some(
+    (p) => typeof p === "object" && p !== null && (p as KeyPerson).gender?.toLowerCase() === "female"
+  );
+}
+
+function primaryFounderName(keyPersons: unknown): string | null {
+  if (!Array.isArray(keyPersons)) return null;
+  const woman = keyPersons.find(
+    (p) => typeof p === "object" && p !== null && (p as KeyPerson).gender?.toLowerCase() === "female"
+  ) as KeyPerson | undefined;
+  return woman?.name ?? null;
+}
+
+async function loadHomeData(): Promise<{
+  databankCount: number;
+  watchlist: WatchlistStartup[];
+  womenFounders: WomenFounderStartup[];
+  womenFoundersCount: number;
+  awardWinners: AwardWinningStartup[];
+}> {
   try {
     const supabase = createServiceClient();
-    const cols = "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,number_of_customers,pasha_verified";
-    const [countRes, featuredRes, deckRes] = await Promise.all([
+    const [countRes, watchlistRes, keyPersonsRes, awardsRes] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
       supabase
         .from("databank")
-        .select(cols)
+        .select("id,startup_name,tagline,primary_industry,city,product_stage,pasha_verified")
         .order("pasha_verified", { ascending: false, nullsFirst: false })
-        .order("current_revenue", { ascending: false, nullsFirst: false })
-        .limit(5),
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .limit(8),
       supabase
         .from("databank")
-        .select("id,startup_name,primary_industry,city,current_revenue,total_employees,number_of_customers,pasha_verified")
+        .select("id,startup_name,primary_industry,key_persons,pasha_verified,created_at")
+        .not("key_persons", "is", null)
         .order("pasha_verified", { ascending: false, nullsFirst: false })
-        .order("number_of_customers", { ascending: false, nullsFirst: false })
-        .limit(5),
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .limit(1000),
+      supabase
+        .from("databank")
+        .select("id,startup_name,primary_industry,city,awards,pasha_verified")
+        .not("awards", "is", null)
+        .order("pasha_verified", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .limit(20),
     ]);
+
+    const womenLed = (keyPersonsRes.data ?? []).filter((row) => isWomanLed(row.key_persons));
+    const womenFounders: WomenFounderStartup[] = womenLed.slice(0, 5).map((row) => ({
+      id: row.id,
+      startup_name: row.startup_name,
+      founder_name: primaryFounderName(row.key_persons),
+      primary_industry: row.primary_industry,
+    }));
+
     return {
       databankCount: countRes.count ?? 0,
-      featured: (featuredRes.data ?? []) as FeaturedStartup[],
-      deck: (deckRes.data ?? []) as HeroDeckStartup[],
+      watchlist: (watchlistRes.data ?? []) as WatchlistStartup[],
+      womenFounders,
+      womenFoundersCount: womenLed.length,
+      awardWinners: (awardsRes.data ?? []) as AwardWinningStartup[],
     };
   } catch {
-    return { databankCount: 0, featured: [], deck: [] };
+    return { databankCount: 0, watchlist: [], womenFounders: [], womenFoundersCount: 0, awardWinners: [] };
   }
 }
 
 export default async function Home() {
-  const { databankCount, featured, deck } = await loadHomeData();
+  const { databankCount, watchlist, womenFounders, womenFoundersCount, awardWinners } = await loadHomeData();
   const count = databankCount > 0 ? databankCount : 2481;
 
   return (
     <>
       <SiteHeader variant="transparent" />
       <main className="flex-1">
-        <Hero databankCount={count} deck={deck} />
+        <Hero databankCount={count} />
         <TrustStrip />
-        <FeaturedStartups startups={featured} />
+        <VerifiedStartupsToWatch startups={watchlist} />
+        <WomenFounders startups={womenFounders} totalCount={womenFoundersCount} />
+        <AwardWinningStartups startups={awardWinners} />
         <Pillars />
         <Process />
         <Criteria />
+        <CommitteeBanner />
+        <UpcomingEvents />
         <FAQ />
         <CTA />
       </main>

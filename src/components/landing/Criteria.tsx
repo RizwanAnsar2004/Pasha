@@ -33,7 +33,7 @@ export function Criteria() {
           transition={{ duration: 0.6, ease: EASE }}
           className="max-w-2xl"
         >
-          <span className="font-mono text-[11px] uppercase tracking-[3px] text-pasha-red">
+          <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
             Who should apply
           </span>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">

@@ -11,40 +11,15 @@ import {
 } from "framer-motion";
 import {
   ArrowRight,
-  BadgeCheck,
-  TrendingUp,
-  Users,
   Sparkles,
   ChevronDown,
   Star,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { initials, formatNumber } from "@/lib/utils";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const DECK_ACCENTS = [
-  "from-orange-400 to-amber-500",
-  "from-amber-400 to-yellow-500",
-  "from-emerald-400 to-teal-500",
-  "from-blue-400 to-cyan-500",
-  "from-green-400 to-emerald-500",
-];
-const DECK_ROTATES = [-8, -4, 0, 4, 8];
-const DECK_Y = [30, 10, 0, 10, 30];
-
-export type HeroDeckStartup = {
-  id: string;
-  startup_name: string;
-  primary_industry?: string | null;
-  city?: string | null;
-  current_revenue?: number | null;
-  number_of_customers?: number | null;
-  total_employees?: number | null;
-  pasha_verified?: boolean | null;
-};
-
-export function Hero({ databankCount, deck }: { databankCount: number; deck: HeroDeckStartup[] }) {
+export function Hero({ databankCount }: { databankCount: number }) {
   // Mouse parallax for the background gradient blobs
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -241,40 +216,12 @@ export function Hero({ databankCount, deck }: { databankCount: number; deck: Her
           </motion.div>
         </div>
 
-        {/* ───────────────────────────────────────────────────────
-            FANNED CARD DECK — below the hero, slightly overlapping
-            ─────────────────────────────────────────────────────── */}
-        <div className="relative mt-12 lg:mt-16 h-[240px] sm:h-[260px] flex items-end justify-center">
-          {/* "Featured today" label above the deck */}
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.4 }}
-            className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 rounded-full bg-white border border-pasha-line shadow-sm px-3 py-1.5"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-pasha-red opacity-75 animate-pulse-soft" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pasha-red" />
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-[2px] text-pasha-ink/70">
-              Featured · this week
-            </span>
-          </motion.div>
-
-          {/* The deck */}
-          <div className="relative w-full max-w-4xl h-full">
-            {deck.slice(0, 5).map((startup, i) => (
-              <FannedCard key={startup.id} startup={startup} index={i} total={Math.min(deck.length, 5)} accent={DECK_ACCENTS[i] ?? DECK_ACCENTS[0]} rotate={DECK_ROTATES[i] ?? 0} y={DECK_Y[i] ?? 0} />
-            ))}
-          </div>
-        </div>
-
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1.8 }}
-          className="hidden md:flex justify-center mt-8 flex-col items-center gap-1.5 text-pasha-muted"
+          className="hidden md:flex justify-center mt-12 lg:mt-16 flex-col items-center gap-1.5 text-pasha-muted"
         >
           <span className="font-mono text-[9px] uppercase tracking-[2.5px]">
             Continue
@@ -283,108 +230,6 @@ export function Hero({ databankCount, deck }: { databankCount: number; deck: Her
         </motion.div>
       </div>
     </section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   FannedCard — startup card in a fanned arrangement.
-   Slides up + rotates into place. Lifts straight up on hover.
-   ───────────────────────────────────────────────────────────── */
-function FannedCard({
-  startup,
-  accent,
-  rotate,
-  y,
-  index,
-  total,
-}: {
-  startup: HeroDeckStartup;
-  accent: string;
-  rotate: number;
-  y: number;
-  index: number;
-  total: number;
-}) {
-  const positions = [
-    "left-[2%] sm:left-[6%]",
-    "left-[20%] sm:left-[22%]",
-    "left-1/2 -translate-x-1/2",
-    "right-[20%] sm:right-[22%]",
-    "right-[2%] sm:right-[6%]",
-  ];
-  const positionClass = positions[index] ?? "left-1/2 -translate-x-1/2";
-  const isCenter = index === Math.floor(total / 2);
-
-  // Pick the most impressive metric available
-  let metric = "";
-  let metricLabel = "";
-  if (startup.number_of_customers) {
-    metric = formatNumber(startup.number_of_customers) ?? "";
-    metricLabel = "customers";
-  } else if (startup.current_revenue) {
-    metric = formatNumber(startup.current_revenue) ?? "";
-    metricLabel = "revenue";
-  } else if (startup.total_employees) {
-    metric = formatNumber(startup.total_employees) ?? "";
-    metricLabel = "employees";
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 80, rotate: 0 }}
-      animate={{ opacity: 1, y, rotate }}
-      transition={{ duration: 0.8, delay: 1.0 + index * 0.08, ease: EASE }}
-      whileHover={{ y: -10, rotate: 0, scale: 1.05, zIndex: 50 }}
-      style={{ zIndex: isCenter ? 20 : 10 - Math.abs(index - 2) }}
-      className={`absolute bottom-0 ${positionClass} w-56 sm:w-64 transition-shadow duration-300`}
-    >
-      <div className="rounded-2xl bg-white border border-pasha-line shadow-[0_20px_50px_-15px_rgba(14,14,16,0.20)] hover:shadow-[0_30px_70px_-15px_rgba(14,14,16,0.30)] overflow-hidden">
-        <div className={`h-1.5 bg-gradient-to-r ${accent}`} />
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            <div
-              className={`shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${accent} grid place-items-center text-white font-bold text-sm shadow-sm`}
-            >
-              {initials(startup.startup_name)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <div className="font-semibold text-[14px] text-pasha-ink truncate">
-                  {startup.startup_name}
-                </div>
-                {startup.pasha_verified && (
-                  <BadgeCheck className="w-3.5 h-3.5 text-pasha-red shrink-0" />
-                )}
-              </div>
-              {startup.primary_industry && (
-                <div className="text-[10px] font-mono uppercase tracking-[1.5px] text-pasha-muted mt-0.5">
-                  {startup.primary_industry}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-pasha-line/70 flex items-center justify-between">
-            {startup.city && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-pasha-muted">
-                <Users className="w-3 h-3" />
-                {startup.city}
-              </span>
-            )}
-            {metric && (
-              <span className="inline-flex items-baseline gap-1">
-                <TrendingUp className="w-3 h-3 text-pasha-muted" />
-                <span className="font-serif text-[13px] font-semibold text-pasha-ink leading-none">
-                  {metric}
-                </span>
-                <span className="text-[9px] font-mono uppercase tracking-[1px] text-pasha-muted">
-                  {metricLabel}
-                </span>
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 
