@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getApplicantContext } from "@/lib/applicant-auth";
+import { getRegistrationConfig } from "@/lib/form-config.server";
+import { getOptionRegistry } from "@/lib/option-lists.server";
 import { ApplyAuthForm } from "./AuthForm";
 
 export const dynamic = "force-dynamic";
@@ -15,5 +17,12 @@ export default async function ApplyLoginPage({
     redirect(redirectTo ?? "/apply");
   }
 
-  return <ApplyAuthForm />;
+  // The sign-up §3 fields are admin-configurable (form_key='registration').
+  // Pre-migration/seed this is null → the form falls back to email+password only.
+  const [registrationConfig, optionLists] = await Promise.all([
+    getRegistrationConfig(),
+    getOptionRegistry(),
+  ]);
+
+  return <ApplyAuthForm registrationConfig={registrationConfig} optionLists={optionLists} />;
 }

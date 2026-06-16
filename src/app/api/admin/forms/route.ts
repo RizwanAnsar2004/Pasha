@@ -20,6 +20,7 @@ const SECTION_COLS = new Set([
   "step",
   "sort_order",
   "is_active",
+  "form_key",
 ]);
 
 const FIELD_COLS = new Set([

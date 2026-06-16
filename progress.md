@@ -3,9 +3,35 @@
 > Living status doc for AI agents. Updated throughout the session. See
 > `goals.md` (intent) and `docs/form-builder.md` (architecture).
 
-_Last updated: 2026-06-15_
+_Last updated: 2026-06-16_
 
-## Status: **applicant portal in progress** (code done; migration pending)
+### Registration form (spec §3) + email verification (2026-06-16)
+Sign-up now collects the §3 minimum fields, is **admin-customizable**, and
+requires **email verification** before login.
+
+- **Migration (PENDING):** `supabase/migrations/20260618_registration_form.sql`
+  — adds `form_sections.form_key` (default `'application'`); adds
+  `application_drafts.consent_at/consent_ip/consent_version`; seeds a
+  `form_key='registration'` section + §3 fields (field keys mirror the
+  application form so values prefill it).
+- **Multi-form builder:** `getFormConfig(formKey)` + `getRegistrationConfig()`
+  (`form-config.server.ts`); `form_key` added to `SECTION_COLS`
+  (`api/admin/forms`); FormBuilderClient has an **Application / Registration**
+  tab switcher (filters sections by form_key, stamps form_key on new steps).
+- **Two-step sign-up:** `apply/login/AuthForm.tsx` — Step 1 email+password
+  (fixed), Step 2 admin-configured §3 fields (reuses `DynamicField` +
+  `buildZodSchema` + option lists), then a "verify your email" screen with
+  Resend. `apply/login/page.tsx` loads the registration config + option registry.
+- **Verification:** `registerApplicant()` uses `supabase.auth.signUp` (no more
+  auto-confirm) → unconfirmed users can't log in (login surfaces
+  `email_not_confirmed` + Resend). `seedApplicantDraft()` stores §3 answers +
+  consent. New callback route `src/app/apply/auth/callback/route.ts`
+  (exchange code / verifyOtp → `/apply`). `provisionApplicantAuthUser` removed.
+- **Ops (required):** enable Supabase Auth "Confirm email" + add
+  `${SITE_URL}/apply/auth/callback` to Redirect URLs, or the gate won't hold.
+- Build + lint clean.
+
+## Status: **applicant portal in progress** (code done; migrations pending)
 
 ### Applicant portal (2026-06-15)
 `/apply` is now an **applicant portal**, mirroring the admin `(authed)` pattern:

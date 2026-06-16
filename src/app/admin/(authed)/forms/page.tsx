@@ -21,8 +21,9 @@ export default async function FormsPage() {
       <div className="mb-6">
         <h1 className="font-serif text-2xl text-pasha-ink">Form builder</h1>
         <p className="mt-1 text-sm text-pasha-muted">
-          Define the public apply form. Changes go live immediately. Fields mapped
-          to a database column feed vetting and the public directory.
+          Define the sign-up (registration) form and the post-login application
+          form. Changes go live immediately. Fields mapped to a database column
+          feed vetting and the public directory.
         </p>
       </div>
       <FormBuilderClient
