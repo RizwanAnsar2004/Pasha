@@ -17,6 +17,7 @@ export default async function ApplicantFormPage() {
   // The layout gates this section, but a layout redirect doesn't stop the page
   // from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
+  console.log("ctx", ctx);
   if (ctx.status !== "applicant") {
     redirect(ctx.status === "admin" ? "/apply/login?error=admin" : "/apply/login?redirect=/apply");
   }

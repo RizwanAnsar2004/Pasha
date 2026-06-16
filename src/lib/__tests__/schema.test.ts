@@ -135,6 +135,12 @@ describe("submissionSchema v2 — newly-required fields fail when missing", () =
     assert.equal(r.success, false);
   });
 
+  it("year_founded in the future fails", () => {
+    const future = String(new Date().getFullYear() + 1);
+    const r = submissionSchema.safeParse({ ...REQUIRED_ONLY, year_founded: future });
+    assert.equal(r.success, false);
+  });
+
   it("website with javascript: scheme fails", () => {
     const r = submissionSchema.safeParse({
       ...REQUIRED_ONLY,
@@ -153,7 +159,7 @@ describe("submissionSchema v2 — founders array", () => {
   it("founder with missing role fails", () => {
     const r = submissionSchema.safeParse({
       ...REQUIRED_ONLY,
-      founders: [{ name: "Hamad", email: "h@b.com", mobile: "0300", is_primary: true }],
+      founders: [{ name: "Hamad", email: "h@b.com", mobile: "03001234567", is_primary: true }],
     });
     assert.equal(r.success, false);
   });
@@ -161,7 +167,7 @@ describe("submissionSchema v2 — founders array", () => {
   it("primary founder without email fails", () => {
     const r = submissionSchema.safeParse({
       ...REQUIRED_ONLY,
-      founders: [{ name: "Hamad", role: "CEO", mobile: "0300", is_primary: true }],
+      founders: [{ name: "Hamad", role: "CEO", mobile: "03001234567", is_primary: true }],
     });
     assert.equal(r.success, false);
   });
@@ -170,6 +176,19 @@ describe("submissionSchema v2 — founders array", () => {
     const r = submissionSchema.safeParse({
       ...REQUIRED_ONLY,
       founders: [{ name: "Hamad", role: "CEO", email: "h@b.com", is_primary: true }],
+    });
+    assert.equal(r.success, false);
+  });
+
+  it("founder mobile with letters fails", () => {
+    const r = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      founders: [
+        {
+          ...REQUIRED_ONLY.founders[0],
+          mobile: "abc123",
+        },
+      ],
     });
     assert.equal(r.success, false);
   });
@@ -193,7 +212,7 @@ describe("submissionSchema v2 — founders array", () => {
           name: "Hamad",
           role: "CEO",
           email: "h@b.com",
-          mobile: "0300",
+          mobile: "03001234567",
           is_primary: false,
         },
       ],

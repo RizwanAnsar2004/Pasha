@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhone, PHONE_VALIDATION_MESSAGE } from "./phone";
 
 // ---------------------------------------------------------------------------
 // Permissive optionals
@@ -20,6 +21,26 @@ export const optionalString = z.preprocess(
 // Strict URL: only http/https schemes. Rejects javascript:, data:, vbscript:,
 // file:, etc. Used for any URL field rendered later as an <a href>.
 export const SAFE_URL_RE = /^https?:\/\/[^\s<>"]+$/i;
+
+export const optionalPhone = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return undefined;
+    return String(v).trim();
+  },
+  z
+    .string()
+    .min(1)
+    .refine(isValidPhone, { message: PHONE_VALIDATION_MESSAGE })
+    .optional()
+);
+
+export const requiredPhone = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return "";
+    return String(v).trim();
+  },
+  z.string().min(1, "Required").refine(isValidPhone, { message: PHONE_VALIDATION_MESSAGE })
+);
 
 export const optionalSafeUrl = z.preprocess(
   (v) => {
@@ -99,7 +120,7 @@ export const founderSchema = z.object({
     (v) => (v === "" || v == null ? undefined : String(v).trim()),
     z.string().email("Valid email required").optional()
   ),
-  mobile: optionalString,
+  mobile: optionalPhone,
   linkedin: optionalSafeUrl,
   // Founder-level socials. LinkedIn was always here; X/Instagram/Facebook
   // are now first-class. custom_links lets a founder add any other URL with
@@ -163,6 +184,10 @@ export const foundersArray = z
 // Recognition) — see stepFields for the per-step slices.
 // ---------------------------------------------------------------------------
 
+export function yearFoundedFutureMessage(): string {
+  return `Year cannot be after ${new Date().getFullYear()}`;
+}
+
 export const submissionSchema = z
   .object({
     // ====== Startup — basics
@@ -172,7 +197,12 @@ export const submissionSchema = z
     year_founded: z
       .preprocess(
         (v) => (v === "" || v == null ? "" : String(v).trim()),
-        z.string().regex(/^(19|20)\d{2}$/, "Pick a year between 1900 and 2099")
+        z
+          .string()
+          .regex(/^(19|20)\d{2}$/, "Pick a year between 1900 and 2099")
+          .refine((y) => Number(y) <= new Date().getFullYear(), {
+            message: yearFoundedFutureMessage(),
+          })
       ),
     description: z.string().trim().min(50, "At least 50 characters").max(2000),
     logo_url: optionalSafeUrl,

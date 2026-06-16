@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PashaLogo } from "@/components/PashaLogo";
 import { getApplicantContext } from "@/lib/applicant-auth";
 import { PortalNav } from "./PortalNav";
-import { SignOutButton } from "./SignOutButton";
+import { ApplicantUserMenu } from "./ApplicantUserMenu";
 
 // Per-applicant draft state — always render fresh.
 export const dynamic = "force-dynamic";
@@ -34,10 +34,7 @@ export default async function ApplicantPortalLayout({
               Applicant Portal
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden sm:block text-pasha-muted">{email}</span>
-            <SignOutButton />
-          </div>
+          <ApplicantUserMenu email={email} />
         </div>
       </header>
 

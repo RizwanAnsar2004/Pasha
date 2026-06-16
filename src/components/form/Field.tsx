@@ -43,12 +43,21 @@ export function Field({
       value={{ inputId, hintId, errorId, hasError: !!error }}
     >
       <div className={`flex flex-col gap-2 ${className ?? ""}`}>
+        
         {label && (
           <Label htmlFor={inputId} required={required}>
             {label}
+            {hint && (
+              <>
+                {" "}
+                <span id={hintId} className="font-normal text-xs text-pasha-muted">
+                  ({hint})
+                </span>
+              </>
+            )}
           </Label>
         )}
-        {hint && <FieldHint id={hintId}>{hint}</FieldHint>}
+        {!label && hint && <FieldHint id={hintId}>{hint}</FieldHint>}
         {children}
         {error && <FieldError id={errorId}>{error}</FieldError>}
       </div>

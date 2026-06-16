@@ -8,14 +8,17 @@ import { z } from "zod";
 import {
   optionalString,
   optionalSafeUrl,
+  optionalPhone,
+  requiredPhone,
   requiredSafeUrl,
   optionalBool,
   foundersArray,
   applyCityCountryRefine,
   SAFE_URL_RE,
+  yearFoundedFutureMessage,
 } from "./schema";
 import { InputType, type ValidationSpec } from "./form-enums";
-import { OPTION_LISTS, normalizeOptions } from "./options";
+import { normalizeOptions, OPTION_LISTS } from "./options";
 
 // ---------------------------------------------------------------------------
 // Config types (mirror form_sections / form_fields rows; fields are recursive)
@@ -170,27 +173,45 @@ function makeArray(required: boolean): z.ZodTypeAny {
   return z.preprocess(filterStrings, z.array(z.string()).min(1, "Pick at least one option"));
 }
 
+function withYearFoundedMax(field: FormFieldConfig, schema: z.ZodTypeAny): z.ZodTypeAny {
+  if (field.field_key !== "year_founded") return schema;
+  return schema.refine(
+    (v) => v === "" || v === undefined || (typeof v === "string" && Number(v) <= new Date().getFullYear()),
+    { message: yearFoundedFutureMessage() }
+  );
+}
+
 // Build the Zod type for a single scalar field.
 function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
   const spec = field.validation ?? {};
   const req = field.required && !field.conditional; // conditional-required enforced in superRefine
+  let schema: z.ZodTypeAny;
   switch (field.input_type) {
     case InputType.NUMBER:
-      return makeNumber(spec, req);
+      schema = makeNumber(spec, req);
+      break;
     case InputType.YES_NO:
-      return makeBool(req);
+      schema = makeBool(req);
+      break;
     case InputType.MULTISELECT:
-      return makeArray(req);
+      schema = makeArray(req);
+      break;
     case InputType.EMAIL:
-      return req
+      schema = req
         ? makeRequiredString(spec, { email: true })
         : makeOptionalString(spec, { email: true });
+      break;
     case InputType.URL:
-      return req ? requiredSafeUrl : optionalSafeUrl;
+      schema = req ? requiredSafeUrl : optionalSafeUrl;
+      break;
+    case InputType.PHONE:
+      schema = req ? requiredPhone : optionalPhone;
+      break;
     default:
       // TEXT, TEXTAREA, SELECT, RADIO_CARDS, PHONE, DATE, FILE_UPLOAD
-      return req ? makeRequiredString(spec) : makeOptionalString(spec);
+      schema = req ? makeRequiredString(spec) : makeOptionalString(spec);
   }
+  return withYearFoundedMax(field, schema);
 }
 
 // Build a z.object shape for a GROUP's children.

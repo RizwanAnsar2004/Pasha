@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/Select";
 import { FileUpload } from "@/components/form/FileUpload";
 import { FOUNDER_GENDERS } from "@/lib/options";
 import type { SubmissionInput } from "@/lib/schema";
+import { phoneRegisterProps } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -105,9 +106,8 @@ export function FoundersRepeater() {
                 error={founderErr?.mobile?.message}
               >
                 <Input
-                  type="tel"
                   placeholder="+92 300 1234567"
-                  {...form.register(`founders.${idx}.mobile`)}
+                  {...phoneRegisterProps(form.register(`founders.${idx}.mobile`))}
                 />
               </Field>
               <Field label="Gender" error={founderErr?.gender?.message}>

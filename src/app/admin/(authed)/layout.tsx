@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { readAdminSession } from "@/lib/admin-session";
 import { PashaLogo } from "@/components/PashaLogo";
 import { AdminNav } from "./AdminNav";
+import { AdminUserMenu } from "./AdminUserMenu";
 
 export default async function AdminLayout({
   children,
@@ -33,17 +34,7 @@ export default async function AdminLayout({
               PSEC Admin
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden sm:block text-pasha-muted">{email}</span>
-            <form action="/admin/logout" method="post">
-              <button
-                type="submit"
-                className="text-xs text-pasha-muted hover:text-pasha-red transition-colors"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+          <AdminUserMenu email={email} />
         </div>
       </header>
 

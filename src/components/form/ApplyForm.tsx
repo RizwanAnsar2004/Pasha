@@ -45,9 +45,9 @@ export function ApplyForm() {
   const [draftRestored, setDraftRestored] = useState(false);
   const draftRestoredOnce = useRef(false);
 
-  const form = useForm<SubmissionInput>({
+const form = useForm<SubmissionInput>({
     resolver: zodResolver(submissionSchema) as Resolver<SubmissionInput>,
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       revenue_models: [],
       engagement_interests: [],

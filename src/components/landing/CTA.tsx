@@ -25,7 +25,7 @@ export function CTA() {
     btnX.set(0);
     btnY.set(0);
   }
-
+  const MotionLink = motion.create(Link);
   // Parallax for background orbs based on cursor in the section
   const sectionMx = useMotionValue(0);
   const sectionMy = useMotionValue(0);
@@ -121,7 +121,7 @@ export function CTA() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mt-10 inline-block"
         >
-          <motion.a
+          <MotionLink
             ref={btnRef}
             href="/apply"
             onMouseMove={handleMove}
@@ -136,7 +136,7 @@ export function CTA() {
             />
             <span className="relative">Start your application</span>
             <ArrowRight className="relative w-4 h-4 transition-transform group-hover:translate-x-1.5" />
-          </motion.a>
+          </MotionLink>
         </motion.div>
 
         {/* Micro trust line */}

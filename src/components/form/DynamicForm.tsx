@@ -77,7 +77,7 @@ export function DynamicForm({
 
   const form = useForm<Values>({
     resolver: zodResolver(schema as never) as Resolver<Values>,
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: defaults,
   });
 
@@ -258,7 +258,7 @@ export function DynamicForm({
 
       {/* Progress bar + step pills (supports any number of steps) */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="relative flex items-center justify-between mb-2">
           {titles.map((t, i) => (
             <button
               key={t.num}
@@ -266,6 +266,9 @@ export function DynamicForm({
               onClick={() => i < stepIdx && setStepIdx(i)}
               className={
                 "text-xs font-medium transition-colors " +
+                (titles.length === 3 && i === 1
+                  ? "absolute left-1/2 -translate-x-1/2 "
+                  : "") +
                 (i === stepIdx
                   ? "text-pasha-red"
                   : i < stepIdx

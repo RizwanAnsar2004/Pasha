@@ -10,6 +10,7 @@ import { FileUpload } from "@/components/form/FileUpload";
 import { CityField } from "@/components/form/controls/CityField";
 import { FoundersRepeater } from "@/components/form/controls/FoundersRepeater";
 import { InputType, htmlInputType } from "@/lib/form-enums";
+import { phoneRegisterProps } from "@/lib/phone";
 import { resolveOptions, type FormFieldConfig } from "@/lib/form-config";
 import { useOptionRegistry } from "@/components/form/OptionListsContext";
 
@@ -159,17 +160,20 @@ export function DynamicField({
       );
     }
 
-    default:
+    default: {
       // TEXT, EMAIL, URL, PHONE, NUMBER, DATE
+      const reg = form.register(path);
       return (
         <Field label={label} hint={hint} required={required} error={error}>
           <Input
-            type={htmlInputType(field.input_type)}
             placeholder={field.placeholder ?? undefined}
-            {...form.register(path)}
+            {...(field.input_type === InputType.PHONE
+              ? phoneRegisterProps(reg)
+              : { type: htmlInputType(field.input_type), ...reg })}
           />
         </Field>
       );
+    }
   }
 }
 

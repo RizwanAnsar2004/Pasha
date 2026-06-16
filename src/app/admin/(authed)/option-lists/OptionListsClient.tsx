@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Save, Trash2, Loader2, RotateCcw, Lock } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, RotateCcw, Lock, X } from "lucide-react";
 
 export type OptionItem = { value: string; label: string };
 export type OptionListMeta = {
@@ -96,6 +96,13 @@ export function OptionListsClient({ initial }: { initial: OptionListMeta[] }) {
       await refresh();
     }, "Done");
 
+  const cancelCreate = () => {
+    setCreating(false);
+    setNewName("");
+    setNewText("");
+    setMsg(null);
+  };
+
   const createList = () =>
     run(async () => {
       await api("POST", { name: newName.trim(), label: newName.trim(), items: textToItems(newText) });
@@ -143,14 +150,24 @@ export function OptionListsClient({ initial }: { initial: OptionListMeta[] }) {
               onChange={(e) => setNewText(e.target.value)}
             />
           </label>
-          <button
-            type="button"
-            disabled={busy || !newName.trim()}
-            onClick={createList}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-sm hover:border-pasha-red hover:text-pasha-red disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" /> Create list
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={busy || !newName.trim()}
+              onClick={createList}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-sm hover:border-pasha-red hover:text-pasha-red disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" /> Create list
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={cancelCreate}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-sm text-pasha-muted hover:border-pasha-ink/20 hover:text-pasha-ink disabled:opacity-50"
+            >
+              <X className="w-4 h-4" /> Cancel
+            </button>
+          </div>
         </div>
       )}
 
