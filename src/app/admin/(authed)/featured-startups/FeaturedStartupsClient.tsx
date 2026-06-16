@@ -54,14 +54,15 @@ type Candidate = {
   pasha_verified?: boolean | null;
 };
 
-type Filter = "all" | "active" | "scheduled" | "expired";
+type FeaturedStatus = "active" | "scheduled" | "expired";
+type Filter = "all" | FeaturedStatus;
 
 function databankOf(entry: FeaturedEntry): DatabankSummary | null {
   if (!entry.databank) return null;
   return Array.isArray(entry.databank) ? entry.databank[0] ?? null : entry.databank;
 }
 
-function statusOf(entry: FeaturedEntry, now = new Date()): Filter {
+function statusOf(entry: FeaturedEntry, now = new Date()): FeaturedStatus {
   const from = new Date(entry.featured_from);
   const until = new Date(entry.featured_until);
   if (until < now) return "expired";
@@ -92,7 +93,7 @@ async function api(method: string, body?: unknown) {
   return json;
 }
 
-const STATUS_STYLES: Record<Exclude<Filter, "all">, string> = {
+const STATUS_STYLES: Record<FeaturedStatus, string> = {
   active: "bg-emerald-50 text-emerald-700",
   scheduled: "bg-sky-50 text-sky-700",
   expired: "bg-red-50 text-red-700",

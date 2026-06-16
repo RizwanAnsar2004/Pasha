@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
 
 export type FeaturedSettings = {
   auto_rotate: boolean;
@@ -47,7 +48,17 @@ export async function getFeaturedForAdmin() {
   return data ?? [];
 }
 
-export async function getActiveFeaturedStartups(now = new Date()) {
+function databankOfJoin(
+  databank: FeaturedStartup | FeaturedStartup[] | null | undefined
+): FeaturedStartup | null {
+  if (!databank) return null;
+  return Array.isArray(databank) ? databank[0] ?? null : databank;
+}
+
+export async function getActiveFeaturedStartups(now = new Date()): Promise<{
+  settings: FeaturedSettings;
+  startups: FeaturedStartup[];
+}> {
   const settings = await getFeaturedSettings();
   const supabase = createServiceClient();
   const iso = now.toISOString();
@@ -67,16 +78,8 @@ export async function getActiveFeaturedStartups(now = new Date()) {
   }
 
   const startups = (data ?? [])
-    .map((row) => {
-      const db = row.databank as Record<string, unknown> | null;
-      if (!db) return null;
-      return {
-        ...db,
-        featured_from: row.featured_from,
-        featured_until: row.featured_until,
-      };
-    })
-    .filter(Boolean);
+    .map((row) => databankOfJoin(row.databank as FeaturedStartup | FeaturedStartup[] | null))
+    .filter((s): s is FeaturedStartup => s !== null);
 
   return { settings, startups };
 }

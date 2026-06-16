@@ -34,7 +34,7 @@ async function loadHomeData(): Promise<{ databankCount: number; featured: Featur
 
     let featured: FeaturedStartup[] = [];
     if (settings.show_on_homepage && managedFeatured.length > 0) {
-      featured = managedFeatured as FeaturedStartup[];
+      featured = managedFeatured;
     } else {
       const { data } = await supabase
         .from("databank")
