@@ -342,7 +342,15 @@ const _INLINE_DUMMY_UNUSED = [
   },
 ] as const;
 
-export default async function DirectoryPage() {
+export default async function DirectoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ women_led?: string }>;
+}) {
+  const { women_led } = await searchParams;
+  const initialWomenLedOnly =
+    women_led === "true" || women_led === "1";
+
   let initial = await loadInitial();
 
   // Fall back to dummy data when no real DB is connected yet.
@@ -364,7 +372,10 @@ export default async function DirectoryPage() {
         <section className="bg-white border-t border-pasha-line">
           <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12 sm:py-16">
             <Suspense fallback={<div className="text-pasha-muted">Loading…</div>}>
-              <DirectoryClient initial={initial} />
+              <DirectoryClient
+                initial={initial}
+                initialWomenLedOnly={initialWomenLedOnly}
+              />
             </Suspense>
           </div>
         </section>

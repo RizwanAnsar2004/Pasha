@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clearAdminSessionCookie } from "@/lib/admin-session";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { registerApplicant, seedApplicantDraft } from "@/lib/applicant-auth";
@@ -146,7 +147,9 @@ export async function POST(req: NextRequest) {
 
     if (result.status === "signed_in") {
       // "Confirm email" is OFF on the project → a session came back; sign in.
-      return applyCookies(NextResponse.json({ ok: true, needsVerification: false }));
+      const res = applyCookies(NextResponse.json({ ok: true, needsVerification: false }));
+      res.cookies.set(clearAdminSessionCookie());
+      return res;
     }
     // Normal path: must verify email before logging in.
     return NextResponse.json({ ok: true, needsVerification: true });
@@ -170,7 +173,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  return applyCookies(NextResponse.json({ ok: true }));
+  const res = applyCookies(NextResponse.json({ ok: true }));
+  res.cookies.set(clearAdminSessionCookie());
+  return res;
 }
 
 /** Sign out the applicant. */

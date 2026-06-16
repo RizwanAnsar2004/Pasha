@@ -79,7 +79,7 @@ export function WomenFounders() {
               opportunities.
             </p>
             <Link
-              href="/directory"
+              href="/directory?women_led=true"
               className="group mt-7 inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-lg shadow-pasha-red/20 hover:bg-pasha-red-dark transition-all hover:-translate-y-0.5"
             >
               Explore Women Founders
@@ -141,7 +141,7 @@ export function WomenFounders() {
                 transition={{ duration: 0.5, delay: shown.length * 0.07, ease: EASE }}
               >
                 <Link
-                  href="/directory"
+                  href="/directory?women_led=true"
                   className="group flex flex-col h-full items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-pasha-red/30 bg-pasha-red/[0.03] hover:bg-pasha-red/[0.06] hover:border-pasha-red/50 transition-colors p-4 text-center"
                 >
                   <span className="font-serif text-lg text-pasha-red">

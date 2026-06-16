@@ -735,14 +735,16 @@ const PAGE_SIZE = 12;
 
 export function DirectoryClient({
   initial,
+  initialWomenLedOnly = false,
 }: {
   initial: { rows: Row[]; total: number; sectors: string[] };
+  initialWomenLedOnly?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [sector, setSector] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [womenLedOnly, setWomenLedOnly] = useState(false);
+  const [womenLedOnly, setWomenLedOnly] = useState(initialWomenLedOnly);
   const [hiringOnly, setHiringOnly] = useState(false);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);

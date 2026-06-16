@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { clearAdminSessionCookie } from "@/lib/admin-session";
 
 /**
  * Applicant email-verification callback. Supabase sends the signup confirmation
@@ -40,5 +41,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  response.cookies.set(clearAdminSessionCookie());
   return response;
 }

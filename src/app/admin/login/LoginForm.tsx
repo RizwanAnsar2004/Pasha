@@ -11,11 +11,17 @@ function LoginInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const redirect = sp.get("redirect") ?? "/admin";
+  const authError = sp.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (authError === "unauthorized_email") {
+      return "You are signed in with a non-committee account. Sign in with a committee email to continue, or sign out of the applicant portal first.";
+    }
+    return null;
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

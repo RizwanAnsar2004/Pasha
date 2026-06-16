@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { clearAdminSessionCookie } from "@/lib/admin-session";
 
 // Routes inside /admin that don't require auth (otherwise we infinite-loop)
 const ADMIN_PUBLIC = ["/admin/login", "/admin/callback", "/admin/logout"];
@@ -67,10 +68,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return redirectToAdminLogin(request, { redirect: pathname });
   }
 
   // Admin allowlist check. The allowlist lives in the `admin_users` table
@@ -85,10 +83,10 @@ export async function proxy(request: NextRequest) {
   if (user.email) {
     const allowed = await isAllowedAdminEmail(user.email);
     if (!allowed) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/admin/login";
-      url.searchParams.set("error", "unauthorized_email");
-      return NextResponse.redirect(url);
+      return redirectToAdminLogin(request, {
+        redirect: pathname,
+        error: "unauthorized_email",
+      });
     }
   }
 
@@ -128,6 +126,21 @@ async function isAllowedAdminEmail(email: string): Promise<boolean> {
   } catch {
     return adminCache?.set.has(lc) ?? true;
   }
+}
+
+/** Redirect to admin login and clear a stale `psec_admin` cookie so the login
+ *  page doesn't bounce back to a gated route (ERR_TOO_MANY_REDIRECTS). */
+function redirectToAdminLogin(
+  request: NextRequest,
+  params: { redirect?: string; error?: string }
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/admin/login";
+  if (params.redirect) url.searchParams.set("redirect", params.redirect);
+  if (params.error) url.searchParams.set("error", params.error);
+  const response = NextResponse.redirect(url);
+  response.cookies.set(clearAdminSessionCookie());
+  return response;
 }
 
 export const config = {
