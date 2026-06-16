@@ -45,6 +45,9 @@ async function loadInitial() {
       number_of_customers: number | null;
       total_employees: number | null;
       pasha_verified: boolean | null;
+      women_led?: boolean | null;
+      hiring?: boolean | null;
+      fundraising?: boolean | null;
     };
     const allRows: Row[] = [];
     let total = 0;
@@ -57,6 +60,7 @@ async function loadInitial() {
     // Note: founder_name/role/photo are NOT direct columns on the databank
     // listing table — they live in key_persons on the detail page.
     const COLUMN_SETS = [
+      "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created",
       "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,founded_date,product_stage,business_types,incubation_stage,jobs_created",
       "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,pasha_verified,founded_date,product_stage,business_types,incubation_stage",
       "id,startup_name,tagline,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,pasha_verified,founded_date,product_stage",

@@ -25,6 +25,7 @@ import { getFormConfig } from "@/lib/form-config.server";
 import { getOptionRegistry } from "@/lib/option-lists.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/profile-completion";
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
+import { deriveBadges, isYes, type BadgeTone } from "@/lib/badges";
 
 export const metadata: Metadata = {
   title: "Your application",
@@ -39,6 +40,14 @@ const TONE: Record<string, { badge: string; bar: string; ring: string }> = {
   success: { badge: "bg-green-600/10 text-green-700", bar: "bg-green-600", ring: "border-green-200" },
   danger: { badge: "bg-pasha-red/10 text-pasha-red", bar: "bg-pasha-red", ring: "border-pasha-red/20" },
   gold: { badge: "bg-amber-100 text-amber-800", bar: "bg-amber-400", ring: "border-amber-300" },
+};
+
+const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
+  verified: "bg-pasha-red/10 text-pasha-red",
+  gold: "bg-amber-100 text-amber-800",
+  pink: "bg-pink-50 text-pink-700",
+  blue: "bg-sky-50 text-sky-700",
+  green: "bg-green-600/10 text-green-700",
 };
 
 const STAGE_ICON: Record<WorkflowStage, typeof CheckCircle2> = {
@@ -91,8 +100,19 @@ export default async function ApplicantOverviewPage() {
   // per-step progress) so they stay in sync with the form builder.
   const modules = config ? computeFormModules(config, draft.data) : [];
 
-  // ---- Registration snapshot (from §3 fields stored in the draft) ----------
   const d = draft.data as Record<string, unknown>;
+
+  // §13 badges — derived from the startup's own data (women-led/hiring/raising)
+  // plus admin-awarded verified/featured.
+  const badges = deriveBadges({
+    pashaVerified: submissionStatus?.pashaVerified,
+    featuredActive: submissionStatus?.featuredActive,
+    womenLed: isYes(d["women_led"]),
+    hiring: isYes(d["currently_hiring"]),
+    fundraising: isYes(d["currently_raising"]),
+  });
+
+  // ---- Registration snapshot (from §3 fields stored in the draft) ----------
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
   const labelFromList = (listKey: string, value: unknown): string => {
     if (typeof value !== "string" || !value) return "";
@@ -242,6 +262,36 @@ export default async function ApplicantOverviewPage() {
               Browse the directory
             </Link>
           )}
+        </div>
+      </div>
+
+      {/* Badges (spec §13) — earned + how to earn the rest */}
+      <div className="rounded-2xl border border-pasha-line bg-white p-6 sm:p-7">
+        <h3 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-red">Badges</h3>
+        <p className="mt-1 text-sm text-pasha-muted">
+          Badges help you stand out on the public directory.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {badges.map((b) => (
+            <div
+              key={b.key}
+              className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${
+                b.earned ? "border-pasha-line" : "border-dashed border-pasha-line bg-pasha-stone/20"
+              }`}
+            >
+              <span
+                className={`mt-0.5 shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                  b.earned ? BADGE_TONE_CLASS[b.tone] : "bg-pasha-stone text-pasha-muted"
+                }`}
+              >
+                {b.short}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-pasha-ink">{b.description}</p>
+                {!b.earned && <p className="mt-0.5 text-xs text-pasha-muted">{b.howTo}</p>}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

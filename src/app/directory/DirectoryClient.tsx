@@ -23,6 +23,9 @@ type Row = {
   total_employees?: number | null;
   female_employees?: number | null;
   pasha_verified?: boolean | null;
+  women_led?: boolean | null;
+  hiring?: boolean | null;
+  fundraising?: boolean | null;
   founded_date?: string | null;
   product_stage?: string | null;
   business_types?: string | null;
@@ -33,6 +36,31 @@ type Row = {
   founder_photo_url?: string | null;
   founder_role?: string | null;
 };
+
+// Small directory badge pills (women-led / hiring / fundraising). Verified
+// keeps its own dedicated <VerifiedBadge>. Mirrors src/lib/badges.ts tones.
+const DIR_BADGE: Record<"women_led" | "hiring" | "fundraising", { label: string; cls: string }> = {
+  women_led: { label: "Women-led", cls: "bg-pink-50 text-pink-700 border-pink-100" },
+  hiring: { label: "Hiring", cls: "bg-sky-50 text-sky-700 border-sky-100" },
+  fundraising: { label: "Fundraising", cls: "bg-green-50 text-green-700 border-green-100" },
+};
+
+function DirectoryBadges({ r, className }: { r: Row; className?: string }) {
+  const keys = (["women_led", "hiring", "fundraising"] as const).filter((k) => r[k]);
+  if (keys.length === 0) return null;
+  return (
+    <div className={`flex flex-wrap items-center gap-1 ${className ?? ""}`}>
+      {keys.map((k) => (
+        <span
+          key={k}
+          className={`inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-medium ${DIR_BADGE[k].cls}`}
+        >
+          {DIR_BADGE[k].label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 // Source data sometimes has the literal string "NULL" for missing values.
 // Treat these as nullish.
@@ -581,6 +609,9 @@ function ListCard({
             </p>
           )}
 
+          {/* §13 directory badges */}
+          <DirectoryBadges r={r} className="mt-1.5" />
+
           {/* Meta row */}
           <div className="mt-1.5 flex items-center gap-3 text-[11px] text-pasha-muted">
             {city && (
@@ -711,6 +742,8 @@ export function DirectoryClient({
   const [sector, setSector] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [womenLedOnly, setWomenLedOnly] = useState(false);
+  const [hiringOnly, setHiringOnly] = useState(false);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
 
@@ -730,6 +763,8 @@ export function DirectoryClient({
       if (sector !== "all" && r.primary_industry !== sector) return false;
       if (city !== "all" && r.city !== city) return false;
       if (verifiedOnly && !r.pasha_verified) return false;
+      if (womenLedOnly && !r.women_led) return false;
+      if (hiringOnly && !r.hiring) return false;
       if (!needle) return true;
       const hay = [r.startup_name, r.tagline, r.primary_industry, r.nic_name, r.city, r.founder_name]
         .filter(Boolean)
@@ -738,13 +773,14 @@ export function DirectoryClient({
       return hay.includes(needle);
     });
     return out;
-  }, [initial.rows, q, sector, city, verifiedOnly]);
+  }, [initial.rows, q, sector, city, verifiedOnly, womenLedOnly, hiringOnly]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const hasFilters = q.trim() || sector !== "all" || city !== "all" || verifiedOnly;
+  const hasFilters =
+    q.trim() || sector !== "all" || city !== "all" || verifiedOnly || womenLedOnly || hiringOnly;
 
   // Scroll to top of listing when page changes
   const gridRef = useRef<HTMLDivElement>(null);
@@ -866,6 +902,42 @@ export function DirectoryClient({
             P@SHA Verified
           </button>
 
+          {/* Women-led toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setWomenLedOnly((v) => !v);
+              setPage(1);
+            }}
+            aria-pressed={womenLedOnly}
+            className={cn(
+              "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
+              womenLedOnly
+                ? "border-pink-500 bg-pink-500 text-white shadow-sm"
+                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pink-300 hover:text-pasha-ink"
+            )}
+          >
+            Women-led
+          </button>
+
+          {/* Hiring toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setHiringOnly((v) => !v);
+              setPage(1);
+            }}
+            aria-pressed={hiringOnly}
+            className={cn(
+              "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
+              hiringOnly
+                ? "border-sky-500 bg-sky-500 text-white shadow-sm"
+                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-sky-300 hover:text-pasha-ink"
+            )}
+          >
+            Hiring
+          </button>
+
           {/* Clear all */}
           {hasFilters && (
             <button
@@ -875,6 +947,8 @@ export function DirectoryClient({
                 setSector("all");
                 setCity("all");
                 setVerifiedOnly(false);
+                setWomenLedOnly(false);
+                setHiringOnly(false);
               }}
               className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 text-[12.5px] font-medium text-pasha-muted hover:text-pasha-red transition-colors"
             >
@@ -1105,6 +1179,9 @@ export function DirectoryClient({
                         )}
                       </div>
                     )}
+
+                    {/* §13 directory badges */}
+                    <DirectoryBadges r={r} className="mt-2" />
 
                     {/* Location + meta row */}
                     {(city || nic || foundedYear) && (

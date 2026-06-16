@@ -3,7 +3,32 @@
 > Living status doc for AI agents. Updated throughout the session. See
 > `goals.md` (intent) and `docs/form-builder.md` (architecture).
 
-_Last updated: 2026-06-16_
+_Last updated: 2026-06-17_
+
+### Startup badges — spec §13 (2026-06-17)
+Five derived badges, shown on the applicant dashboard and the public directory.
+
+- **Model** `src/lib/badges.ts` (isomorphic): `BadgeKey`
+  (verified/featured/women_led/hiring/fundraising), `BADGE_DEFS` (label, tone,
+  description, how-to), `deriveBadges(flags)` + `earnedBadges(flags)`, `isYes()`.
+  Badges are **derived** (no parallel table): Verified ← `databank.pasha_verified`,
+  Featured ← `featured_startups`, Women-led/Hiring/Fundraising ← the startup's
+  own answers (women-led is opt-in per §9).
+- **Migration (PENDING)** `supabase/migrations/20260623_directory_badges.sql`:
+  adds `databank.women_led/hiring/fundraising` booleans.
+- **Publish on approval** `api/admin/submission`: maps women_led/currently_hiring
+  (from `submissions.answers`) + currently_raising (column) into the databank row.
+  ⚠ requires 20260623 applied or the databank write fails (migration-first).
+- **Applicant dashboard** `apply/(portal)/page.tsx`: a Badges section — earned
+  badges as colored pills, locked ones greyed with the how-to hint; flags from
+  `draft.data` + `getApplicantSubmissionStatus` (verified/featured).
+- **Public directory**: `directory/page.tsx` selects the badge columns (richest
+  COLUMN_SET, graceful fallback); `DirectoryClient` renders badge pills on
+  list+grid cards (`DirectoryBadges`) + adds **Women-led** and **Hiring** filter
+  toggles; `directory/[slug]` shows pills in the detail header (V2 fallback regex
+  extended).
+- Committee **reviews** (other half of §13) intentionally deferred.
+- Lint + `tsc --noEmit` clean.
 
 ### Profile completion ladder + 6-state workflow — spec §12 (2026-06-16)
 The applicant dashboard now shows the §12 completion ladder and the full

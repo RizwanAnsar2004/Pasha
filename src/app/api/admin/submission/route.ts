@@ -11,6 +11,7 @@ import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 import { getFieldLabelMap } from "@/lib/form-config.server";
+import { isYes } from "@/lib/badges";
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -220,7 +221,7 @@ export async function PATCH(req: Request) {
     const { data: full } = await supabase
       .from("submissions")
       .select(
-        "id, startup_name, tagline, website, year_founded, description, logo_url, hq_city, hq_other, outside_pakistan, hq_country, primary_sector, secondary_sector, business_model, total_employees, female_employees, nic_name, founders, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, awards, certifications, founder_name, founder_email"
+        "id, startup_name, tagline, website, year_founded, description, logo_url, hq_city, hq_other, outside_pakistan, hq_country, primary_sector, secondary_sector, business_model, total_employees, female_employees, nic_name, founders, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, awards, certifications, founder_name, founder_email, currently_raising, answers"
       )
       .eq("id", id)
       .maybeSingle();
@@ -232,6 +233,11 @@ export async function PATCH(req: Request) {
         : full.hq_city === "Other"
           ? full.hq_other ?? null
           : full.hq_city ?? null;
+
+      // §13 badge flags. women_led / currently_hiring are admin-added form
+      // fields → they live in submissions.answers (JSONB); currently_raising is
+      // a real column.
+      const answers = (full.answers ?? {}) as Record<string, unknown>;
 
       const databankRow = {
         source: "submission",
@@ -262,6 +268,10 @@ export async function PATCH(req: Request) {
         hq_country: full.hq_country ?? null,
         awards: full.awards ?? null,
         certifications: full.certifications ?? null,
+        // §13 badges
+        women_led: isYes(answers.women_led),
+        hiring: isYes(answers.currently_hiring),
+        fundraising: full.currently_raising ?? isYes(answers.currently_raising),
         updated_at: new Date().toISOString(),
       };
 

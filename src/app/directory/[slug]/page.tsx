@@ -17,6 +17,7 @@ import {
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { earnedBadges } from "@/lib/badges";
 import { KeyPersons, type KeyPerson } from "@/components/KeyPersons";
 import { CompanySocials } from "@/components/CompanySocials";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -67,6 +68,9 @@ type Row = {
   social_impact: string | null;
   secp_verified: boolean | null;
   pasha_verified: boolean | null;
+  women_led?: boolean | null;
+  hiring?: boolean | null;
+  fundraising?: boolean | null;
   // v2 additions — present only after the 20260521 migration runs. The
   // defensive select falls back to the legacy column list when these are
   // missing, so the page renders fine on pre-migration prod data.
@@ -96,7 +100,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   // fall back step-by-step. Once the v2 migration runs in prod, the FULL path
   // always succeeds; the fallbacks exist for the brief in-between deploy state.
   const V2_ADDITIONS =
-    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications";
+    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising";
   const LEGACY_NO_PASHA =
     "id, source, startup_name, company_name, tagline, website, founded_date, primary_industry, secondary_industries, business_types, product_stage, sdgs, city, nic_name, incubation_stage, cohort, joining_date, total_employees, female_employees, jobs_created, current_revenue, investment_raised, investment_commitment, investment_raised_from, number_of_customers, video_pitch, logo_url, startup_idea, business_model, social_impact, secp_verified";
   const LEGACY = `${LEGACY_NO_PASHA}, pasha_verified`;
@@ -113,7 +117,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   }
 
   let { data, error } = await tryFetch(FULL);
-  if (error && /key_persons|company_|hq_country|awards|certifications/.test(error.message ?? "")) {
+  if (error && /key_persons|company_|hq_country|awards|certifications|women_led|hiring|fundraising/.test(error.message ?? "")) {
     ({ data, error } = await tryFetch(LEGACY));
   }
   if (error && /pasha_verified/.test(error.message ?? "")) {
@@ -379,6 +383,32 @@ export default async function StartupDetailPage({
                   {tagline}
                 </p>
               )}
+              {(() => {
+                const badges = earnedBadges({
+                  womenLed: row.women_led,
+                  hiring: row.hiring,
+                  fundraising: row.fundraising,
+                }); // verified shown via VerifiedBadge above; featured handled elsewhere
+                if (badges.length === 0) return null;
+                const cls: Record<string, string> = {
+                  pink: "bg-pink-50 text-pink-700 border-pink-100",
+                  blue: "bg-sky-50 text-sky-700 border-sky-100",
+                  green: "bg-green-50 text-green-700 border-green-100",
+                };
+                return (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {badges.map((b) => (
+                      <span
+                        key={b.key}
+                        title={b.description}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium ${cls[b.tone] ?? "bg-pasha-stone text-pasha-muted"}`}
+                      >
+                        {b.short}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-pasha-muted">
                 {city && (
                   <span className="inline-flex items-center gap-1.5">
