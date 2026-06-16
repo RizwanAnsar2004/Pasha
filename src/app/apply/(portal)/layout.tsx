@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import { PashaLogo } from "@/components/PashaLogo";
 import { getApplicantContext } from "@/lib/applicant-auth";
 import { PortalNav } from "./PortalNav";
@@ -25,6 +26,7 @@ export default async function ApplicantPortalLayout({
 
   return (
     <div className="min-h-screen bg-pasha-stone/30 flex flex-col">
+      <ApiUnauthorizedHandler realm="applicant" />
       <header className="border-b border-pasha-line bg-white">
         <div className="mx-auto max-w-5xl px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">

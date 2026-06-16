@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import {
   ShieldCheck,
   UserPlus,
@@ -103,6 +104,7 @@ export function AdminsManager({
 
   return (
     <main className="min-h-screen bg-pasha-stone/30">
+      <ApiUnauthorizedHandler realm="super-admin" />
       <header className="border-b border-pasha-line bg-white">
         <div className="mx-auto max-w-4xl px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
