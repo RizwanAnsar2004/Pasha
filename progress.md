@@ -29,7 +29,48 @@ requires **email verification** before login.
   (exchange code / verifyOtp → `/apply`). `provisionApplicantAuthUser` removed.
 - **Ops (required):** enable Supabase Auth "Confirm email" + add
   `${SITE_URL}/apply/auth/callback` to Redirect URLs, or the gate won't hold.
+- **De-dup (PENDING):** `supabase/migrations/20260619_dedupe_registration_fields.sql`
+  — hides the §3 fields that registration already captured from the
+  application's **Startup** step (`startup_name`, `tagline`, `location` + its
+  `h_location` heading, `stage`, `primary_sector`). Hidden (not deleted) so they
+  still route their prefilled values to their `submissions` columns; also set
+  `required = false` so a legacy draft can't stall behind a hidden field. Seed
+  script (`scripts/seed-form-config.sql`) updated to match.
 - Build + lint clean.
+
+### Full application form — spec §4–§11 (2026-06-16)
+The post-login application form now covers the entire spec via the **dynamic
+form builder** (DB-driven, admin-editable), broken into **7 steps**:
+1. **Startup** (§4 identity/brand/links + §11 mandatory card fields)
+2. **Founders & team** (§5)
+3. **Business profile** (§6 problem/solution/product/USP/GTM)
+4. **Market & competition** (§7 competitors + TAM/SAM/SOM)
+5. **Traction & funding** (§8 — ranges only)
+6. **Operations & collaboration** (§9 hiring/partnerships/women-led)
+7. **Documents & verification** (§10 — applicant-supplied docs)
+
+- **Migration (PENDING):** `supabase/migrations/20260621_full_application_form.sql`
+  — scoped DELETE + reseed of the `application` form only (registration
+  untouched). Fields with a `column_map` keep writing to real `submissions`
+  columns (vetting/directory); all new spec fields have `column_map=NULL` so the
+  submit pipeline routes them into `submissions.answers` (JSONB) — **no schema
+  change needed**. Reg-captured fields (startup_name, tagline, location, stage,
+  primary_sector) stay hidden but still route their prefilled values.
+- **New option lists** in `src/lib/options.ts` (auto-registered for
+  `options_source`): `TEAM_SIZES`, `CONTACT_PREFERENCES`, `PRODUCT_MATURITY`,
+  `TARGET_CUSTOMERS`, `GTM_CHANNELS`, `MONTHLY_REVENUE_RANGES`, `FUNDING_STATUS`,
+  `FUNDING_AMOUNT_RANGES`, `OPERATING_MARKETS`, `OFFICE_TYPES`,
+  `WOMEN_OWNERSHIP_RANGES`.
+- Admin-only review fields (§10 notes/scores, §12 status) are intentionally NOT
+  in the applicant form — they belong to the admin review workflow.
+- File uploads reuse existing buckets (`logos` for images, `pitch-decks` for
+  PDFs/docs) so no new storage infra is required.
+- **Registration → application prefill:** the §3 fields shared with the
+  application (`startup_name`, `tagline`, `location`/`hq_*`, `stage`,
+  `primary_sector`) are shown **pre-filled and editable** (no longer hidden) and
+  re-required per §11. `seedApplicantDraft()` now also seeds the **primary
+  founder** card from `full_name`/`founder_mobile`/`email`, so the founder
+  repeater isn't empty. (Applies to new registrations.)
 
 ## Status: **applicant portal in progress** (code done; migrations pending)
 

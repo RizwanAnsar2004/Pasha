@@ -154,10 +154,25 @@ export async function seedApplicantDraft(
   consent: { at: string; ip: string | null; version: string }
 ): Promise<void> {
   const supabase = createServiceClient();
+
+  // Prefill the application's primary founder from the §3 account fields. At
+  // registration `full_name` and `founder_mobile` are flat keys, but the
+  // application form keys founders under a `founders` array — without this the
+  // founder card would render empty even though we already have the details.
+  const seedData: Record<string, unknown> = { ...data };
+  const fullName = typeof seedData.full_name === "string" ? seedData.full_name.trim() : "";
+  const founderMobile =
+    typeof seedData.founder_mobile === "string" ? seedData.founder_mobile.trim() : "";
+  if (!Array.isArray(seedData.founders) && (fullName || founderMobile)) {
+    seedData.founders = [
+      { name: fullName, email, mobile: founderMobile, is_primary: true },
+    ];
+  }
+
   const rec: Record<string, unknown> = {
     user_id: userId,
     email,
-    data,
+    data: seedData,
     current_step: 0,
     consent_at: consent.at,
     consent_ip: consent.ip,

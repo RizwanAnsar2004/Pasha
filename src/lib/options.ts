@@ -161,6 +161,123 @@ export const NIC_CENTERS = [
   "Other",
 ] as const;
 
+// ---------------------------------------------------------------------------
+// Spec §4–§11 dropdowns (post-login profile completion). These power the full
+// application form built by 20260621_full_application_form.sql.
+// ---------------------------------------------------------------------------
+
+// §11 / §4 — startup maturity filter.
+export const TEAM_SIZES = [
+  "1-5",
+  "6-10",
+  "11-25",
+  "26-50",
+  "51-100",
+  "100+",
+] as const;
+
+// §4 — public contact preference.
+export const CONTACT_PREFERENCES = [
+  { value: "contact_form", label: "Contact form only (recommended)" },
+  { value: "show_email", label: "Show email publicly" },
+  { value: "show_phone", label: "Show phone publicly" },
+  { value: "hide", label: "Hide contact details" },
+] as const;
+
+// §6 — product maturity.
+export const PRODUCT_MATURITY = [
+  { value: "idea", label: "Idea" },
+  { value: "prototype", label: "Prototype" },
+  { value: "mvp", label: "MVP" },
+  { value: "live", label: "Live product" },
+  { value: "scaling", label: "Scaling" },
+  { value: "enterprise", label: "Enterprise-ready" },
+] as const;
+
+// §6 — target customer segments.
+export const TARGET_CUSTOMERS = [
+  "Consumers",
+  "SMEs",
+  "Enterprise",
+  "Banks & financial institutions",
+  "Schools & universities",
+  "Government",
+  "Healthcare providers",
+  "Other",
+] as const;
+
+// §6 — sales / go-to-market channels.
+export const GTM_CHANNELS = [
+  "Direct sales",
+  "Digital / online marketing",
+  "Partnerships & channel",
+  "Marketplaces",
+  "Retail / distribution",
+  "Referral / word of mouth",
+  "Events & community",
+] as const;
+
+// §8 — monthly recurring revenue range (use ranges, not exact figures).
+export const MONTHLY_REVENUE_RANGES = [
+  { value: "0", label: "Pre-revenue" },
+  { value: "<1k", label: "Under $1K / month" },
+  { value: "1k-10k", label: "$1K – $10K / month" },
+  { value: "10k-50k", label: "$10K – $50K / month" },
+  { value: "50k-250k", label: "$50K – $250K / month" },
+  { value: ">250k", label: "$250K+ / month" },
+  { value: "na", label: "Prefer not to disclose" },
+] as const;
+
+// §8 — funding status.
+export const FUNDING_STATUS = [
+  "Bootstrapped",
+  "Grant-funded",
+  "Angel-funded",
+  "VC-funded",
+  "Corporate-backed",
+  "Not disclosed",
+] as const;
+
+// §8 — funding amount ranges (raised / raising). Investor-discovery use only.
+export const FUNDING_AMOUNT_RANGES = [
+  { value: "0", label: "None" },
+  { value: "<50k", label: "Under $50K" },
+  { value: "50k-250k", label: "$50K – $250K" },
+  { value: "250k-1m", label: "$250K – $1M" },
+  { value: "1m-5m", label: "$1M – $5M" },
+  { value: ">5m", label: "$5M+" },
+  { value: "na", label: "Prefer not to disclose" },
+] as const;
+
+// §9 — operating markets (multi-select).
+export const OPERATING_MARKETS = [
+  "Pakistan",
+  "GCC / Middle East",
+  "North America",
+  "Europe / EU",
+  "United Kingdom",
+  "Africa",
+  "Southeast Asia",
+  "Other",
+] as const;
+
+// §9 — office / work model.
+export const OFFICE_TYPES = [
+  { value: "remote", label: "Fully remote" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "physical", label: "Physical office" },
+] as const;
+
+// §9 — women ownership percentage band (private by default).
+export const WOMEN_OWNERSHIP_RANGES = [
+  { value: "0", label: "0%" },
+  { value: "1-25", label: "1 – 25%" },
+  { value: "26-50", label: "26 – 50%" },
+  { value: "51-75", label: "51 – 75%" },
+  { value: "76-100", label: "76 – 100%" },
+  { value: "na", label: "Prefer not to disclose" },
+] as const;
+
 // Named registry so a form_fields row can reference a centrally-maintained
 // option list by name (options_source) instead of duplicating it in the DB.
 // The dynamic renderer + buildZodSchema resolve a field's options from here
@@ -180,6 +297,18 @@ export const OPTION_LISTS: Record<string, OptionList> = {
   FOUNDER_GENDERS,
   ENGAGEMENT_INTERESTS,
   NIC_CENTERS,
+  // Spec §4–§11 profile dropdowns
+  TEAM_SIZES,
+  CONTACT_PREFERENCES,
+  PRODUCT_MATURITY,
+  TARGET_CUSTOMERS,
+  GTM_CHANNELS,
+  MONTHLY_REVENUE_RANGES,
+  FUNDING_STATUS,
+  FUNDING_AMOUNT_RANGES,
+  OPERATING_MARKETS,
+  OFFICE_TYPES,
+  WOMEN_OWNERSHIP_RANGES,
 };
 
 // Normalize any option list to {value,label}[] for rendering.
