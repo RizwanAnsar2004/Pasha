@@ -183,7 +183,7 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
           href="/admin/databank"
           className="inline-flex items-center gap-1.5 text-sm text-pasha-muted hover:text-pasha-ink transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to data bank
+          <ArrowLeft className="w-4 h-4" /> Back
         </Link>
         <div className="flex items-center gap-2">
           <button
