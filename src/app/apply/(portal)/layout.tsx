@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import { PashaLogo } from "@/components/PashaLogo";
-import { getApplicantContext } from "@/lib/applicant-auth";
+import { getApplicantContext, getApplicantDraft } from "@/lib/applicant-auth";
 import { PortalNav } from "./PortalNav";
 import { ApplicantUserMenu } from "./ApplicantUserMenu";
 
@@ -23,6 +23,7 @@ export default async function ApplicantPortalLayout({
   if (ctx.status === "admin") redirect("/apply/login?error=admin");
 
   const email = ctx.user.email ?? "";
+  const draft = await getApplicantDraft(ctx.user.id);
 
   return (
     <div className="min-h-screen bg-pasha-stone/30 flex flex-col">
@@ -41,7 +42,7 @@ export default async function ApplicantPortalLayout({
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-5 sm:px-8 py-8 flex-1">
-        <PortalNav />
+        <PortalNav submitted={draft.submitted} />
         <div className="mt-6">{children}</div>
       </div>
     </div>

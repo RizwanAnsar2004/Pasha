@@ -630,7 +630,7 @@ function SubmissionDrawer({
             </div>
 
             <Section title="Description">
-              <div className="text-sm text-pasha-ink leading-relaxed">
+              <div className="text-sm text-pasha-ink leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-line">
                 {typeof row.description === "string"
                   ? renderMultilineText(row.description)
                   : "—"}

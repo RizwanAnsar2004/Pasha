@@ -163,6 +163,21 @@ export function DynamicField({
     default: {
       // TEXT, EMAIL, URL, PHONE, NUMBER, DATE
       const reg = form.register(path);
+      if (field.input_type === InputType.NUMBER) {
+        const current = value as number | string | undefined;
+        return (
+          <NumberField
+            field={field}
+            path={path}
+            label={label}
+            hint={hint}
+            required={required}
+            error={error}
+            value={current}
+            namePrefix={namePrefix}
+          />
+        );
+      }
       return (
         <Field label={label} hint={hint} required={required} error={error}>
           <Input
@@ -175,6 +190,62 @@ export function DynamicField({
       );
     }
   }
+}
+
+function NumberField({
+  field,
+  path,
+  label,
+  hint,
+  required,
+  error,
+  value,
+  namePrefix,
+}: {
+  field: FormFieldConfig;
+  path: string;
+  label?: string;
+  hint?: string;
+  required?: boolean;
+  error?: string;
+  value: number | string | undefined;
+  namePrefix?: string;
+}) {
+  const form = useFormContext();
+
+  // Cross-field rule: female_employees must not exceed total_employees.
+  const isFemale = field.field_key === "female_employees";
+  const isTotal = field.field_key === "total_employees";
+  const totalPath = namePrefix ? `${namePrefix}.total_employees` : "total_employees";
+  const femalePath = namePrefix ? `${namePrefix}.female_employees` : "female_employees";
+  const totalVal = useWatch({ control: form.control, name: totalPath });
+  const femaleVal = useWatch({ control: form.control, name: femalePath });
+
+  let crossError: string | undefined;
+  if ((isFemale || isTotal) && typeof totalVal === "number" && typeof femaleVal === "number" && femaleVal > totalVal) {
+    crossError = isFemale
+      ? "Female employees cannot exceed total employees"
+      : "Total employees cannot be less than female employees";
+  }
+
+  return (
+    <Field label={label} hint={hint} required={required} error={error ?? crossError}>
+      <Input
+        type="text"
+        inputMode="numeric"
+        placeholder={field.placeholder ?? undefined}
+        value={value ?? ""}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, "");
+          form.setValue(
+            path,
+            digits === "" ? undefined : Number(digits),
+            { shouldDirty: true, shouldValidate: true }
+          );
+        }}
+      />
+    </Field>
+  );
 }
 
 // A subsection. Non-repeatable → just its children. Repeatable → a card list

@@ -233,7 +233,7 @@ CROSS JOIN (VALUES
   (NULL,'ntn_number','NTN / tax number',NULL,NULL,0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,5,NULL),
   (NULL,'pasha_membership_number','P@SHA membership number','If you are already a P@SHA member.',NULL,0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,6,NULL),
   (NULL,'authorization_letter','Authorization letter','Required only if you are a representative, not a founder.',NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"],"image/*":[".png",".jpg",".jpeg"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,7,NULL),
-  (NULL,'founder_cnic','Founder CNIC / passport','Only if high-trust verification is requested. Stored with strict access controls.',NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"],"image/*":[".png",".jpg",".jpeg"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,8,NULL)
+  (NULL,'founder_cnic','Founder CNIC / passport','Only if high-trust verification is requested. Stored with strict access controls.',NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,8,NULL)
 ) AS x(parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
 WHERE s.key = 'documents' AND s.form_key = 'application';
 

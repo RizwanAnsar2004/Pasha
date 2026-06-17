@@ -26,6 +26,7 @@ import { getOptionRegistry } from "@/lib/option-lists.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/profile-completion";
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
 import { deriveBadges, isYes, type BadgeTone } from "@/lib/badges";
+import { ReapplyButton } from "./ReapplyButton";
 
 export const metadata: Metadata = {
   title: "Your application",
@@ -133,12 +134,9 @@ export default async function ApplicantOverviewPage() {
   const greetingName = firstName || startupName;
 
   // CTA target + label by stage.
-  const cta =
-    editable
-      ? { href: "/apply/form", label: draft.started ? "Continue application" : "Start application" }
-      : stage === "submitted"
-      ? { href: "/apply/form", label: "View application" }
-      : { href: "/directory", label: "Browse the directory" };
+  const cta = editable
+    ? { href: "/apply/form", label: draft.started ? "Continue application" : "Start application" }
+    : { href: "/directory", label: "Browse the directory" };
 
   return (
     <div className="space-y-6">
@@ -247,19 +245,15 @@ export default async function ApplicantOverviewPage() {
         )}
 
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link
-            href={cta.href}
-            className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-          >
-            {stage === "needs_update" ? "Edit & resubmit" : cta.label}
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          {(stage === "approved" || stage === "verified" || stage === "featured") && (
+          {stage === "rejected" ? (
+            <ReapplyButton />
+          ) : (
             <Link
-              href="/directory"
-              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-5 py-2.5 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-all"
+              href={cta.href}
+              className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
             >
-              Browse the directory
+              {stage === "needs_update" ? "Edit & resubmit" : cta.label}
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           )}
         </div>

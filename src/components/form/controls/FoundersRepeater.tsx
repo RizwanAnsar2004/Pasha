@@ -264,7 +264,11 @@ function FoundersPhotoUploadField({ index }: { index: number }) {
       bucket="founder-photos"
       label="Upload photo"
       hint="Optional — square photo (JPG/PNG) up to 5MB."
-      accept={{ "image/jpeg": [], "image/png": [], "image/webp": [] }}
+      accept={{
+        "image/jpeg": [".jpg", ".jpeg", ".jfif", ".jfi", ".pjpeg", ".pjp"],
+        "image/png": [".png"],
+        "image/webp": [".webp"],
+      }}
       value={value || undefined}
       onChange={(url) =>
         form.setValue(`founders.${index}.photo_url`, url ?? "", { shouldDirty: true })

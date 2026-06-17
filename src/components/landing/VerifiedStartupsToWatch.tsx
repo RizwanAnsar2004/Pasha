@@ -133,7 +133,7 @@ export function VerifiedStartupsToWatch({ startups }: { startups: WatchlistStart
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerLeave={endDrag}
-          className={`flex items-stretch gap-5 overflow-x-auto overflow-y-hidden py-3 px-1 -mx-1 snap-x snap-mandatory scroll-smooth select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          className={`flex items-stretch gap-5 overflow-x-auto overflow-y-hidden pt-4 pb-12 px-1 -mx-1 snap-x snap-mandatory scroll-smooth select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             isDragging ? "cursor-grabbing snap-none scroll-auto" : "cursor-grab"
           }`}
         >
@@ -151,11 +151,11 @@ export function VerifiedStartupsToWatch({ startups }: { startups: WatchlistStart
         {/* Edge fade overlays to signal scrollability */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-3 left-0 w-10 sm:w-16 bg-gradient-to-r from-pasha-stone to-transparent"
+          className="pointer-events-none absolute inset-y-4 left-0 w-10 sm:w-16 bg-gradient-to-r from-pasha-stone to-transparent"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-3 right-0 w-10 sm:w-16 bg-gradient-to-l from-pasha-stone to-transparent"
+          className="pointer-events-none absolute inset-y-4 right-0 w-10 sm:w-16 bg-gradient-to-l from-pasha-stone to-transparent"
         />
       </div>
     </section>

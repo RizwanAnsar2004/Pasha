@@ -111,7 +111,21 @@ export function Step1Startup({ form }: StepProps) {
             onChange={(url) =>
               setValue("logo_url", url || undefined, { shouldValidate: true })
             }
-            accept={{ "image/*": [".png", ".jpg", ".jpeg", ".webp", ".svg"] }}
+            accept={{
+              "image/*": [
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".jfif",
+                ".jfi",
+                ".pjpeg",
+                ".pjp",
+                ".webp",
+                ".svg",
+                ".gif",
+                ".avif",
+              ],
+            }}
             maxSizeMB={5}
             label="Drop logo or click to upload"
             hint="Square aspect ratio works best."
@@ -181,20 +195,36 @@ export function Step1Startup({ form }: StepProps) {
       {/* ---------- Team & legal ---------- */}
       <Section title="Team & legal">
         <div className="grid sm:grid-cols-2 gap-5">
-          <Field label="Total employees">
+          <Field label="Total employees" error={errors.total_employees?.message}>
             <Input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               placeholder="e.g. 12"
-              {...register("total_employees")}
+              value={v.total_employees ?? ""}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                setValue(
+                  "total_employees",
+                  digits === "" ? undefined : Number(digits),
+                  { shouldValidate: true }
+                );
+              }}
             />
           </Field>
-          <Field label="Female employees">
+          <Field label="Female employees" error={errors.female_employees?.message}>
             <Input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               placeholder="e.g. 4"
-              {...register("female_employees")}
+              value={v.female_employees ?? ""}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                setValue(
+                  "female_employees",
+                  digits === "" ? undefined : Number(digits),
+                  { shouldValidate: true }
+                );
+              }}
             />
           </Field>
         </div>

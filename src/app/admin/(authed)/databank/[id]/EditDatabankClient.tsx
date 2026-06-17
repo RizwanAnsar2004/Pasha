@@ -264,7 +264,21 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
             bucket="logos"
             value={row.logo_url ?? undefined}
             onChange={(url) => update("logo_url", url ?? null)}
-            accept={{ "image/*": [".png", ".jpg", ".jpeg", ".webp", ".svg"] }}
+            accept={{
+              "image/*": [
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".jfif",
+                ".jfi",
+                ".pjpeg",
+                ".pjp",
+                ".webp",
+                ".svg",
+                ".gif",
+                ".avif",
+              ],
+            }}
             maxSizeMB={5}
             label="Drop logo or click to upload"
             hint="Square aspect ratio works best."

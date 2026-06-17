@@ -152,7 +152,6 @@ export async function POST(req: Request) {
     if (bucketName === "pitch-decks") {
       serverContentType = "application/pdf";
     } else {
-      // For images, pick from the magic bytes or fall back to client mime
       if (head[0] === 0x89) serverContentType = "image/png";
       else if (head[0] === 0xff && head[1] === 0xd8) serverContentType = "image/jpeg";
       else if (head[0] === 0x52) serverContentType = "image/webp";

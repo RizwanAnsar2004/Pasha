@@ -11,7 +11,7 @@ import { Criteria } from "@/components/landing/Criteria";
 import { CommitteeBanner } from "@/components/landing/CommitteeBanner";
 import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { getUpcomingPublishedEvents } from "@/lib/events.server";
-import { getHomepageVerifiedWatchlist } from "@/lib/featured-startups.server";
+import { getHomepageFeaturedWatchlist } from "@/lib/featured-startups.server";
 import { getWomenLedStartups } from "@/lib/women-led.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
@@ -36,8 +36,8 @@ async function loadHomeData(): Promise<{
     const supabase = createServiceClient();
     const [countRes, watchlist, awardsRes, womenLed] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
-      // Verified startups for the "Verified Startups to Watch" carousel.
-      getHomepageVerifiedWatchlist(HOME_CAROUSEL_LIMIT),
+      // Admin-curated featured startups (time-boxed) for the homepage carousel.
+      getHomepageFeaturedWatchlist(),
       supabase
         .from("databank")
         .select("id,startup_name,primary_industry,city,awards,pasha_verified")

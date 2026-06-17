@@ -391,7 +391,14 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
               </select>
             </Field>
             <Field label="Capacity">
-              <input type="number" className={inputCls} value={form.capacity} onChange={(e) => set("capacity", e.target.value)} placeholder="2000" />
+              <input
+                type="text"
+                inputMode="numeric"
+                className={inputCls}
+                value={form.capacity}
+                onChange={(e) => set("capacity", e.target.value.replace(/\D/g, ""))}
+                placeholder="2000"
+              />
             </Field>
             <Field label="Capacity note">
               <input className={inputCls} value={form.capacity_note} onChange={(e) => set("capacity_note", e.target.value)} placeholder="Seats filling fast" />

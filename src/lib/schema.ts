@@ -274,6 +274,23 @@ export const submissionSchema = z
   })
   .superRefine((data, ctx) => {
     applyCityCountryRefine(data, ctx);
+    if (typeof data.total_employees === "number" && data.total_employees < 1) {
+      ctx.addIssue({ code: "custom", message: "Must be greater than 0", path: ["total_employees"] });
+    }
+    if (typeof data.female_employees === "number" && data.female_employees < 1) {
+      ctx.addIssue({ code: "custom", message: "Must be greater than 0", path: ["female_employees"] });
+    }
+    if (
+      typeof data.female_employees === "number" &&
+      typeof data.total_employees === "number" &&
+      data.female_employees > data.total_employees
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Cannot exceed total employees",
+        path: ["female_employees"],
+      });
+    }
   });
 
 // City vs country mutual exclusivity, shared between the static submission

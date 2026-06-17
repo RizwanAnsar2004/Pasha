@@ -4,16 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const TABS = [
+const ALL_TABS = [
   { href: "/apply", label: "Overview" },
   { href: "/apply/form", label: "My application" },
 ];
 
-export function PortalNav() {
+export function PortalNav({ submitted = false }: { submitted?: boolean }) {
   const pathname = usePathname();
+  const tabs = submitted ? ALL_TABS.filter((t) => t.href !== "/apply/form") : ALL_TABS;
   return (
     <nav className="flex items-center gap-1 border-b border-pasha-line">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const active =
           t.href === "/apply" ? pathname === "/apply" : pathname?.startsWith(t.href);
         return (
