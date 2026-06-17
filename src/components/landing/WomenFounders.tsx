@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, MapPin } from "lucide-react";
@@ -19,37 +18,14 @@ const ACCENTS = [
 
 export type WomenFounderStartup = WomenLedStartup;
 
-export function WomenFounders() {
-  const [startups, setStartups] = useState<WomenFounderStartup[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch("/api/women-led-startups?limit=5")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: { startups: WomenFounderStartup[]; totalCount: number }) => {
-        if (cancelled) return;
-        setStartups(data.startups ?? []);
-        setTotalCount(data.totalCount ?? 0);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setStartups([]);
-          setTotalCount(0);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (loading || startups.length === 0) return null;
+export function WomenFounders({
+  startups,
+  totalCount,
+}: {
+  startups: WomenFounderStartup[];
+  totalCount: number;
+}) {
+  if (startups.length === 0) return null;
 
   const shown = startups.slice(0, 5);
   const remaining = Math.max(totalCount - shown.length, 0);

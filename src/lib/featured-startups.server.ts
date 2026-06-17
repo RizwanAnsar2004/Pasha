@@ -112,6 +112,27 @@ export async function getHomepageFeaturedWatchlist(): Promise<WatchlistStartup[]
   }
 }
 
+/**
+ * P@SHA-verified startups for the homepage "Verified Startups to Watch"
+ * carousel. Capped (default 20) so the homepage makes one small query instead
+ * of pulling the whole databank.
+ */
+export async function getHomepageVerifiedWatchlist(limit = 20): Promise<WatchlistStartup[]> {
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from("databank")
+      .select(DATABANK_COLS)
+      .eq("pasha_verified", true)
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error) return [];
+    return (data as DatabankFeatured[] | null ?? []).map(toWatchlistStartup);
+  } catch {
+    return [];
+  }
+}
+
 export function isWomenLed(
   femaleEmployees: number | null | undefined,
   totalEmployees: number | null | undefined
