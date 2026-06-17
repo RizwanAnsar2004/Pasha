@@ -27,7 +27,7 @@ import { safeHref } from "@/lib/safe-url";
 import { initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 // Detail pages are ISR — first hit generates, then cached.
 export const dynamicParams = true;
 

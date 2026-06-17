@@ -18,7 +18,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { WatchlistStartup } from "@/components/landing/VerifiedStartupsToWatch";
 import type { AwardWinningStartup } from "@/components/landing/AwardWinningStartups";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 async function loadHomeData(): Promise<{
   databankCount: number;

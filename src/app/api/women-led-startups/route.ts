@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getWomenLedStartups } from "@/lib/women-led.server";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

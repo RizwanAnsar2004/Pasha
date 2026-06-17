@@ -8,7 +8,7 @@ import { EventDetailContent } from "@/components/events/EventContent";
 import { getEventBySlug, getRelatedEvents } from "@/lib/events.server";
 import { eventSlug } from "@/lib/slug";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 
 export async function generateMetadata({
