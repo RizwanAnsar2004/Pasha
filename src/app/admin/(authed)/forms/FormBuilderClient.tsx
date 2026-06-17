@@ -673,7 +673,7 @@ function FieldNode({
             ))}
           </select>
         </label>
-        <label className="text-[11px] text-pasha-muted flex flex-col">
+        <label className="ml-auto text-[11px] text-pasha-muted flex flex-col items-center">
           Required
           <input
             type="checkbox"

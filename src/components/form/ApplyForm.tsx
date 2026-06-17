@@ -185,12 +185,14 @@ const form = useForm<SubmissionInput>({
       return;
     }
     setError(null);
+    form.clearErrors();
     setStep(step + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goPrev = () => {
     setError(null);
+    form.clearErrors();
     if (step > 1) setStep(step - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

@@ -5,9 +5,22 @@ export const PHONE_MIN_DIGITS = 7;
 export const PHONE_MAX_DIGITS = 15;
 export const PHONE_VALIDATION_MESSAGE = "Enter a valid phone number";
 
-/** Strip characters that aren't valid in a phone number while typing. */
+/** Strip characters that aren't valid in a phone number while typing,
+ * and cap the total digit count at PHONE_MAX_DIGITS so the field can't
+ * grow unbounded. Non-digit formatting (+, spaces, dashes, parens) is
+ * preserved up to the digit cap. */
 export function sanitizePhoneInput(value: string): string {
-  return value.replace(/[^\d+\s().-]/g, "");
+  const cleaned = value.replace(/[^\d+\s().-]/g, "");
+  let digits = 0;
+  let out = "";
+  for (const ch of cleaned) {
+    if (/\d/.test(ch)) {
+      if (digits >= PHONE_MAX_DIGITS) continue;
+      digits++;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 export function countPhoneDigits(value: string): number {

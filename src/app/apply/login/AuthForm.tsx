@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Rocket, Loader2, AlertCircle, MailCheck, ArrowLeft, ArrowRight } from "lucide-react";
+import { Rocket, Loader2, AlertCircle, MailCheck, ArrowLeft, ArrowRight, FileText } from "lucide-react";
+import { TermsModal } from "./TermsModal";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DynamicField } from "@/components/form/DynamicField";
@@ -36,6 +37,7 @@ function AuthInner({
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [regStep, setRegStep] = useState<1 | 2>(1);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [screen, setScreen] = useState<"form" | "verify">("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -122,6 +124,10 @@ function AuthInner({
     e.preventDefault();
     if (!validateAccountFields()) return;
     if (hasRegForm) {
+      // Clear any errors left over from a previous submit attempt so step 2
+      // renders clean — the user shouldn't see red on inputs they haven't
+      // touched yet.
+      form.clearErrors();
       setRegStep(2);
     } else {
       void submitRegister({});
@@ -323,6 +329,7 @@ function AuthInner({
         <button
           type="button"
           onClick={() => {
+            form.clearErrors();
             setRegStep(1);
             setError(null);
           }}
@@ -348,9 +355,20 @@ function AuthInner({
                 section.fields.map((field) => (
                   <div key={field.id} className={registrationFieldSpan(field)}>
                     <DynamicField field={field} />
+                    {field.field_key === "terms_accepted" && (
+                      <button
+                        type="button"
+                        onClick={() => setTermsOpen(true)}
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-pasha-red hover:text-pasha-red-dark underline-offset-2 hover:underline"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        View privacy & data-usage agreement
+                      </button>
+                    )}
                   </div>
                 ))
               )}
+              <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
               <div className="sm:col-span-2 space-y-4">
                 {errorBlock}
                 <button

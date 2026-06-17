@@ -179,12 +179,19 @@ export function DynamicForm({
       return;
     }
     setError(null);
+    // Wipe any errors carried over from the previous step so the next step
+    // starts clean — the user should only see errors after touching a field
+    // or attempting Next again.
+    form.clearErrors();
     setStepIdx(stepIdx + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goPrev = () => {
     setError(null);
+    // Same reason as goNext: re-entering a step shouldn't display errors that
+    // were populated by an earlier trigger() call.
+    form.clearErrors();
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
