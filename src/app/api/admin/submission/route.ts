@@ -272,36 +272,51 @@ export async function PATCH(req: Request) {
         women_led: isYes(answers.women_led),
         hiring: isYes(answers.currently_hiring),
         fundraising: full.currently_raising ?? isYes(answers.currently_raising),
+        // Dynamic form fields (problem, solution, USP, traction, market, …)
+        // mirrored from the submission so the public profile can show them.
+        answers,
         updated_at: new Date().toISOString(),
       };
 
-      const { data: bySource } = await supabase
-        .from("databank")
-        .select("id")
-        .eq("source_id", full.id)
-        .maybeSingle();
-
-      if (bySource?.id) {
-        const { error: updErr } = await supabase
+      // Upsert the public row: update by source_id, else by name, else insert.
+      // Strip-and-retry on a missing column so a not-yet-applied migration
+      // (e.g. answers / badge columns) degrades gracefully instead of dropping
+      // the entire publish.
+      const writeOnce = async (rec: Record<string, unknown>): Promise<{ error: { message: string } | null }> => {
+        const { data: bySource } = await supabase
           .from("databank")
-          .update(databankRow)
-          .eq("id", bySource.id);
-        if (updErr) console.error("databank update by source_id failed:", updErr.message);
-      } else {
+          .select("id")
+          .eq("source_id", full.id)
+          .maybeSingle();
+        if (bySource?.id) {
+          return supabase.from("databank").update(rec).eq("id", bySource.id);
+        }
         const { data: updated, error: updErr } = await supabase
           .from("databank")
-          .update(databankRow)
-          .ilike("startup_name", full.startup_name)
+          .update(rec)
+          .ilike("startup_name", full.startup_name as string)
           .select("id");
-
-        if (updErr) {
-          console.error("databank update failed:", updErr.message);
-        } else if (!updated || updated.length === 0) {
-          const { error: insErr } = await supabase.from("databank").insert(databankRow);
-          if (insErr) {
-            console.error("databank insert from submission failed:", insErr.message);
-          }
+        if (updErr) return { error: updErr };
+        if (!updated || updated.length === 0) {
+          return supabase.from("databank").insert(rec);
         }
+        return { error: null };
+      };
+
+      const rec: Record<string, unknown> = { ...databankRow };
+      let { error: dbErr } = await writeOnce(rec);
+      let safety = Object.keys(rec).length + 2;
+      while (dbErr && safety-- > 0) {
+        const m =
+          dbErr.message.match(/column "([^"]+)"/) ??
+          dbErr.message.match(/the '([^']+)' column/);
+        const col = m?.[1];
+        if (!col || !(col in rec)) break;
+        delete rec[col];
+        ({ error: dbErr } = await writeOnce(rec));
+      }
+      if (dbErr) {
+        console.error("databank publish failed:", dbErr.message);
       }
     }
   }

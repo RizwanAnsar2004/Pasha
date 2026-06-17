@@ -18,6 +18,27 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { earnedBadges } from "@/lib/badges";
+import { getFormConfig } from "@/lib/form-config.server";
+import { fieldLabelMap } from "@/lib/profile-completion";
+
+// Dynamic-form fields that are SAFE to show on the public profile. Excludes
+// investor-only / sensitive answers (market sizing, financials, competitors,
+// office address, women-ownership) and all verification documents
+// (CNIC, NTN, registration cert, authorization letter, pitch deck).
+const PUBLIC_ANSWER_KEYS = [
+  "problem_statement",
+  "solution_statement",
+  "usp",
+  "product_features",
+  "product_maturity",
+  "target_customers",
+  "gtm_channels",
+  "operating_markets",
+  "demo_video_url",
+  "app_store_url",
+  "play_store_url",
+] as const;
+const ANSWER_URL_KEYS = new Set(["demo_video_url", "app_store_url", "play_store_url"]);
 import { KeyPersons, type KeyPerson } from "@/components/KeyPersons";
 import { CompanySocials } from "@/components/CompanySocials";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -71,6 +92,7 @@ type Row = {
   women_led?: boolean | null;
   hiring?: boolean | null;
   fundraising?: boolean | null;
+  answers?: Record<string, unknown> | null;
   // v2 additions — present only after the 20260521 migration runs. The
   // defensive select falls back to the legacy column list when these are
   // missing, so the page renders fine on pre-migration prod data.
@@ -100,7 +122,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   // fall back step-by-step. Once the v2 migration runs in prod, the FULL path
   // always succeeds; the fallbacks exist for the brief in-between deploy state.
   const V2_ADDITIONS =
-    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising";
+    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising, answers";
   const LEGACY_NO_PASHA =
     "id, source, startup_name, company_name, tagline, website, founded_date, primary_industry, secondary_industries, business_types, product_stage, sdgs, city, nic_name, incubation_stage, cohort, joining_date, total_employees, female_employees, jobs_created, current_revenue, investment_raised, investment_commitment, investment_raised_from, number_of_customers, video_pitch, logo_url, startup_idea, business_model, social_impact, secp_verified";
   const LEGACY = `${LEGACY_NO_PASHA}, pasha_verified`;
@@ -117,7 +139,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   }
 
   let { data, error } = await tryFetch(FULL);
-  if (error && /key_persons|company_|hq_country|awards|certifications|women_led|hiring|fundraising/.test(error.message ?? "")) {
+  if (error && /key_persons|company_|hq_country|awards|certifications|women_led|hiring|fundraising|answers/.test(error.message ?? "")) {
     ({ data, error } = await tryFetch(LEGACY));
   }
   if (error && /pasha_verified/.test(error.message ?? "")) {
@@ -292,6 +314,21 @@ export default async function StartupDetailPage({
   const ideaHtml = sanitizeHtml(row.startup_idea);
   const modelHtml = sanitizeHtml(row.business_model);
   const impact = cleanText(row.social_impact);
+
+  // Public-safe dynamic fields synced from the application, labelled from the
+  // live form config (falls back to a humanised key).
+  const formConfig = await getFormConfig();
+  const answerLabels = formConfig ? fieldLabelMap(formConfig) : {};
+  const answers = (row.answers && typeof row.answers === "object" ? row.answers : {}) as Record<string, unknown>;
+  const businessItems = PUBLIC_ANSWER_KEYS.map((key) => {
+    const value = answers[key];
+    return { key, label: answerLabels[key] ?? key.replace(/_/g, " "), value };
+  }).filter(
+    (it) =>
+      it.value != null &&
+      it.value !== "" &&
+      !(Array.isArray(it.value) && it.value.length === 0)
+  );
 
   const employees = row.total_employees && row.total_employees > 0 ? row.total_employees : null;
   const female = row.female_employees && row.female_employees > 0 ? row.female_employees : null;
@@ -492,6 +529,35 @@ export default async function StartupDetailPage({
               {hasContent(modelHtml) && (
                 <Section title="Business model">
                   <RichText html={modelHtml} />
+                </Section>
+              )}
+              {businessItems.length > 0 && (
+                <Section title="Business profile">
+                  <dl className="space-y-4">
+                    {businessItems.map((it) => (
+                      <div key={it.key}>
+                        <dt className="text-[11px] font-mono uppercase tracking-[1.5px] text-pasha-muted">
+                          {it.label}
+                        </dt>
+                        <dd className="mt-1 text-[15px] text-pasha-ink/85 leading-relaxed">
+                          {ANSWER_URL_KEYS.has(it.key) && typeof it.value === "string" ? (
+                            <a
+                              href={safeHref(it.value)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-pasha-red hover:underline break-all"
+                            >
+                              {it.value.replace(/^https?:\/\//, "")}
+                            </a>
+                          ) : Array.isArray(it.value) ? (
+                            it.value.join(", ")
+                          ) : (
+                            <span className="whitespace-pre-line">{String(it.value)}</span>
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
                 </Section>
               )}
               <KeyPersons persons={row.key_persons} />
