@@ -54,7 +54,7 @@ export function Process() {
           <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
             How it works
           </span>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
+          <h2 className="mt-3 font-serif leading-[52px] text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
             From application to featured — in three steps.
           </h2>
         </motion.div>

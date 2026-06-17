@@ -45,7 +45,7 @@ export function WomenFounders({
               <MapPin className="w-3 h-3" />
               Women-Led Startups
             </span>
-            <h2 className="mt-4 font-serif text-3xl sm:text-4xl tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-3xl  sm:text-4xl tracking-tight text-pasha-ink text-balance">
               Celebrating Pakistan&apos;s Women Founders
             </h2>
             <p className="mt-4 text-pasha-muted leading-relaxed text-pretty">

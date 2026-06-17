@@ -62,7 +62,7 @@ export function UpcomingEvents({ events }: { events: EventRow[] }) {
             <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
               Resources
             </span>
-            <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 leading-[52px] font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
               Upcoming Events, Webinars &amp; Seminars
             </h2>
             <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">

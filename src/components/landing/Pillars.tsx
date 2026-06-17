@@ -67,7 +67,7 @@ export function Pillars() {
           <span className="font-mono text-[11px] uppercase tracking-[3px] text-pasha-red">
             What you get
           </span>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
+          <h2 className="mt-3 font-serif text-3xl leading-[52px]  sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
             Built to compound, not just to host.
           </h2>
           <p className="mt-4 text-pasha-muted text-lg leading-relaxed max-w-xl text-pretty">

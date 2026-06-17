@@ -56,7 +56,7 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
             <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
               Awards
             </span>
-            <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-3xl leading-[52px] sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
               Latest Award-Winning Startups
             </h2>
             <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
