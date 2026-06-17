@@ -12,9 +12,6 @@ import { safeHref, safeImageSrc } from "@/lib/safe-url";
 import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/workflow";
 
 type FieldLabelMap = Record<string, string>;
-type LabelFn = (key: string) => string;
-
-const defaultLabel: LabelFn = (key) => key;
 
 /** `submissions.answers` bag — new dynamic-form fields land here. */
 function submissionAnswers(row: Record<string, unknown>): Record<string, unknown> {
@@ -62,19 +59,36 @@ function renderAnswerField(row: Record<string, unknown>, key: string): React.Rea
   return renderAnswerValue(val);
 }
 
-/** KV row for an answers field — omitted when empty. */
+/** KV row for a form field — omitted when no API label or empty value. */
+function FieldKV({
+  fieldKey,
+  labels,
+  v,
+}: {
+  fieldKey: string;
+  labels: FieldLabelMap;
+  v: React.ReactNode;
+}) {
+  const k = labels[fieldKey];
+  if (!k) return null;
+  return <KV k={k} v={v} />;
+}
+
+/** KV row for an answers field — omitted when no API label or empty. */
 function AnswerKV({
   row,
   fieldKey,
-  label = defaultLabel,
+  labels,
 }: {
   row: Record<string, unknown>;
   fieldKey: string;
-  label?: LabelFn;
+  labels: FieldLabelMap;
 }) {
+  const k = labels[fieldKey];
+  if (!k) return null;
   const val = answerOf(row, fieldKey);
   if (val == null || val === "") return null;
-  return <KV k={label(fieldKey)} v={renderAnswerValue(val)} />;
+  return <KV k={k} v={renderAnswerValue(val)} />;
 }
 
 function answerUrl(row: Record<string, unknown>, key: string): string | null {
@@ -446,11 +460,6 @@ function SubmissionDrawer({
   const [fieldLabels, setFieldLabels] = useState<FieldLabelMap>({});
   const [mounted, setMounted] = useState(false);
 
-  const label = useMemo<LabelFn>(
-    () => (key: string) => fieldLabels[key] ?? key,
-    [fieldLabels]
-  );
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- portal mount flag + body scroll lock
     setMounted(true);
@@ -654,71 +663,78 @@ function SubmissionDrawer({
             </Section>
 
             <Section title="Startup">
-              <KV k={label("tagline")} v={String((row as Record<string, unknown>).tagline ?? "—")} />
-              <KV
-                k={label("hq_city")}
+              <FieldKV fieldKey="tagline" labels={fieldLabels} v={String((row as Record<string, unknown>).tagline ?? "—")} />
+              <FieldKV
+                fieldKey="hq_city"
+                labels={fieldLabels}
                 v={
                   (row as Record<string, unknown>).outside_pakistan
                     ? `${String((row as Record<string, unknown>).hq_country ?? "—")} (outside Pakistan)`
                     : String(row.hq_city ?? row.hq_other ?? "—")
                 }
               />
-              <KV k={label("stage")} v={String(row.stage ?? "—")} />
-              <KV k={label("primary_sector")} v={String(row.primary_sector ?? "—")} />
-              <KV k={label("secondary_sector")} v={String((row as Record<string, unknown>).secondary_sector ?? "—")} />
-              <KV k={label("business_model")} v={String(row.business_model ?? "—")} />
-              <KV
-                k={label("revenue_models")}
+              <FieldKV fieldKey="stage" labels={fieldLabels} v={String(row.stage ?? "—")} />
+              <FieldKV fieldKey="primary_sector" labels={fieldLabels} v={String(row.primary_sector ?? "—")} />
+              <FieldKV fieldKey="secondary_sector" labels={fieldLabels} v={String((row as Record<string, unknown>).secondary_sector ?? "—")} />
+              <FieldKV fieldKey="business_model" labels={fieldLabels} v={String(row.business_model ?? "—")} />
+              <FieldKV
+                fieldKey="revenue_models"
+                labels={fieldLabels}
                 v={
                   Array.isArray(row.revenue_models)
                     ? (row.revenue_models as string[]).join(", ")
                     : "—"
                 }
               />
-              <KV k={label("year_founded")} v={String(row.year_founded ?? "—")} />
-              <KV k={label("pasha_membership_number")} v={renderPashaMember(row as Record<string, unknown>)} />
+              <FieldKV fieldKey="year_founded" labels={fieldLabels} v={String(row.year_founded ?? "—")} />
+              <FieldKV fieldKey="pasha_membership_number" labels={fieldLabels} v={renderPashaMember(row as Record<string, unknown>)} />
             </Section>
 
             <Section title="Team & traction">
-              <KV k={label("total_employees")} v={String(row.total_employees ?? "—")} />
-              <KV k={label("female_employees")} v={String(row.female_employees ?? "—")} />
-              <KV k={label("revenue_band")} v={String(row.revenue_band ?? "—")} />
+              <FieldKV fieldKey="total_employees" labels={fieldLabels} v={String(row.total_employees ?? "—")} />
+              <FieldKV fieldKey="female_employees" labels={fieldLabels} v={String(row.female_employees ?? "—")} />
+              <FieldKV fieldKey="revenue_band" labels={fieldLabels} v={String(row.revenue_band ?? "—")} />
             </Section>
 
             <Section title="Funding">
-              <KV
-                k={label("total_funding_raised")}
+              <FieldKV
+                fieldKey="total_funding_raised"
+                labels={fieldLabels}
                 v={renderRaisedFunding(row as Record<string, unknown>)}
               />
-              <KV
-                k={label("funding_status")}
+              <FieldKV
+                fieldKey="funding_status"
+                labels={fieldLabels}
                 v={renderAnswerField(row as Record<string, unknown>, "funding_status")}
               />
-              <KV k={label("currently_raising")} v={renderYesNo(row.currently_raising)} />
-              <KV
-                k={label("amount_raising")}
+              <FieldKV fieldKey="currently_raising" labels={fieldLabels} v={renderYesNo(row.currently_raising)} />
+              <FieldKV
+                fieldKey="amount_raising"
+                labels={fieldLabels}
                 v={renderAnswerField(row as Record<string, unknown>, "amount_raising")}
               />
-              <KV
-                k={label("open_to_investor_contact")}
+              <FieldKV
+                fieldKey="open_to_investor_contact"
+                labels={fieldLabels}
                 v={renderAnswerField(row as Record<string, unknown>, "open_to_investor_contact")}
               />
             </Section>
 
             <Section title="Market & competition">
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_global" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_pk" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitor_notes" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="tam_amount" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="sam_amount" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="som_amount" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_notes" label={label} />
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_source" label={label} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_global" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitors_pk" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="competitor_notes" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="tam_amount" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="sam_amount" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="som_amount" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_notes" labels={fieldLabels} />
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="market_source" labels={fieldLabels} />
             </Section>
 
             <Section title="Ecosystem & IP">
-              <KV
-                k={label("incubated_in_nic")}
+              <FieldKV
+                fieldKey="incubated_in_nic"
+                labels={fieldLabels}
                 v={
                   row.incubated_in_nic
                     ? `Yes${row.nic_name ? ` · ${row.nic_name}` : ""}`
@@ -727,9 +743,10 @@ function SubmissionDrawer({
                       : "—"
                 }
               />
-              <KV k={label("nic_cohort")} v={String(row.nic_cohort ?? "—")} />
-              <KV
-                k={label("has_patents")}
+              <FieldKV fieldKey="nic_cohort" labels={fieldLabels} v={String(row.nic_cohort ?? "—")} />
+              <FieldKV
+                fieldKey="has_patents"
+                labels={fieldLabels}
                 v={
                   row.has_patents
                     ? `Yes${row.patents_count ? ` · ${row.patents_count}` : ""}`
@@ -738,26 +755,29 @@ function SubmissionDrawer({
                       : "—"
                 }
               />
-              <KV k={label("fbr_registered")} v={renderYesNo(row.fbr_registered)} />
-              <KV k={label("secp_registered")} v={renderYesNo(row.secp_registered)} />
-              <KV
-                k={label("engagement_interests")}
+              <FieldKV fieldKey="fbr_registered" labels={fieldLabels} v={renderYesNo(row.fbr_registered)} />
+              <FieldKV fieldKey="secp_registered" labels={fieldLabels} v={renderYesNo(row.secp_registered)} />
+              <FieldKV
+                fieldKey="engagement_interests"
+                labels={fieldLabels}
                 v={
                   Array.isArray(row.engagement_interests)
                     ? (row.engagement_interests as string[]).join(", ")
                     : "—"
                 }
               />
-              <KV
-                k={label("awards")}
+              <FieldKV
+                fieldKey="awards"
+                labels={fieldLabels}
                 v={
                   typeof (row as Record<string, unknown>).awards === "string"
                     ? renderMultilineText((row as Record<string, unknown>).awards as string)
                     : "—"
                 }
               />
-              <KV
-                k={label("certifications")}
+              <FieldKV
+                fieldKey="certifications"
+                labels={fieldLabels}
                 v={
                   typeof (row as Record<string, unknown>).certifications === "string"
                     ? renderMultilineText((row as Record<string, unknown>).certifications as string)
@@ -771,43 +791,46 @@ function SubmissionDrawer({
             </Section>
 
             <Section title="Documents">
-              {row.pitch_deck_url ? (
-                <PdfFileLink url={String(row.pitch_deck_url)} label={label("pitch_deck_url")} />
+              {row.pitch_deck_url && fieldLabels.pitch_deck_url ? (
+                <PdfFileLink url={String(row.pitch_deck_url)} label={fieldLabels.pitch_deck_url} />
               ) : null}
-              {answerUrl(row as Record<string, unknown>, "business_profile_pdf") ? (
+              {answerUrl(row as Record<string, unknown>, "business_profile_pdf") &&
+              fieldLabels.business_profile_pdf ? (
                 <PdfFileLink
                   url={answerUrl(row as Record<string, unknown>, "business_profile_pdf")!}
-                  label={label("business_profile_pdf")}
+                  label={fieldLabels.business_profile_pdf}
                 />
               ) : null}
-              {answerUrl(row as Record<string, unknown>, "company_reg_cert") ? (
+              {answerUrl(row as Record<string, unknown>, "company_reg_cert") &&
+              fieldLabels.company_reg_cert ? (
                 <PdfFileLink
                   url={answerUrl(row as Record<string, unknown>, "company_reg_cert")!}
-                  label={label("company_reg_cert")}
+                  label={fieldLabels.company_reg_cert}
                 />
               ) : null}
-              {answerUrl(row as Record<string, unknown>, "authorization_letter") ? (
+              {answerUrl(row as Record<string, unknown>, "authorization_letter") &&
+              fieldLabels.authorization_letter ? (
                 <PdfFileLink
                   url={answerUrl(row as Record<string, unknown>, "authorization_letter")!}
-                  label={label("authorization_letter")}
+                  label={fieldLabels.authorization_letter}
                 />
               ) : null}
-              {answerUrl(row as Record<string, unknown>, "founder_cnic") ? (
+              {answerUrl(row as Record<string, unknown>, "founder_cnic") && fieldLabels.founder_cnic ? (
                 <PdfFileLink
                   url={answerUrl(row as Record<string, unknown>, "founder_cnic")!}
-                  label={label("founder_cnic")}
+                  label={fieldLabels.founder_cnic}
                 />
               ) : null}
               
-              <AnswerKV row={row as Record<string, unknown>} fieldKey="ntn_number" label={label} />
-              {row.pitch_video ? (
+              <AnswerKV row={row as Record<string, unknown>} fieldKey="ntn_number" labels={fieldLabels} />
+              {row.pitch_video && fieldLabels.pitch_video ? (
                 <a
                   href={safeHref(String(row.pitch_video))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-pasha-red hover:underline block mt-2"
                 >
-                  → {label("pitch_video")}
+                  → {fieldLabels.pitch_video}
                 </a>
               ) : null}
               {!row.pitch_deck_url &&
@@ -824,16 +847,16 @@ function SubmissionDrawer({
             {row.answers &&
             typeof row.answers === "object" &&
             Object.entries(row.answers as Record<string, unknown>).some(
-              ([key]) => !DRAWER_ANSWER_KEYS.has(key)
+              ([key]) => !DRAWER_ANSWER_KEYS.has(key) && key in fieldLabels
             ) ? (
               <Section title="Additional fields">
                 <dl className="space-y-2">
                   {Object.entries(row.answers as Record<string, unknown>)
-                    .filter(([key]) => !DRAWER_ANSWER_KEYS.has(key))
+                    .filter(([key]) => !DRAWER_ANSWER_KEYS.has(key) && key in fieldLabels)
                     .map(([key, val]) => (
                     <div key={key} className="flex flex-col gap-1">
                       <dt className="text-[11px] uppercase tracking-wide text-pasha-muted">
-                        {label(key)}
+                        {fieldLabels[key]}
                       </dt>
                       <dd className="text-sm text-pasha-ink break-words">{renderAnswerValue(val)}</dd>
                     </div>
