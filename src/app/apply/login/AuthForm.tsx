@@ -47,6 +47,8 @@ function AuthInner({
   const [info, setInfo] = useState<string | null>(null);
   // When a login attempt is rejected because the email isn't verified yet.
   const [needsVerify, setNeedsVerify] = useState(false);
+  // When registration is rejected because the email is already taken (409).
+  const [accountExists, setAccountExists] = useState(false);
   const [error, setError] = useState<string | null>(
     sp.get("error") === "admin"
       ? "You're signed in with a committee/admin account, which can't be used to apply. Sign out of the admin portal, or sign in with a separate applicant account below."
@@ -92,6 +94,7 @@ function AuthInner({
     setEmailError(eErr);
     setPasswordError(pErr);
     setError(null);
+    setAccountExists(false);
     return !eErr && !pErr;
   }
 
@@ -141,6 +144,16 @@ function AuthInner({
     try {
       const { res, j } = await postAuth({ action: "register", email, password, profile });
       if (!res.ok) {
+        // 409 = email already registered. Surface it prominently (the email
+        // field lives on step 1, which may not be visible here) and offer a
+        // one-click switch to sign in.
+        if (res.status === 409) {
+          setRegStep(1);
+          setEmailError(null);
+          setError(j.error ?? "An account with this email already exists. Please sign in instead.");
+          setAccountExists(true);
+          return;
+        }
         applyApiError(j.error ?? "Something went wrong");
         return;
       }
@@ -204,6 +217,18 @@ function AuthInner({
     setPasswordError(null);
     setInfo(null);
     setNeedsVerify(false);
+    setAccountExists(false);
+  }
+
+  // "Sign in instead" — keep the email/password the user already typed.
+  function switchToSignIn() {
+    setMode("login");
+    setRegStep(1);
+    setScreen("form");
+    setError(null);
+    setEmailError(null);
+    setPasswordError(null);
+    setAccountExists(false);
   }
 
   const inputClass =
@@ -313,6 +338,15 @@ function AuthInner({
             className="block font-medium underline underline-offset-2 hover:text-pasha-red-dark disabled:opacity-60"
           >
             Resend verification email
+          </button>
+        )}
+        {accountExists && (
+          <button
+            type="button"
+            onClick={switchToSignIn}
+            className="block font-medium underline underline-offset-2 hover:text-pasha-red-dark"
+          >
+            Sign in instead
           </button>
         )}
       </div>
