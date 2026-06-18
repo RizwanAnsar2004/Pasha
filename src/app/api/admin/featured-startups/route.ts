@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
+import { parsePagination } from "@/lib/pagination";
 
 const DATABANK_SELECT =
   "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage";
@@ -62,10 +63,13 @@ export async function GET(req: Request) {
   }
 
   const q = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+  const listQ = url.searchParams.get("listQ")?.trim() ?? "";
+  const status = url.searchParams.get("status")?.trim() ?? "all";
+  const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
 
   const [featured, settings] = await Promise.all([
-    getFeaturedForAdmin(),
+    getFeaturedForAdmin({ from, to }, { q: listQ, status }),
     getFeaturedSettings(),
   ]);
 
@@ -80,7 +84,14 @@ export async function GET(req: Request) {
     candidates = (data ?? []) as Record<string, unknown>[];
   }
 
-  return NextResponse.json({ featured, settings, candidates });
+  return NextResponse.json({
+    featured: featured.rows,
+    total: featured.total,
+    page,
+    pageSize,
+    settings,
+    candidates,
+  });
 }
 
 export async function POST(req: Request) {

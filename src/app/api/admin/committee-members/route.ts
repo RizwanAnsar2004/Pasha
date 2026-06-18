@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail, bustAdminAllowlistCache } from "@/lib/admin-allowlist";
+import { parsePagination } from "@/lib/pagination";
 
 const addSchema = z.object({
   email: z.string().email(),
@@ -50,21 +51,30 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim() ?? "";
+  const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
-  const { data, error: dbErr } = await supabase
+  let query = supabase
     .from("admin_users")
-    .select("email, added_at, added_by, notes, org")
-    .order("added_at", { ascending: true });
+    .select("email, added_at, added_by, notes, org", { count: "exact" });
+  if (q.length >= 1) {
+    const pattern = `%${q}%`;
+    query = query.or(`email.ilike.${pattern},notes.ilike.${pattern},org.ilike.${pattern}`);
+  }
+  const { data, count, error: dbErr } = await query
+    .order("added_at", { ascending: true })
+    .range(from, to);
 
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
   const members = (data ?? []).map((m) => mapMember(m as Record<string, unknown>));
-  return NextResponse.json({ members });
+  return NextResponse.json({ members, total: count ?? 0, page, pageSize });
 }
 
 export async function POST(req: Request) {

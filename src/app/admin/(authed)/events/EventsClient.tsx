@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import {
@@ -33,6 +33,9 @@ import {
   type Speaker,
 } from "@/lib/events";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 export type EventListRow = EventRow;
 
@@ -147,8 +150,20 @@ async function api(method: string, body?: unknown) {
   return json;
 }
 
-export function EventsClient({ initial }: { initial: EventListRow[] }) {
+export function EventsClient({
+  initial,
+  total,
+  page,
+  pageSize,
+}: {
+  initial: EventListRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<EventListRow[]>(initial);
+  useEffect(() => { setRows(initial); }, [initial]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -536,7 +551,8 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
 
       {msg && <p className="text-sm text-tier-featured">{msg}</p>}
 
-      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden shadow-sm relative">
+        <ShimmerOverlay active={isPending} />
         {rows.length === 0 ? (
           <p className="px-6 py-12 text-sm text-pasha-muted text-center">No events yet. Create your first event.</p>
         ) : (
@@ -584,6 +600,13 @@ export function EventsClient({ initial }: { initial: EventListRow[] }) {
             ))}
           </div>
         )}
+        <Pagination
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </div>
 
       <ConfirmDeleteModal

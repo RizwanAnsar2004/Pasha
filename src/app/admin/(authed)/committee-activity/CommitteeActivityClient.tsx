@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Download, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 export type ActivityType =
   | "verification"
@@ -103,8 +106,20 @@ const EMPTY_FORM: FormState = {
   description: "",
 };
 
-export function CommitteeActivityClient({ initial }: { initial: ActivityRow[] }) {
+export function CommitteeActivityClient({
+  initial,
+  total,
+  page,
+  pageSize,
+}: {
+  initial: ActivityRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<ActivityRow[]>(initial);
+  useEffect(() => { setRows(initial); }, [initial]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -308,11 +323,12 @@ export function CommitteeActivityClient({ initial }: { initial: ActivityRow[] })
         </div>
       )}
 
-      <div className="rounded-2xl border border-pasha-line bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-pasha-line bg-white shadow-sm overflow-hidden relative">
+        <ShimmerOverlay active={isPending} />
         <div className="border-b border-pasha-line px-6 py-5">
           <h2 className="text-base font-semibold text-pasha-ink">Activity Timeline</h2>
           <p className="mt-0.5 text-sm text-pasha-muted">
-            {rows.length} {rows.length === 1 ? "entry" : "entries"}
+            {total} {total === 1 ? "entry" : "entries"}
           </p>
         </div>
 
@@ -391,6 +407,13 @@ export function CommitteeActivityClient({ initial }: { initial: ActivityRow[] })
             })}
           </ul>
         )}
+        <Pagination
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </div>
 
       <ConfirmDeleteModal

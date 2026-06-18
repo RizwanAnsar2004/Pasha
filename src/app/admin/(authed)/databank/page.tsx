@@ -1,32 +1,51 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { DatabankClient } from "./DatabankClient";
+import { parsePagination } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
-async function load() {
+type Filters = {
+  q: string;
+  sector: string;
+  outreach: string;
+  verified: string;
+};
+
+async function load(
+  range: { page: number; pageSize: number; from: number; to: number },
+  filters: Filters
+) {
   const supabase = createServiceClient();
   const FULL =
     "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,current_revenue,investment_raised,total_employees,website,pasha_verified";
   const LEGACY = FULL.replace(",pasha_verified", "");
 
-  // Try with the new column; fall back if the migration hasn't been applied.
+  const runQuery = async (cols: string) => {
+    let q = supabase.from("databank").select(cols, { count: "exact" });
+    const needle = filters.q.trim();
+    if (needle.length >= 1) {
+      const pattern = `%${needle}%`;
+      q = q.or(
+        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+      );
+    }
+    if (filters.sector && filters.sector !== "all") q = q.eq("primary_industry", filters.sector);
+    if (filters.outreach && filters.outreach !== "all") q = q.eq("outreach_status", filters.outreach);
+    if (filters.verified === "yes") q = q.eq("pasha_verified", true);
+    if (filters.verified === "no") q = q.or("pasha_verified.is.null,pasha_verified.eq.false");
+    return q
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .order("current_revenue", { ascending: false, nullsFirst: false })
+      .range(range.from, range.to);
+  };
+
   type DataRow = Record<string, unknown>;
   let data: DataRow[] | null = null;
   let count: number | null = null;
   {
-    const res = await supabase
-      .from("databank")
-      .select(FULL, { count: "exact" })
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("current_revenue", { ascending: false, nullsFirst: false })
-      .limit(500);
+    const res = await runQuery(FULL);
     if (res.error && /pasha_verified/.test(res.error.message ?? "")) {
-      const fallback = await supabase
-        .from("databank")
-        .select(LEGACY, { count: "exact" })
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .order("current_revenue", { ascending: false, nullsFirst: false })
-        .limit(500);
+      const fallback = await runQuery(LEGACY);
       data = (fallback.data as unknown as DataRow[] | null) ?? null;
       count = fallback.count ?? null;
     } else {
@@ -46,15 +65,31 @@ async function load() {
     rows: data ?? [],
     total: count ?? 0,
     sectors: Array.from(sectorSet).sort(),
+    page: range.page,
+    pageSize: range.pageSize,
+    filters,
   };
 }
 
-export default async function DatabankPage() {
-  const data = await load();
-  // The defensive fallback returns Record<string, unknown> rows because we
-  // alternate two column lists. The client component's Row type is a
-  // structural subset — every property is optional except id + name which
-  // are always present.
+function pickOne(sp: Record<string, string | string[] | undefined>, k: string): string {
+  const v = sp[k];
+  return (Array.isArray(v) ? v[0] : v) ?? "";
+}
+
+export default async function DatabankPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const pagination = parsePagination(sp);
+  const filters: Filters = {
+    q: pickOne(sp, "q"),
+    sector: pickOne(sp, "sector") || "all",
+    outreach: pickOne(sp, "outreach") || "all",
+    verified: pickOne(sp, "verified") || "all",
+  };
+  const data = await load(pagination, filters);
   return (
     <DatabankClient
       initial={
@@ -62,6 +97,9 @@ export default async function DatabankPage() {
           rows: Parameters<typeof DatabankClient>[0]["initial"]["rows"];
           total: number;
           sectors: string[];
+          page: number;
+          pageSize: number;
+          filters: Filters;
         }
       }
     />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { parsePagination } from "@/lib/pagination";
 
 const audienceItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -75,24 +76,26 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
+  const { page, pageSize, from, to } = parsePagination(new URL(req.url));
   const supabase = createServiceClient();
-  const { data, error: dbErr } = await supabase
+  const { data, count, error: dbErr } = await supabase
     .from("events")
-    .select(EVENT_COLS)
-    .order("event_date", { ascending: false });
+    .select(EVENT_COLS, { count: "exact" })
+    .order("event_date", { ascending: false })
+    .range(from, to);
 
   if (dbErr) {
     if (/events|does not exist/i.test(dbErr.message)) {
-      return NextResponse.json({ events: [] });
+      return NextResponse.json({ events: [], total: 0, page, pageSize });
     }
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ events: data ?? [] });
+  return NextResponse.json({ events: data ?? [], total: count ?? 0, page, pageSize });
 }
 
 export async function POST(req: Request) {

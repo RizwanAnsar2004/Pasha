@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -15,6 +15,9 @@ import {
   X,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 type DatabankSummary = {
   id: string;
@@ -102,14 +105,30 @@ const STATUS_STYLES: Record<FeaturedStatus, string> = {
 export function FeaturedStartupsClient({
   initialFeatured,
   initialSettings,
+  total,
+  page,
+  pageSize,
+  filters,
 }: {
   initialFeatured: FeaturedEntry[];
   initialSettings: Settings;
+  total: number;
+  page: number;
+  pageSize: number;
+  filters: { q: string; status: string };
 }) {
+  const { isPending, setParams } = useListNav();
   const [entries, setEntries] = useState<FeaturedEntry[]>(initialFeatured);
+  useEffect(() => { setEntries(initialFeatured); }, [initialFeatured]);
   const [settings, setSettings] = useState<Settings>(initialSettings);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [listQ, setListQ] = useState("");
+  const filter = filters.status as Filter;
+  const setFilter = (v: Filter) => setParams({ status: v === "all" ? null : v, page: 1 });
+  const [listQ, setListQ] = useState(filters.q);
+  useEffect(() => {
+    if (listQ === filters.q) return;
+    const t = setTimeout(() => setParams({ q: listQ || null, page: 1 }), 300);
+    return () => clearTimeout(t);
+  }, [listQ, filters.q, setParams]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -140,28 +159,9 @@ export function FeaturedStartupsClient({
     setSettings(j.settings ?? initialSettings);
   }, [initialSettings]);
 
-  const filtered = useMemo(() => {
-    const needle = listQ.toLowerCase().trim();
-    return entries.filter((e) => {
-      const status = statusOf(e);
-      if (filter !== "all" && status !== filter) return false;
-      if (!needle) return true;
-      const db = databankOf(e);
-      return [db?.startup_name, db?.primary_industry, db?.city]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
-    });
-  }, [entries, filter, listQ]);
+  // Server-side filtering — render as-is.
+  const filtered = entries;
 
-  const counts = useMemo(() => {
-    const c = { all: entries.length, active: 0, scheduled: 0, expired: 0 };
-    entries.forEach((e) => {
-      c[statusOf(e)] += 1;
-    });
-    return c;
-  }, [entries]);
 
   const openAdd = () => {
     setEditing(null);
@@ -329,10 +329,10 @@ export function FeaturedStartupsClient({
         <div className="flex gap-1.5 overflow-x-auto">
           {(
             [
-              { v: "all", label: `All (${counts.all})` },
-              { v: "active", label: `Active (${counts.active})` },
-              { v: "scheduled", label: `Scheduled (${counts.scheduled})` },
-              { v: "expired", label: `Expired (${counts.expired})` },
+              { v: "all", label: "All" },
+              { v: "active", label: "Active" },
+              { v: "scheduled", label: "Scheduled" },
+              { v: "expired", label: "Expired" },
             ] as const
           ).map((f) => (
             <button
@@ -352,7 +352,8 @@ export function FeaturedStartupsClient({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-pasha-line bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-pasha-line bg-white shadow-sm overflow-hidden relative">
+        <ShimmerOverlay active={isPending} />
         <div className="border-b border-pasha-line px-6 py-4 flex items-center gap-2">
           <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
           <h2 className="text-base font-semibold text-pasha-ink">Featured list</h2>
@@ -441,6 +442,13 @@ export function FeaturedStartupsClient({
             })}
           </ul>
         )}
+        <Pagination
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </div>
 
       <section className="rounded-2xl border border-pasha-line bg-white p-6">

@@ -3,27 +3,42 @@ import {
   CommitteeActivityClient,
   type ActivityRow,
 } from "./CommitteeActivityClient";
+import { parsePagination } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
-async function loadActivities(): Promise<ActivityRow[]> {
+async function loadActivities(params: { from: number; to: number }) {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  const { data, count, error } = await supabase
     .from("committee_activities")
-    .select("id,title,type,description,status,author_email,created_at")
-    .order("created_at", { ascending: false });
+    .select("id,title,type,description,status,author_email,created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(params.from, params.to);
 
   if (error) {
     if (/committee_activities|does not exist/i.test(error.message)) {
-      return [];
+      return { rows: [] as ActivityRow[], total: 0 };
     }
     throw new Error(error.message);
   }
 
-  return (data ?? []) as ActivityRow[];
+  return { rows: (data ?? []) as ActivityRow[], total: count ?? 0 };
 }
 
-export default async function CommitteeActivityPage() {
-  const activities = await loadActivities();
-  return <CommitteeActivityClient initial={activities} />;
+export default async function CommitteeActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const pagination = parsePagination(sp);
+  const { rows, total } = await loadActivities(pagination);
+  return (
+    <CommitteeActivityClient
+      initial={rows}
+      total={total}
+      page={pagination.page}
+      pageSize={pagination.pageSize}
+    />
+  );
 }

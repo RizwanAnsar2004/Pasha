@@ -33,20 +33,53 @@ export async function getFeaturedSettings(): Promise<FeaturedSettings> {
   return data as FeaturedSettings;
 }
 
-export async function getFeaturedForAdmin() {
+export async function getFeaturedForAdmin(
+  range?: { from: number; to: number },
+  filters?: { q?: string; status?: string }
+): Promise<{ rows: unknown[]; total: number }> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  const q = (filters?.q ?? "").trim();
+  const status = filters?.status ?? "all";
+  // Inner-join databank when searching so the postgrest filter on the joined
+  // table also restricts the parent rows (otherwise unmatched rows still come
+  // back with databank: null).
+  const select = q.length >= 1
+    ? `id,featured_from,featured_until,created_at,databank:databank_id!inner (${DATABANK_COLS})`
+    : FEATURED_SELECT;
+
+  let query = supabase
     .from("featured_startups")
-    .select(FEATURED_SELECT)
+    .select(select, { count: "exact" })
     .order("featured_from", { ascending: false });
+
+  if (q.length >= 1) {
+    const p = `%${q}%`;
+    query = query.or(
+      `startup_name.ilike.${p},primary_industry.ilike.${p},city.ilike.${p}`,
+      { foreignTable: "databank" }
+    );
+  }
+
+  const now = new Date().toISOString();
+  if (status === "active") {
+    query = query.lte("featured_from", now).gte("featured_until", now);
+  } else if (status === "scheduled") {
+    query = query.gt("featured_from", now);
+  } else if (status === "expired") {
+    query = query.lt("featured_until", now);
+  }
+
+  if (range) query = query.range(range.from, range.to);
+
+  const { data, count, error } = await query;
 
   if (error) {
     if (/featured_startups|does not exist/i.test(error.message)) {
-      return [];
+      return { rows: [], total: 0 };
     }
     throw new Error(error.message);
   }
-  return data ?? [];
+  return { rows: data ?? [], total: count ?? 0 };
 }
 
 function databankOfJoin(

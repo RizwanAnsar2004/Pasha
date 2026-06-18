@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/server";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { parsePagination } from "@/lib/pagination";
 
 // Whitelist of columns an admin can edit. Anything not on this list is
 // silently dropped from the payload so a malformed/attacker-shaped body
@@ -110,31 +111,36 @@ export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
-  const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim() ?? "";
+  const sector = url.searchParams.get("sector")?.trim() ?? "";
+  const outreach = url.searchParams.get("outreach")?.trim() ?? "";
+  const verified = url.searchParams.get("verified")?.trim() ?? "";
+  const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
 
-  let query = supabase.from("databank").select(LIST_COLS);
+  let query = supabase.from("databank").select(LIST_COLS, { count: "exact" });
 
   if (q.length >= 1) {
     const pattern = `%${q}%`;
-    query = query
-      .or(
-        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
-      )
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .limit(100);
-  } else {
-    query = query
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("current_revenue", { ascending: false, nullsFirst: false })
-      .limit(500);
+    query = query.or(
+      `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+    );
   }
+  if (sector && sector !== "all") query = query.eq("primary_industry", sector);
+  if (outreach && outreach !== "all") query = query.eq("outreach_status", outreach);
+  if (verified === "yes") query = query.eq("pasha_verified", true);
+  if (verified === "no") query = query.or("pasha_verified.is.null,pasha_verified.eq.false");
 
-  const { data, error: dbErr } = await query;
+  query = query
+    .order("created_at", { ascending: false, nullsFirst: false })
+    .order("current_revenue", { ascending: false, nullsFirst: false });
+
+  const { data, count, error: dbErr } = await query.range(from, to);
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
-  return NextResponse.json({ rows: data ?? [] });
+  return NextResponse.json({ rows: data ?? [], total: count ?? 0, page, pageSize });
 }
 
 export async function PATCH(req: Request) {

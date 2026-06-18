@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -12,6 +12,9 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn, formatNumber, formatCurrency } from "@/lib/utils";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 type Row = {
   id: string;
@@ -30,45 +33,44 @@ type Row = {
   pasha_verified?: boolean | null;
 };
 
-const PAGE_SIZE = 100;
+type Filters = { q: string; sector: string; outreach: string; verified: string };
 
 export function DatabankClient({
   initial,
 }: {
-  initial: { rows: Row[]; total: number; sectors: string[] };
+  initial: {
+    rows: Row[];
+    total: number;
+    sectors: string[];
+    page: number;
+    pageSize: number;
+    filters: Filters;
+  };
 }) {
-  const [q, setQ] = useState("");
-  const [sector, setSector] = useState("all");
-  const [outreach, setOutreach] = useState("all");
-  const [verifiedFilter, setVerifiedFilter] = useState<"all" | "yes" | "no">("all");
+  const { isPending, setParams } = useListNav();
+
+  // Local mirror of the search box so typing feels instant; we debounce the
+  // URL update to avoid a server round-trip per keystroke.
+  const [q, setQ] = useState(initial.filters.q);
   const [rowsState, setRowsState] = useState<Row[]>(initial.rows);
   const [pending, setPending] = useState<Record<string, boolean>>({});
-  const [page, setPage] = useState(1);
-  const [searching, setSearching] = useState(false);
 
+  // Whenever the server returns a fresh page (URL change), sync the local
+  // row state. Without this, optimistic updates would survive page changes.
   useEffect(() => {
-    const needle = q.trim();
-    if (needle.length < 2) {
-      setRowsState(initial.rows);
-      return;
-    }
+    setRowsState(initial.rows);
+  }, [initial.rows]);
 
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(
-          `/api/admin/databank?q=${encodeURIComponent(needle)}`,
-          { cache: "no-store" }
-        );
-        const j = await res.json();
-        if (res.ok) setRowsState(j.rows ?? []);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
+  // Debounce search → URL.
+  useEffect(() => {
+    if (q === initial.filters.q) return;
+    const t = setTimeout(() => setParams({ q: q || null, page: 1 }), 300);
+    return () => clearTimeout(t);
+  }, [q, initial.filters.q, setParams]);
 
-    return () => clearTimeout(timer);
-  }, [q, initial.rows]);
+  const sector = initial.filters.sector;
+  const outreach = initial.filters.outreach;
+  const verifiedFilter = initial.filters.verified as "all" | "yes" | "no";
 
   async function toggleVerified(id: string, next: boolean) {
     setPending((p) => ({ ...p, [id]: true }));
@@ -98,37 +100,15 @@ export function DatabankClient({
     }
   }
 
-  function setQAndReset(v: string) { setQ(v); setPage(1); }
-  function setSectorAndReset(v: string) { setSector(v); setPage(1); }
-  function setOutreachAndReset(v: string) { setOutreach(v); setPage(1); }
-  function setVerifiedAndReset(v: "all" | "yes" | "no") { setVerifiedFilter(v); setPage(1); }
+  // All search/filtering is server-side via URL params. The table renders
+  // exactly what the server returned.
+  function setQAndReset(v: string) { setQ(v); }
+  function setSectorAndReset(v: string) { setParams({ sector: v === "all" ? null : v, page: 1 }); }
+  function setOutreachAndReset(v: string) { setParams({ outreach: v === "all" ? null : v, page: 1 }); }
+  function setVerifiedAndReset(v: "all" | "yes" | "no") { setParams({ verified: v === "all" ? null : v, page: 1 }); }
 
-  const filtered = useMemo(() => {
-    const needle = q.toLowerCase().trim();
-    const apiSearch = needle.length >= 2;
-    return rowsState.filter((r) => {
-      if (sector !== "all" && r.primary_industry !== sector) return false;
-      if (outreach !== "all" && r.outreach_status !== outreach) return false;
-      if (verifiedFilter === "yes" && !r.pasha_verified) return false;
-      if (verifiedFilter === "no" && r.pasha_verified) return false;
-      if (apiSearch) return true;
-      if (!needle) return true;
-      return [
-        r.startup_name,
-        r.tagline,
-        r.primary_industry,
-        r.contact_person,
-        r.contact_email,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
-    });
-  }, [rowsState, q, sector, outreach, verifiedFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filtered = rowsState;
+  const paginated = filtered;
 
   const exportCSV = () => {
     const cols = [
@@ -221,14 +201,15 @@ export function DatabankClient({
 
       <div className="flex items-center gap-3 text-xs">
         <span className="font-mono uppercase tracking-[2px] text-pasha-muted">
-          {filtered.length} results · page {page}/{totalPages}
+          {filtered.length} showing · {initial.total} total
         </span>
         <span className="text-pasha-muted">
-          · {q.trim().length >= 2 ? "Search results" : `Newest ${initial.rows.length} loaded`}
+          · {q.trim().length >= 2 ? "Search results" : `Page ${initial.page}`}
         </span>
       </div>
 
-      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden">
+      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden relative">
+        <ShimmerOverlay active={isPending} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-pasha-stone/40 border-b border-pasha-line">
@@ -245,10 +226,7 @@ export function DatabankClient({
               </tr>
             </thead>
             <tbody>
-              {searching ? (
-                Array.from({ length: 8 }).map((_, i) => <DatabankRowShimmer key={i} />)
-              ) : (
-                paginated.map((r) => (
+              {paginated.map((r) => (
                 <tr key={r.id} className="border-b border-pasha-line/60 hover:bg-pasha-stone/40">
                   <Td>
                     <div className="flex flex-col">
@@ -338,36 +316,18 @@ export function DatabankClient({
                     </div>
                   </Td>
                 </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+        <Pagination
+          total={initial.total}
+          page={initial.page}
+          pageSize={initial.pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            ← Previous
-          </button>
-          <span className="text-xs text-pasha-muted">
-            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Next →
-          </button>
-        </div>
-      )}
     </div>
   );
 }

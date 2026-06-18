@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { parsePagination } from "@/lib/pagination";
 
 const ACTIVITY_TYPES = [
   "verification",
@@ -45,24 +46,26 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
+  const { page, pageSize, from, to } = parsePagination(new URL(req.url));
   const supabase = createServiceClient();
-  const { data, error: dbErr } = await supabase
+  const { data, count, error: dbErr } = await supabase
     .from("committee_activities")
-    .select("id,title,type,description,status,author_email,created_at")
-    .order("created_at", { ascending: false });
+    .select("id,title,type,description,status,author_email,created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (dbErr) {
     if (/committee_activities|does not exist/i.test(dbErr.message)) {
-      return NextResponse.json({ activities: [] });
+      return NextResponse.json({ activities: [], total: 0, page, pageSize });
     }
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ activities: data ?? [] });
+  return NextResponse.json({ activities: data ?? [], total: count ?? 0, page, pageSize });
 }
 
 export async function POST(req: Request) {

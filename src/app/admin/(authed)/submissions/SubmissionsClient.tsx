@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/safe-url";
 import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/workflow";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 type FieldLabelMap = Record<string, string>;
 
@@ -143,10 +146,32 @@ type FeaturedStatus = {
   status: "active" | "scheduled" | "expired";
 };
 
-export function SubmissionsClient({ initial }: { initial: Row[] }) {
+export function SubmissionsClient({
+  initial,
+  total,
+  page,
+  pageSize,
+  filters,
+}: {
+  initial: Row[];
+  total: number;
+  page: number;
+  pageSize: number;
+  filters: { q: string; status: string };
+}) {
+  const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<Row[]>(initial);
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "submitted" | "needs_update" | "approved" | "rejected">("all");
+  const [q, setQ] = useState(filters.q);
+  const filter = filters.status as "all" | "submitted" | "needs_update" | "approved" | "rejected";
+
+  useEffect(() => { setRows(initial); }, [initial]);
+  useEffect(() => {
+    if (q === filters.q) return;
+    const t = setTimeout(() => setParams({ q: q || null, page: 1 }), 300);
+    return () => clearTimeout(t);
+  }, [q, filters.q, setParams]);
+
+  const setFilter = (next: typeof filter) => setParams({ status: next === "all" ? null : next, page: 1 });
   // Initialise from ?id= query param on mount so deep-linked submissions
   // open immediately without a cascading setState inside an effect.
   const [openId, setOpenId] = useState<string | null>(() => {
@@ -189,18 +214,8 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    const needle = q.toLowerCase().trim();
-    return rows.filter((r) => {
-      if (filter !== "all" && rowStage(r.status) !== filter) return false;
-      if (!needle) return true;
-      return [r.startup_name, r.founder_name, r.founder_email, r.primary_sector]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
-    });
-  }, [rows, q, filter]);
+  // Server applies search + status filter; render as-is.
+  const filtered = rows;
 
   return (
     <div className="space-y-4">
@@ -238,7 +253,8 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden">
+      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden relative">
+        <ShimmerOverlay active={isPending} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-pasha-stone/40 border-b border-pasha-line">
@@ -308,6 +324,13 @@ export function SubmissionsClient({ initial }: { initial: Row[] }) {
             </tbody>
           </table>
         </div>
+        <Pagination
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </div>
 
       <AnimatePresence>

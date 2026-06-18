@@ -1,15 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, Loader2, Pencil, Trash2, UserPlus, Users, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, Loader2, Pencil, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import { Pagination } from "../_components/Pagination";
+import { useListNav } from "../_components/useListNav";
+import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 import type { MemberRow } from "./page";
 
 const inputCls =
   "h-9 w-full rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15";
 
-export function CommitteeManagementClient({ initial }: { initial: MemberRow[] }) {
+export function CommitteeManagementClient({
+  initial,
+  total,
+  page,
+  pageSize,
+  initialQ,
+}: {
+  initial: MemberRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  initialQ: string;
+}) {
+  const { isPending, setParams } = useListNav();
+  const [q, setQ] = useState(initialQ);
+  useEffect(() => {
+    if (q === initialQ) return;
+    const t = setTimeout(() => setParams({ q: q || null, page: 1 }), 300);
+    return () => clearTimeout(t);
+  }, [q, initialQ, setParams]);
   const [rows, setRows] = useState<MemberRow[]>(initial);
+  // Sync local row state when the server returns a fresh page.
+  useEffect(() => { setRows(initial); }, [initial]);
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState("");
   const [org, setOrg] = useState("");
@@ -187,12 +211,22 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
         </form>
       </section>
 
-      <section className="rounded-2xl border border-pasha-line bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-pasha-line flex items-center gap-2">
-          <Users className="w-4 h-4 text-pasha-red" />
-          <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red">
-            Current members ({rows.length})
+      <section className="rounded-2xl border border-pasha-line bg-white overflow-hidden relative">
+        <ShimmerOverlay active={isPending} />
+        <div className="px-6 py-4 border-b border-pasha-line flex items-center gap-3">
+          <Users className="w-4 h-4 text-pasha-red shrink-0" />
+          <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red shrink-0">
+            Current members ({total})
           </h2>
+          <div className="relative ml-auto w-full max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-pasha-muted" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search email, role, company…"
+              className="h-9 w-full rounded-lg border border-pasha-line bg-white pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            />
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-pasha-stone/40 border-b border-pasha-line">
@@ -313,6 +347,13 @@ export function CommitteeManagementClient({ initial }: { initial: MemberRow[] })
             )}
           </tbody>
         </table>
+        <Pagination
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          setParams={setParams}
+          isPending={isPending}
+        />
       </section>
 
       <ConfirmDeleteModal
