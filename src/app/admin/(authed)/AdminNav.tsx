@@ -3,41 +3,59 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Inbox,
+  Database,
+  Star,
+  CalendarDays,
+  Activity,
+  Users,
+  FileCode2,
+  List,
+} from "lucide-react";
 
-const TABS = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/submissions", label: "Submissions" },
-   { href: "/admin/databank", label: "Data bank" },
-  { href: "/admin/featured-startups", label: "Featured startups" },
-  { href: "/admin/events", label: "Events" },
-  { href: "/admin/committee-activity", label: "Committee activity" },
-  { href: "/admin/committee-management", label: "Committee management" },
-  { href: "/admin/forms", label: "Form builder" },
-  { href: "/admin/option-lists", label: "Option lists" },
+const NAV_ITEMS = [
+  { href: "/admin",                    label: "Overview",             icon: LayoutDashboard },
+  { href: "/admin/submissions",        label: "Submissions",          icon: Inbox },
+  { href: "/admin/databank",           label: "Data Bank",            icon: Database },
+  { href: "/admin/featured-startups",  label: "Featured Startups",    icon: Star },
+  { href: "/admin/events",             label: "Events",               icon: CalendarDays },
+  { href: "/admin/committee-activity", label: "Committee Activity",   icon: Activity },
+  { href: "/admin/committee-management", label: "Committee Mgmt",     icon: Users },
+  { href: "/admin/forms",              label: "Form Builder",         icon: FileCode2 },
+  { href: "/admin/option-lists",       label: "Option Lists",         icon: List },
 ];
 
 export function AdminNav() {
   const pathname = usePathname();
+
   return (
-    <nav className="flex items-center gap-1 border-b border-pasha-line">
-      {TABS.map((t) => {
+    <nav className="flex flex-col gap-0.5 px-3">
+      {NAV_ITEMS.map((item) => {
         const active =
-          t.href === "/admin" ? pathname === "/admin" : pathname?.startsWith(t.href);
+          item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname?.startsWith(item.href);
+        const Icon = item.icon;
         return (
           <Link
-            key={t.href}
-            href={t.href}
+            key={item.href}
+            href={item.href}
             className={cn(
-              "relative px-4 py-3 text-sm transition-colors",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
               active
-                ? "text-pasha-ink font-medium"
-                : "text-pasha-muted hover:text-pasha-ink"
+                ? "bg-pasha-red text-white shadow-sm shadow-pasha-red/25"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             )}
           >
-            {t.label}
-            {active && (
-              <span className="absolute inset-x-0 -bottom-px h-[2px] bg-pasha-red rounded-full" />
-            )}
+            <Icon
+              className={cn(
+                "w-4 h-4 shrink-0 transition-colors",
+                active ? "text-white" : "text-slate-400 group-hover:text-slate-600"
+              )}
+            />
+            {item.label}
           </Link>
         );
       })}
