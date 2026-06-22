@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ChatWidget } from "@/components/ChatWidget";
 
 const SITE_NAME = "P@SHA Startup Community";
 const SITE_DESCRIPTION =
@@ -95,7 +96,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        {children}
+        <ChatWidget />
+      </body>
     </html>
   );
 }
