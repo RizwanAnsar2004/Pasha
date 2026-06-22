@@ -24,6 +24,7 @@ import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { PageHeader, EmptyState, Pill, type PillTone } from "../_components/EmailUI";
 
 const inputCls =
   "w-full rounded-lg border border-pasha-line bg-white px-3 py-2.5 text-sm text-pasha-ink placeholder:text-pasha-muted/70 focus:outline-none focus:border-pasha-red focus:ring-2 focus:ring-pasha-red/10";
@@ -359,81 +360,90 @@ export function EmailTemplatesClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-2xl text-pasha-ink">Email Templates</h1>
-          <p className="mt-1 text-sm text-pasha-muted">
-            Create and manage reusable HTML email templates.
-          </p>
-        </div>
-        <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red-dark">
-          <Plus className="w-4 h-4" />
-          New template
-        </button>
-      </div>
+      <PageHeader
+        icon={Mail}
+        title="Email Templates"
+        subtitle={`${total} template${total === 1 ? "" : "s"} · reusable HTML emails`}
+        action={
+          <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-pasha-red/25 hover:bg-pasha-red-dark">
+            <Plus className="w-4 h-4" />
+            New template
+          </button>
+        }
+      />
 
       {msg && <p className="text-sm text-tier-featured">{msg}</p>}
 
-      <div className="rounded-2xl border border-pasha-line bg-white overflow-hidden shadow-sm relative">
+      <div className="relative">
         <ShimmerOverlay active={isPending} />
         {rows.length === 0 ? (
-          <p className="px-6 py-12 text-sm text-pasha-muted text-center">No templates yet. Create your first template.</p>
+          <EmptyState
+            icon={Mail}
+            title="No templates yet"
+            hint="Create your first reusable email template to get started."
+          />
         ) : (
-          <div className="divide-y divide-pasha-line">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {rows.map((row) => (
-              <div key={row.id} className="flex flex-wrap items-center gap-4 px-5 py-4 hover:bg-pasha-stone/30">
-                <div className="flex-1 min-w-[200px]">
-                  <p className="font-medium text-pasha-ink flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-pasha-muted" />
-                    {row.name || row.template_id}
-                  </p>
-                  <p className="mt-0.5 text-xs text-pasha-muted flex flex-wrap items-center gap-2">
-                    <span className="font-mono">{row.template_id}</span>
-                    {row.subject && <span className="truncate max-w-[320px]">· {row.subject}</span>}
-                    <span>· {format(parseISO(row.created_at), "MMM d, yyyy")}</span>
-                  </p>
-                </div>
-                {row.is_default && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-pasha-red/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[1px] text-pasha-red">
-                    <Lock className="w-3 h-3" />
-                    Default
-                  </span>
-                )}
-                <span className={cn(
-                  "rounded-md px-2 py-0.5 text-[10px] font-mono uppercase tracking-[1px]",
-                  row.status === "active"
-                    ? "bg-tier-featured/10 text-tier-featured"
-                    : row.status === "archived"
-                      ? "bg-pasha-stone text-pasha-muted"
-                      : "bg-pasha-stone/60 text-pasha-ink/70"
-                )}>
-                  {statusLabel(row.status)}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => openEdit(row)} className="text-pasha-muted hover:text-pasha-ink" title="Edit">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  {row.is_default ? (
-                    <span className="text-pasha-line cursor-not-allowed" title="Default templates cannot be deleted">
-                      <Trash2 className="w-4 h-4" />
+              <div
+                key={row.id}
+                className="group flex flex-col rounded-2xl border border-pasha-line bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-pasha-red/30 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-pasha-red/10 text-pasha-red">
+                      <Mail className="h-5 w-5" />
                     </span>
-                  ) : (
-                    <button type="button" onClick={() => setDeleteTarget(row)} className="text-pasha-muted hover:text-pasha-red" title="Delete">
-                      <Trash2 className="w-4 h-4" />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-pasha-ink leading-tight">{row.name || row.template_id}</p>
+                      <p className="truncate font-mono text-[11px] text-pasha-muted">{row.template_id}</p>
+                    </div>
+                  </div>
+                  <StatusPill status={row.status} />
+                </div>
+
+                <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm text-pasha-ink/75">
+                  {row.subject || <span className="text-pasha-muted/70">No subject</span>}
+                </p>
+
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-pasha-line pt-3">
+                  <span className="flex items-center gap-2 text-xs text-pasha-muted">
+                    {format(parseISO(row.created_at), "MMM d, yyyy")}
+                    {row.is_default && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-pasha-red/10 px-1.5 py-0.5 text-[10px] font-medium text-pasha-red">
+                        <Lock className="h-3 w-3" />
+                        Default
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => openEdit(row)} className="rounded-lg p-1.5 text-pasha-muted hover:bg-pasha-stone/60 hover:text-pasha-ink" title="Edit">
+                      <Pencil className="h-4 w-4" />
                     </button>
-                  )}
+                    {row.is_default ? (
+                      <span className="rounded-lg p-1.5 text-pasha-line cursor-not-allowed" title="Default templates cannot be deleted">
+                        <Trash2 className="h-4 w-4" />
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setDeleteTarget(row)} className="rounded-lg p-1.5 text-pasha-muted hover:bg-pasha-red/5 hover:text-pasha-red" title="Delete">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
-        <Pagination
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          setParams={setParams}
-          isPending={isPending}
-        />
+        <div className="mt-4">
+          <Pagination
+            total={total}
+            page={page}
+            pageSize={pageSize}
+            setParams={setParams}
+            isPending={isPending}
+          />
+        </div>
       </div>
 
       <ConfirmDeleteModal
@@ -464,4 +474,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <div className="mt-1.5">{children}</div>
     </label>
   );
+}
+
+function StatusPill({ status }: { status: EmailTemplateStatus }) {
+  const tone: PillTone = status === "active" ? "green" : status === "archived" ? "slate" : "amber";
+  return <Pill label={statusLabel(status)} tone={tone} />;
 }
