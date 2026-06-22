@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, Eye, Loader2, Lock, Mail, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, Loader2, Lock, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // CKEditor touches `window` at import time → load client-only.
@@ -12,12 +12,13 @@ const RichTextEditor = dynamic(() => import("./RichTextEditor"), {
   loading: () => <div className="text-sm text-pasha-muted px-1 py-3">Loading editor…</div>,
 });
 import {
+  EMAIL_PLACEHOLDERS,
   EMAIL_TEMPLATE_STATUSES,
+  placeholderDefaults,
   renderTemplate,
   statusLabel,
   type EmailTemplateRow,
   type EmailTemplateStatus,
-  type Placeholders,
 } from "@/lib/email-templates";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
@@ -28,10 +29,6 @@ const inputCls =
   "w-full rounded-lg border border-pasha-line bg-white px-3 py-2.5 text-sm text-pasha-ink placeholder:text-pasha-muted/70 focus:outline-none focus:border-pasha-red focus:ring-2 focus:ring-pasha-red/10";
 const textareaCls = `${inputCls} min-h-[100px] resize-y`;
 
-// Placeholders are edited as an ordered list of {key,value} pairs, then
-// serialized to a Record for the JSONB column.
-type Pair = { key: string; value: string };
-
 type FormState = {
   template_id: string;
   name: string;
@@ -40,7 +37,6 @@ type FormState = {
   status: EmailTemplateStatus;
   is_default: boolean;
   description: string;
-  pairs: Pair[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -51,17 +47,7 @@ const EMPTY_FORM: FormState = {
   status: "draft",
   is_default: false,
   description: "",
-  pairs: [],
 };
-
-function pairsToRecord(pairs: Pair[]): Placeholders {
-  const out: Placeholders = {};
-  for (const p of pairs) {
-    const key = p.key.trim();
-    if (key) out[key] = p.value;
-  }
-  return out;
-}
 
 function rowToForm(row: EmailTemplateRow): FormState {
   return {
@@ -72,7 +58,6 @@ function rowToForm(row: EmailTemplateRow): FormState {
     status: row.status,
     is_default: row.is_default,
     description: row.description,
-    pairs: Object.entries(row.placeholders ?? {}).map(([key, value]) => ({ key, value })),
   };
 }
 
@@ -85,7 +70,8 @@ function formToPayload(form: FormState) {
     status: form.status,
     is_default: form.is_default,
     description: form.description,
-    placeholders: pairsToRecord(form.pairs),
+    // Placeholders come from the fixed catalog (sample values for previews).
+    placeholders: placeholderDefaults(),
   };
 }
 
@@ -121,7 +107,14 @@ export function EmailTemplatesClient({
   const [savingAs, setSavingAs] = useState<EmailTemplateStatus | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EmailTemplateRow | null>(null);
+
+  const copyToken = (token: string) => {
+    navigator.clipboard?.writeText(token).catch(() => {});
+    setCopied(token);
+    setTimeout(() => setCopied((c) => (c === token ? null : c)), 1200);
+  };
 
   const openCreate = () => {
     setEditingId(null);
@@ -190,8 +183,8 @@ export function EmailTemplatesClient({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // Live preview: substitute the placeholder sample values into subject + body.
-  const previewValues = useMemo(() => pairsToRecord(form.pairs), [form.pairs]);
+  // Live preview: substitute the catalog's sample values into subject + body.
+  const previewValues = useMemo(() => placeholderDefaults(), []);
   const previewSubject = useMemo(
     () => renderTemplate(form.subject, previewValues),
     [form.subject, previewValues]
@@ -315,57 +308,30 @@ export function EmailTemplatesClient({
               </label>
             </Section>
 
-            <Section title="Placeholders (key → value)">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-pasha-muted">
-                  Tokens like <code className="font-mono">{"{{first_name}}"}</code> and the sample value used in previews.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => set("pairs", [...form.pairs, { key: "", value: "" }])}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-pasha-red hover:underline shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add
-                </button>
+            <Section title="Available placeholders">
+              <p className="text-xs text-pasha-muted">
+                These are the only supported tokens — click one to copy, then paste it into the subject or body.
+                They&apos;re filled with each recipient&apos;s real data when the email is sent.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {EMAIL_PLACEHOLDERS.map((p) => (
+                  <button
+                    key={p.token}
+                    type="button"
+                    onClick={() => copyToken(p.token)}
+                    title={`Copy ${p.token}`}
+                    className="group inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-1.5 text-xs text-pasha-ink hover:border-pasha-red hover:bg-pasha-red/5"
+                  >
+                    <span className="font-mono text-pasha-red">{p.token}</span>
+                    <span className="text-pasha-muted">{p.label}</span>
+                    {copied === p.token ? (
+                      <Check className="w-3.5 h-3.5 text-tier-featured" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-pasha-muted/60 group-hover:text-pasha-red" />
+                    )}
+                  </button>
+                ))}
               </div>
-              {form.pairs.length === 0 ? (
-                <p className="text-sm text-pasha-muted">No placeholders yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {form.pairs.map((pair, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                      <input
-                        className={cn(inputCls, "font-mono flex-1")}
-                        placeholder="{{first_name}}"
-                        value={pair.key}
-                        onChange={(e) => {
-                          const next = [...form.pairs];
-                          next[i] = { ...pair, key: e.target.value };
-                          set("pairs", next);
-                        }}
-                      />
-                      <input
-                        className={cn(inputCls, "flex-1")}
-                        placeholder="Sample value"
-                        value={pair.value}
-                        onChange={(e) => {
-                          const next = [...form.pairs];
-                          next[i] = { ...pair, value: e.target.value };
-                          set("pairs", next);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => set("pairs", form.pairs.filter((_, j) => j !== i))}
-                        className="shrink-0 rounded p-2 text-pasha-muted hover:text-pasha-red hover:bg-pasha-red/5"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </Section>
 
             <div className="lg:col-span-2">
