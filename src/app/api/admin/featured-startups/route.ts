@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
+import { sendTemplate, firstNameOf } from "@/lib/mailer";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 import { parsePagination } from "@/lib/pagination";
@@ -120,9 +121,9 @@ export async function POST(req: Request) {
 
   const { data: startup } = await supabase
     .from("databank")
-    .select("id")
+    .select("id, startup_name, contact_email, contact_person")
     .eq("id", databank_id)
-    .maybeSingle();
+    .maybeSingle<{ id: string; startup_name: string | null; contact_email: string | null; contact_person: string | null }>();
   if (!startup) {
     return NextResponse.json({ error: "Startup not found in databank" }, { status: 404 });
   }
@@ -138,6 +139,26 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: conflict ? "This startup is already featured" : insErr.message },
       { status: conflict ? 409 : 500 }
+    );
+  }
+
+  // Best-effort "you're featured" email to the startup's contact.
+  if (startup.contact_email) {
+    after(() =>
+      sendTemplate({
+        templateId: "startup_featured",
+        recipients: [
+          {
+            email: startup.contact_email!,
+            values: {
+              "{{first_name}}": firstNameOf(startup.contact_person),
+              "{{startup_name}}": startup.startup_name ?? "your startup",
+              "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/directory`,
+            },
+          },
+        ],
+        context: { trigger: "startup_featured", databank_id },
+      })
     );
   }
 

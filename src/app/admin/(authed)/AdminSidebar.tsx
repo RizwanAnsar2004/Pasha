@@ -15,6 +15,9 @@ import {
   Users,
   FileCode2,
   List,
+  Mail,
+  Send,
+  History,
   ChevronLeft,
   Menu,
 } from "lucide-react";
@@ -29,6 +32,9 @@ const NAV_ITEMS = [
   { href: "/admin/committee-management", label: "Committee Mgmt",      icon: Users },
   { href: "/admin/forms",                label: "Form Builder",        icon: FileCode2 },
   { href: "/admin/option-lists",         label: "Option Lists",        icon: List },
+  { href: "/admin/email-templates",      label: "Email Templates",     icon: Mail },
+  { href: "/admin/email-broadcast",      label: "Send Email",          icon: Send },
+  { href: "/admin/email-log",            label: "Email Log",           icon: History },
 ];
 
 export function AdminSidebar({ userMenu }: { userMenu: React.ReactNode }) {

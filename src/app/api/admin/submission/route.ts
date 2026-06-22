@@ -5,8 +5,9 @@
 //
 // Writes the status change + an audit_log entry in a single transaction.
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
+import { sendTemplate, firstNameOf } from "@/lib/mailer";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
@@ -174,7 +175,7 @@ export async function PATCH(req: Request) {
   // Capture prior state for the audit log
   const { data: priorRow } = await supabase
     .from("submissions")
-    .select("status, reviewer_notes, vetting_tier, user_id")
+    .select("status, reviewer_notes, vetting_tier, user_id, startup_name, founder_name, founder_email")
     .eq("id", id)
     .single();
 
@@ -337,6 +338,47 @@ export async function PATCH(req: Request) {
   });
   if (auditErr) {
     console.error("audit_log insert failed:", auditErr.message);
+  }
+
+  // 5. Best-effort applicant notification on a real status change.
+  const STATUS_TEMPLATES: Record<string, string> = {
+    approved: "submission_approved",
+    rejected: "submission_rejected",
+    needs_update: "submission_needs_update",
+    watchlist: "submission_watchlist",
+  };
+  const templateId = STATUS_TEMPLATES[status];
+  if (templateId && status !== priorRow.status) {
+    after(async () => {
+      // Prefer the founder contact; fall back to the owning account's profile email.
+      let email = priorRow.founder_email ?? null;
+      if (!email && priorRow.user_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", priorRow.user_id)
+          .maybeSingle<{ email: string | null }>();
+        email = profile?.email ?? null;
+      }
+      if (!email) return;
+
+      await sendTemplate({
+        templateId,
+        recipients: [
+          {
+            email,
+            userId: priorRow.user_id ?? null,
+            values: {
+              "{{first_name}}": firstNameOf(priorRow.founder_name),
+              "{{startup_name}}": priorRow.startup_name ?? "your startup",
+              "{{reviewer_notes}}": reviewer_notes ?? "",
+              "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/apply`,
+            },
+          },
+        ],
+        context: { trigger: templateId, submission_id: id },
+      });
+    });
   }
 
   return NextResponse.json({ ok: true, id, status });

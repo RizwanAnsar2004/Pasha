@@ -13,6 +13,7 @@ import {
   Users,
   FileCode2,
   List,
+  Mail,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/admin/committee-management", label: "Committee Mgmt",     icon: Users },
   { href: "/admin/forms",              label: "Form Builder",         icon: FileCode2 },
   { href: "/admin/option-lists",       label: "Option Lists",         icon: List },
+  { href: "/admin/email-templates",    label: "Email Templates",      icon: Mail },
 ];
 
 export function AdminNav() {

@@ -1,0 +1,131 @@
+"use client";
+
+import { useState } from "react";
+import { Loader2, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type TemplateOption = { template_id: string; name: string };
+
+type Scope = "custom" | "applicants" | "approved" | "databank" | "all_profiles";
+
+const SCOPES: { value: Scope; label: string; hint: string }[] = [
+  { value: "custom", label: "Specific addresses", hint: "Paste emails below (comma or newline separated)." },
+  { value: "applicants", label: "All applicants", hint: "Everyone who has submitted an application." },
+  { value: "approved", label: "Approved founders", hint: "Founders of approved submissions." },
+  { value: "databank", label: "Directory contacts", hint: "Public databank contact emails." },
+  { value: "all_profiles", label: "Everyone", hint: "Every account with an email address." },
+];
+
+const inputCls =
+  "w-full rounded-lg border border-pasha-line bg-white px-3 py-2.5 text-sm text-pasha-ink placeholder:text-pasha-muted/70 focus:outline-none focus:border-pasha-red focus:ring-2 focus:ring-pasha-red/10";
+
+export function BroadcastClient({ templates }: { templates: TemplateOption[] }) {
+  const [templateId, setTemplateId] = useState(templates[0]?.template_id ?? "");
+  const [scope, setScope] = useState<Scope>("custom");
+  const [emailsText, setEmailsText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  const scopeHint = SCOPES.find((s) => s.value === scope)?.hint ?? "";
+
+  const send = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const emails =
+        scope === "custom"
+          ? emailsText.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean)
+          : undefined;
+      if (scope === "custom" && (!emails || emails.length === 0)) {
+        throw new Error("Enter at least one email address.");
+      }
+      const res = await fetch("/api/admin/email-broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId, scope, emails }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Send failed");
+      setMsg({ kind: "ok", text: `Queued ${json.queued} recipient(s). Track delivery in Email Log.` });
+      if (scope === "custom") setEmailsText("");
+    } catch (e) {
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Something went wrong" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="font-serif text-2xl text-pasha-ink">Send Email</h1>
+        <p className="mt-1 text-sm text-pasha-muted">
+          Send an active template to a group of recipients. Delivery is processed in the background.
+        </p>
+      </div>
+
+      {templates.length === 0 ? (
+        <p className="rounded-xl border border-pasha-line bg-white p-5 text-sm text-pasha-muted">
+          No active templates. Create one and set its status to <strong>Active</strong> first.
+        </p>
+      ) : (
+        <div className="rounded-2xl border border-pasha-line bg-white p-5 shadow-sm space-y-4">
+          <label className="block text-sm text-pasha-ink">
+            Template
+            <div className="mt-1.5">
+              <select className={inputCls} value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+                {templates.map((t) => (
+                  <option key={t.template_id} value={t.template_id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </label>
+
+          <label className="block text-sm text-pasha-ink">
+            Recipients
+            <div className="mt-1.5">
+              <select className={inputCls} value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
+                {SCOPES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="mt-1 text-xs text-pasha-muted">{scopeHint}</p>
+          </label>
+
+          {scope === "custom" && (
+            <label className="block text-sm text-pasha-ink">
+              Email addresses
+              <div className="mt-1.5">
+                <textarea
+                  className={`${inputCls} min-h-[120px] resize-y font-mono text-xs`}
+                  value={emailsText}
+                  onChange={(e) => setEmailsText(e.target.value)}
+                  placeholder={"alice@example.com\nbob@example.com"}
+                />
+              </div>
+            </label>
+          )}
+
+          {msg && (
+            <p className={cn("text-sm", msg.kind === "ok" ? "text-tier-featured" : "text-pasha-red")}>
+              {msg.text}
+            </p>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={send}
+              disabled={busy || !templateId}
+              className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red-dark disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

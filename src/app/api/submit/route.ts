@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { sendTemplate, firstNameOf } from "@/lib/mailer";
 import { submissionSchema, type Founder } from "@/lib/schema";
 import { scoreVetting } from "@/lib/vetting";
 import { getFormConfig } from "@/lib/form-config.server";
@@ -283,6 +284,28 @@ export async function POST(req: Request) {
       .from("application_drafts")
       .update({ submission_id: row.id, submitted_at: new Date().toISOString() })
       .eq("user_id", user.id);
+
+    // Best-effort confirmation email, sent after the response.
+    const recipientEmail = (user.email ?? primary?.email ?? "").toString();
+    if (recipientEmail) {
+      after(() =>
+        sendTemplate({
+          templateId: "submission_received",
+          recipients: [
+            {
+              email: recipientEmail,
+              userId: user.id,
+              values: {
+                "{{first_name}}": firstNameOf(primary?.name),
+                "{{startup_name}}": String(cols.startup_name ?? "your startup"),
+                "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/apply`,
+              },
+            },
+          ],
+          context: { trigger: "submission_received", submission_id: row.id },
+        })
+      );
+    }
 
     return NextResponse.json({
       ok: true,
