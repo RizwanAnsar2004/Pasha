@@ -1,12 +1,15 @@
 "use client";
 
-// Floating chat widget — UI-only placeholder for now. The send handler appends
-// a canned reply; wire it to a real backend (/api/chat) later.
+// Floating chat widget wired to the P@SHA RAG assistant (/api/chat). The
+// conversation is persisted in the browser's localStorage so it survives
+// reloads and is restored when the widget is reopened.
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 
 type Message = { id: number; role: "user" | "bot"; text: string };
+
+const STORAGE_KEY = "pasha-chat-history";
 
 const GREETING: Message = {
   id: 0,
@@ -18,25 +21,77 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
+
+  // Load saved conversation from localStorage on first mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Message[];
+        if (Array.isArray(saved) && saved.length) {
+          setMessages(saved);
+          nextId.current = Math.max(...saved.map((m) => m.id)) + 1;
+        }
+      }
+    } catch {
+      // Ignore corrupt storage and start fresh.
+    }
+  }, []);
+
+  // Persist on every change.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // Storage full / unavailable — non-fatal.
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
-  const send = () => {
+  const clearChat = () => {
+    setMessages([GREETING]);
+    nextId.current = 1;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const send = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || loading) return;
     const userMsg: Message = { id: nextId.current++, role: "user", text };
-    // Placeholder reply — replace with a real API call later.
-    const botMsg: Message = {
-      id: nextId.current++,
-      role: "bot",
-      text: "Thanks for your message! This assistant isn't connected yet — we'll get back to you soon.",
-    };
-    setMessages((m) => [...m, userMsg, botMsg]);
+    setMessages((m) => [...m, userMsg]);
     setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      const data = await res.json();
+      const botText =
+        res.ok && data.answer
+          ? data.answer
+          : data.error ?? "Sorry, something went wrong. Please try again.";
+      setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { id: nextId.current++, role: "bot", text: "Could not reach the assistant. Please try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,14 +114,24 @@ export function ChatWidget() {
                 <p className="text-[11px] text-white/70">Typically replies in a few minutes</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
-              aria-label="Close chat"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={clearChat}
+                className="rounded-lg px-2 py-1 text-[11px] text-white/80 hover:bg-white/15 hover:text-white"
+                aria-label="Clear chat history"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-1.5 text-white/80 hover:bg-white/15 hover:text-white"
+                aria-label="Close chat"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -84,6 +149,17 @@ export function ChatWidget() {
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-400">
+                  <span className="inline-flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -98,12 +174,13 @@ export function ChatWidget() {
                 }
               }}
               placeholder="Type a message…"
-              className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-pasha-red focus:outline-none focus:ring-2 focus:ring-pasha-red/10"
+              disabled={loading}
+              className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-pasha-red focus:outline-none focus:ring-2 focus:ring-pasha-red/10 disabled:opacity-60"
             />
             <button
               type="button"
               onClick={send}
-              disabled={!input.trim()}
+              disabled={!input.trim() || loading}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-pasha-red text-white hover:bg-pasha-red-dark disabled:opacity-40"
               aria-label="Send"
             >
