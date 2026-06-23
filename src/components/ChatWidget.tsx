@@ -141,8 +141,8 @@ export function ChatWidget() {
                 <div
                   className={
                     m.role === "user"
-                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-pasha-red px-3.5 py-2 text-sm text-white"
-                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-700"
+                      ? "max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm bg-pasha-red px-3.5 py-2 text-sm text-white"
+                      : "max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-700"
                   }
                 >
                   {m.text}
