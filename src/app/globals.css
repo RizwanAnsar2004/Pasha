@@ -257,8 +257,9 @@
 :is(.ck-content, .rich-text) h3 { font-size: 1.2em; font-weight: 600; line-height: 1.3; margin: 0.5em 0 0.25em; }
 :is(.ck-content, .rich-text) h4 { font-size: 1.05em; font-weight: 600; margin: 0.5em 0 0.25em; }
 :is(.ck-content, .rich-text) p { margin: 0.5em 0; }
-:is(.ck-content, .rich-text) p:first-child { margin-top: 0; }
-:is(.ck-content, .rich-text) p:last-child { margin-bottom: 0; }
+/* No leading/trailing gap so the block lines up with its label/sibling. */
+.rich-text > :first-child { margin-top: 0; }
+.rich-text > :last-child { margin-bottom: 0; }
 :is(.ck-content, .rich-text) ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
 :is(.ck-content, .rich-text) ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
 :is(.ck-content, .rich-text) li { display: list-item; margin: 0.15em 0; }

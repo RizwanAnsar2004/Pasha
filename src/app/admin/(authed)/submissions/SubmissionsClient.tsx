@@ -8,6 +8,7 @@ import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, FileText,
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { htmlToText } from "@/lib/sanitize-html";
+import { RichText } from "@/components/ui/RichText";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/safe-url";
 import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/workflow";
@@ -687,7 +688,17 @@ function SubmissionDrawer({
             </Section>
 
             <Section title="Startup">
-              <FieldKV fieldKey="tagline" labels={fieldLabels} v={htmlToText((row as Record<string, unknown>).tagline as string) || "—"} />
+              <FieldKV
+                fieldKey="tagline"
+                labels={fieldLabels}
+                v={
+                  htmlToText((row as Record<string, unknown>).tagline as string) ? (
+                    <RichText value={(row as Record<string, unknown>).tagline as string} />
+                  ) : (
+                    "—"
+                  )
+                }
+              />
               <FieldKV
                 fieldKey="hq_city"
                 labels={fieldLabels}
