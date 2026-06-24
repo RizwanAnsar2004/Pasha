@@ -53,7 +53,7 @@ CROSS JOIN (VALUES
   (NULL,'location','Headquarters',NULL,NULL,91,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,3,NULL),
   (NULL,'stage','Current stage',NULL,'Pick a stage',6,true,'{}'::jsonb,NULL,'STAGES',false,NULL,NULL,NULL,NULL,true,4,NULL),
   (NULL,'primary_sector','Primary sector',NULL,'Pick a sector',6,true,'{}'::jsonb,NULL,'SECTORS',false,NULL,NULL,NULL,NULL,true,5,NULL),
-  (NULL,'tagline','One-line description','A short line on what you do — shown on your directory card.','We help X do Y',0,false,'{"maxLength":160}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,6,NULL),
+  (NULL,'tagline','One-line description','A short line on what you do — shown on your directory card.','We help X do Y',11,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,6,NULL),
   (NULL,'terms_accepted','I agree to the terms, privacy policy and data-usage agreement',NULL,NULL,8,true,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,7,NULL)
 ) AS x(parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
 WHERE s.form_key = 'registration'

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, BadgeCheck, TrendingUp, Users, Globe } from "lucide-react";
 import { initials, formatNumber, formatCurrency } from "@/lib/utils";
+import { RichText } from "@/components/ui/RichText";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -154,15 +155,13 @@ function BentoCard({
         )}
 
         {/* Tagline */}
-        {startup.tagline && (
-          <p
-            className={`mt-3 text-pasha-muted leading-relaxed text-pretty ${
-              large ? "text-base lg:text-lg max-w-md" : "text-sm line-clamp-2"
-            }`}
-          >
-            {startup.tagline}
-          </p>
-        )}
+        <RichText
+          inline
+          value={startup.tagline}
+          className={`mt-3 text-pasha-muted leading-relaxed text-pretty ${
+            large ? "text-base lg:text-lg max-w-md" : "text-sm line-clamp-2"
+          }`}
+        />
 
         {/* Stats footer */}
         <div className="mt-auto pt-4 flex items-center gap-4 text-[11px] text-pasha-muted">

@@ -12,6 +12,7 @@ export const InputType = {
   PHONE: 3,
   NUMBER: 4,
   TEXTAREA: 5,
+  RICH_TEXT: 11, // WYSIWYG (CKEditor) → HTML string
   SELECT: 6, // single-select dropdown
   MULTISELECT: 7, // checkbox group → string[]
   YES_NO: 8, // boolean
@@ -33,6 +34,7 @@ export const INPUT_TYPE_LABELS: Record<number, string> = {
   [InputType.PHONE]: "Phone",
   [InputType.NUMBER]: "Number",
   [InputType.TEXTAREA]: "Long text",
+  [InputType.RICH_TEXT]: "Rich text (WYSIWYG)",
   [InputType.SELECT]: "Dropdown (single)",
   [InputType.MULTISELECT]: "Checkboxes (multiple)",
   [InputType.YES_NO]: "Yes / No",
@@ -76,6 +78,7 @@ export function isScalarString(t: number): boolean {
     t === InputType.URL ||
     t === InputType.PHONE ||
     t === InputType.TEXTAREA ||
+    t === InputType.RICH_TEXT ||
     t === InputType.SELECT ||
     t === InputType.RADIO_CARDS ||
     t === InputType.DATE ||

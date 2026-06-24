@@ -3,7 +3,7 @@
 import type { StepProps } from "../ApplyForm";
 import { Field } from "../Field";
 import { Input, Textarea } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { SelectField } from "@/components/form/SelectField";
 import { CheckboxGroup, YesNo } from "@/components/ui/RadioCard";
 import { FileUpload } from "../FileUpload";
 import { CityField } from "../controls/CityField";
@@ -146,8 +146,8 @@ export function Step1Startup({ form }: StepProps) {
             required
             error={errors.primary_sector?.message}
           >
-            <Select
-              {...register("primary_sector")}
+            <SelectField
+              name="primary_sector"
               placeholder="Select primary sector"
               options={[...SECTORS]}
             />
@@ -159,8 +159,8 @@ export function Step1Startup({ form }: StepProps) {
             />
           </Field>
           <Field label="Business model">
-            <Select
-              {...register("business_model")}
+            <SelectField
+              name="business_model"
               placeholder="Select business model"
               options={[...BUSINESS_MODELS]}
             />
@@ -170,8 +170,8 @@ export function Step1Startup({ form }: StepProps) {
             required
             error={errors.stage?.message}
           >
-            <Select
-              {...register("stage")}
+            <SelectField
+              name="stage"
               placeholder="Select stage"
               options={STAGES.map((s) => ({ value: s.value, label: s.label }))}
             />
@@ -229,8 +229,8 @@ export function Step1Startup({ form }: StepProps) {
           </Field>
         </div>
         <Field label="Founding team composition">
-          <Select
-            {...register("founding_team_composition")}
+          <SelectField
+            name="founding_team_composition"
             placeholder="Select composition"
             options={[...FOUNDING_TEAM_COMPOSITIONS]}
           />
@@ -270,8 +270,8 @@ export function Step1Startup({ form }: StepProps) {
       {/* ---------- Traction & funding ---------- */}
       <Section title="Traction & funding">
         <Field label="Current revenue (annual)">
-          <Select
-            {...register("revenue_band")}
+          <SelectField
+            name="revenue_band"
             placeholder="Select range"
             options={[...REVENUE_BANDS]}
           />
@@ -288,8 +288,8 @@ export function Step1Startup({ form }: StepProps) {
         </Field>
         {v.raised_funding === true && (
           <Field label="Latest funding stage">
-            <Select
-              {...register("funding_stage")}
+            <SelectField
+              name="funding_stage"
               placeholder="Select stage"
               options={[...FUNDING_STAGES]}
             />
@@ -348,8 +348,8 @@ export function Step1Startup({ form }: StepProps) {
         {v.incubated_in_nic === true && (
           <div className="grid sm:grid-cols-2 gap-5">
             <Field label="Incubation center">
-              <Select
-                {...register("nic_name")}
+              <SelectField
+                name="nic_name"
                 placeholder="Select center"
                 options={[...NIC_CENTERS]}
               />

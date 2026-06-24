@@ -1,9 +1,10 @@
 "use client";
 
-// WYSIWYG email-body editor (CKEditor 5). Loaded client-only via next/dynamic
-// from EmailTemplatesClient. GeneralHtmlSupport is configured to allow ANY
-// element/attribute/style so email HTML (inline styles, etc.) round-trips
-// without being stripped, and SourceEditing exposes the raw HTML when needed.
+// Shared WYSIWYG editor (CKEditor 5). Loaded client-only via next/dynamic by
+// its callers. GeneralHtmlSupport allows arbitrary elements/attributes/styles
+// so content round-trips without being stripped, and SourceEditing exposes the
+// raw HTML. Used by the email-template editor and the dynamic form RICH_TEXT
+// field.
 
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import {
@@ -34,7 +35,7 @@ export default function RichTextEditor({
   onChange: (html: string) => void;
 }) {
   return (
-    <div className="ck-email-editor">
+    <div className="ck-rich-text">
       <CKEditor
         editor={ClassicEditor}
         data={value}

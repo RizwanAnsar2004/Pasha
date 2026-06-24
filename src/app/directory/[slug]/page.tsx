@@ -43,7 +43,8 @@ import { KeyPersons, type KeyPerson } from "@/components/KeyPersons";
 import { CompanySocials } from "@/components/CompanySocials";
 import { createServiceClient } from "@/lib/supabase/server";
 import { idPrefixFromSlug, startupSlug } from "@/lib/slug";
-import { sanitizeHtml, hasContent } from "@/lib/sanitize-html";
+import { sanitizeHtml, hasContent, htmlToText } from "@/lib/sanitize-html";
+import { RichText as AutoRichText } from "@/components/ui/RichText";
 import { safeHref } from "@/lib/safe-url";
 import { initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
@@ -217,7 +218,7 @@ export async function generateMetadata({
   if (!row) {
     return { title: "Startup not found" };
   }
-  const cleanTagline = cleanText(row.tagline);
+  const cleanTagline = htmlToText(row.tagline) || null;
   const fallback = `${row.primary_industry ?? "Pakistan startup"}${row.city ? ` based in ${row.city}` : ""}.`;
   const description = cleanTagline ?? fallback;
   // The root layout already appends "· P@SHA Startup Community" via its
@@ -415,11 +416,10 @@ export default async function StartupDetailPage({
                   </span>
                 )}
               </h1>
-              {tagline && (
-                <p className="mt-2 text-base sm:text-lg text-pasha-muted leading-relaxed text-pretty">
-                  {tagline}
-                </p>
-              )}
+              <AutoRichText
+                value={tagline}
+                className="mt-2 text-base sm:text-lg text-pasha-muted leading-relaxed text-pretty"
+              />
               {(() => {
                 const badges = earnedBadges({
                   womenLed: row.women_led,

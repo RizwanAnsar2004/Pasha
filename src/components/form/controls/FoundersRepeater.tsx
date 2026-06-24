@@ -4,7 +4,7 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { Plus, Trash2, Star, X as XIcon } from "lucide-react";
 import { Field } from "@/components/form/Field";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { SelectField } from "@/components/form/SelectField";
 import { FileUpload } from "@/components/form/FileUpload";
 import { FOUNDER_GENDERS } from "@/lib/options";
 import type { SubmissionInput } from "@/lib/schema";
@@ -111,8 +111,8 @@ export function FoundersRepeater() {
                 />
               </Field>
               <Field label="Gender" error={founderErr?.gender?.message}>
-                <Select
-                  {...form.register(`founders.${idx}.gender`)}
+                <SelectField
+                  name={`founders.${idx}.gender`}
                   placeholder="Select gender"
                   options={[...FOUNDER_GENDERS]}
                 />

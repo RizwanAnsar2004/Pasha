@@ -27,6 +27,7 @@ import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/prof
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
 import { deriveBadges, isYes, type BadgeTone } from "@/lib/badges";
 import { ReapplyButton } from "./ReapplyButton";
+import { RichText } from "@/components/ui/RichText";
 
 export const metadata: Metadata = {
   title: "Your application",
@@ -125,11 +126,11 @@ export default async function ApplicantOverviewPage() {
   const tagline = str("tagline");
   const location = [str("hq_city") || str("hq_other"), str("hq_country")].filter(Boolean).join(", ");
   const startupFacts = [
-    { icon: Tag, label: "Tagline", value: tagline },
-    { icon: Layers, label: "Stage", value: labelFromList("STAGES", d["stage"]) },
-    { icon: Sparkles, label: "Sector", value: labelFromList("SECTORS", d["primary_sector"]) },
-    { icon: MapPin, label: "Location", value: location },
-    { icon: Phone, label: "Mobile / WhatsApp", value: str("founder_mobile") },
+    { icon: Tag, label: "Tagline", value: tagline, rich: true },
+    { icon: Layers, label: "Stage", value: labelFromList("STAGES", d["stage"]), rich: false },
+    { icon: Sparkles, label: "Sector", value: labelFromList("SECTORS", d["primary_sector"]), rich: false },
+    { icon: MapPin, label: "Location", value: location, rich: false },
+    { icon: Phone, label: "Mobile / WhatsApp", value: str("founder_mobile"), rich: false },
   ].filter((f) => f.value);
   const greetingName = firstName || startupName;
 
@@ -171,7 +172,9 @@ export default async function ApplicantOverviewPage() {
                     <dt className="text-[11px] font-mono uppercase tracking-[1.5px] text-pasha-muted">
                       {f.label}
                     </dt>
-                    <dd className="text-sm text-pasha-ink break-words">{f.value}</dd>
+                    <dd className="text-sm text-pasha-ink break-words">
+                      {f.rich ? <RichText value={f.value} /> : f.value}
+                    </dd>
                   </div>
                 </div>
               ))}

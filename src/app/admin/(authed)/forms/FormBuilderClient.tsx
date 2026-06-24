@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { InputType, INPUT_TYPE_LABELS } from "@/lib/form-enums";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 
 // Available option-list names (code + admin-managed DB lists), provided by the
 // page and surfaced as a dropdown so admins can discover/pick them instead of
@@ -458,14 +459,12 @@ function SectionCard({
         </label>
         <label className="text-xs text-pasha-muted">
           Active
-          <select
-            className={inputCls}
+          <SelectMenu
+            className="w-full"
             value={section.is_active ? "1" : "0"}
-            onChange={(e) => onSaveSection(section.id, { is_active: e.target.value === "1" })}
-          >
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-          </select>
+            onValueChange={(v) => onSaveSection(section.id, { is_active: v === "1" })}
+            options={[{ value: "1", label: "Yes" }, { value: "0", label: "No" }]}
+          />
         </label>
         <button
           type="button"
@@ -574,17 +573,12 @@ function FieldNode({
   const typeSelect = (
     <label className="text-[11px] text-pasha-muted">
       Type
-      <select
-        className={inputCls}
-        value={field.input_type}
-        onChange={(e) => onSaveField(field.id, { input_type: Number(e.target.value) })}
-      >
-        {INPUT_TYPE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <SelectMenu
+        className="w-full"
+        value={String(field.input_type)}
+        onValueChange={(v) => onSaveField(field.id, { input_type: Number(v) })}
+        options={INPUT_TYPE_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+      />
     </label>
   );
 
@@ -661,17 +655,12 @@ function FieldNode({
         </label>
         <label className="text-[11px] text-pasha-muted">
           Type
-          <select
-            className={inputCls}
-            value={field.input_type}
-            onChange={(e) => onSaveField(field.id, { input_type: Number(e.target.value) })}
-          >
-            {INPUT_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <SelectMenu
+            className="w-full"
+            value={String(field.input_type)}
+            onValueChange={(v) => onSaveField(field.id, { input_type: Number(v) })}
+            options={INPUT_TYPE_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+          />
         </label>
         <label className="ml-auto text-[11px] text-pasha-muted flex flex-col items-center">
           Required
@@ -744,18 +733,17 @@ function FieldNode({
 
           <label className="text-[11px] text-pasha-muted block">
             Built-in list
-            <select
-              className={inputCls + " mt-1"}
-              value={draft.options_source}
-              onChange={(e) => setDraft({ ...draft, options_source: e.target.value })}
-            >
-              <option value="">— Custom (use the box below) —</option>
-              {listNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            <SelectMenu
+              className="mt-1 w-full"
+              value={draft.options_source || "__custom__"}
+              onValueChange={(v) =>
+                setDraft({ ...draft, options_source: v === "__custom__" ? "" : v })
+              }
+              options={[
+                { value: "__custom__", label: "— Custom (use the box below) —" },
+                ...listNames.map((name) => ({ value: name, label: name })),
+              ]}
+            />
           </label>
 
           <label className="text-[11px] text-pasha-muted block">

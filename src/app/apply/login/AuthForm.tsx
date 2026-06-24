@@ -79,6 +79,7 @@ function AuthInner({
     if (
       field.input_type === InputType.CITY_COMPOSITE ||
       field.input_type === InputType.TEXTAREA ||
+      field.input_type === InputType.RICH_TEXT ||
       field.input_type === InputType.GROUP ||
       field.input_type === InputType.HEADING ||
       field.field_key === "terms_accepted"
@@ -123,9 +124,33 @@ function AuthInner({
   }
 
   // Step 1 → Step 2 (or straight to submit when there's no registration form).
-  function continueFromAccount(e: React.FormEvent) {
+  // First check the email isn't already registered, so we flag it here instead
+  // of only after the applicant has filled out the whole §3 form.
+  async function continueFromAccount(e: React.FormEvent) {
     e.preventDefault();
     if (!validateAccountFields()) return;
+
+    setLoading(true);
+    let blocked = false;
+    try {
+      const { res, j } = await postAuth({ action: "check", email });
+      if (res.ok && j.exists) {
+        setError("An account with this email already exists. Please sign in instead.");
+        setAccountExists(true);
+        blocked = true;
+      } else if (!res.ok && j.error) {
+        // e.g. an admin email → surface it now rather than at the end.
+        applyApiError(j.error);
+        blocked = true;
+      }
+    } catch {
+      // Network hiccup → fail open and let them continue; final submit still
+      // guards against a duplicate account.
+    } finally {
+      setLoading(false);
+    }
+    if (blocked) return;
+
     if (hasRegForm) {
       // Clear any errors left over from a previous submit attempt so step 2
       // renders clean — the user shouldn't see red on inputs they haven't

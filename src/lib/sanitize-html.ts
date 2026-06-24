@@ -99,3 +99,35 @@ function escapeAttr(v: string): string {
 export function hasContent(html: string): boolean {
   return html.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim().length > 0;
 }
+
+/**
+ * Heuristic: does this string contain HTML markup? Used so callers can decide
+ * whether to render a value as rich HTML or plain text — content-driven, so it
+ * stays correct regardless of how the field's input_type is configured. (A
+ * field switched from rich-text back to plain text, or rows holding legacy
+ * plain text, all still render correctly.)
+ */
+export function looksLikeHtml(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /<\/?[a-z][\s\S]*?>|&[a-z]+;|&#\d+;/i.test(value);
+}
+
+/**
+ * Strip HTML to a clean single string of text — for plain-text consumers
+ * (search indexes, <meta> descriptions, compact admin cells). Decodes the few
+ * entities CKEditor commonly emits and collapses whitespace.
+ */
+export function htmlToText(value: string | null | undefined): string {
+  if (!value) return "";
+  return String(value)
+    .replace(/<\/?(p|div|br|li|h[1-6]|blockquote|tr)\b[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}

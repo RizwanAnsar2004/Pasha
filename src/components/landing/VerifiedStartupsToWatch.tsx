@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, BadgeCheck, Sparkles } from "lucide-react";
 import { initials } from "@/lib/utils";
+import { RichText } from "@/components/ui/RichText";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -68,11 +69,11 @@ function StartupCard({ startup, index }: { startup: WatchlistStartup; index: num
         </h3>
 
         {/* Tagline */}
-        {startup.tagline && (
-          <p className="mt-1 text-[11px] text-pasha-muted line-clamp-2 leading-snug">
-            {startup.tagline}
-          </p>
-        )}
+        <RichText
+          inline
+          value={startup.tagline}
+          className="mt-1 text-[11px] text-pasha-muted line-clamp-2 leading-snug"
+        />
 
         {/* Tags */}
         <div className="mt-auto pt-4 flex flex-wrap gap-1.5">

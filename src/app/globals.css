@@ -214,3 +214,80 @@
     scroll-behavior: smooth;
   }
 }
+
+/* CKEditor (RichTextField / email templates) — match the Pasha theme and give
+   the editing area a comfortable height instead of CKEditor's blue defaults. */
+.ck-rich-text {
+  /* Remap every CKEditor accent (default blue) to the Pasha red. */
+  --ck-color-focus-border: var(--color-pasha-red);
+  --ck-color-focus-outer-shadow: rgba(230, 22, 15, 0.15);
+  --ck-color-focus-disabled-shadow: rgba(230, 22, 15, 0.1);
+  --ck-color-text: var(--color-pasha-ink);
+  --ck-color-button-on-color: var(--color-pasha-red);
+  --ck-color-button-on-background: rgba(230, 22, 15, 0.1);
+  --ck-color-button-on-hover-background: rgba(230, 22, 15, 0.16);
+  --ck-color-button-on-active-background: rgba(230, 22, 15, 0.18);
+  --ck-color-list-button-on-background: var(--color-pasha-red);
+  --ck-color-list-button-on-text: #fff;
+  --ck-color-link-default: var(--color-pasha-red);
+}
+.ck-rich-text .ck.ck-editor__editable_inline {
+  min-height: 11rem;
+}
+/* Focused editable: force the red border/shadow over CKEditor's blue. */
+.ck-rich-text .ck.ck-editor__editable.ck-focused:not(.ck-editor__nested-editable) {
+  border-color: var(--color-pasha-red);
+  box-shadow: 0 0 0 2px rgba(230, 22, 15, 0.15);
+}
+/* Active toolbar buttons (e.g. Bold when applied). */
+.ck-rich-text .ck.ck-button.ck-on,
+.ck-rich-text .ck.ck-button.ck-on:hover {
+  color: var(--color-pasha-red);
+  background: rgba(230, 22, 15, 0.1);
+}
+
+/* Tailwind Preflight strips heading sizes and list markers from bare elements,
+   and that bleeds into CKEditor's editing surface (.ck-content) so formatting
+   looks like plain text while you type. Restore visible formatting here. These
+   also style the read-only rendered HTML on the public detail page. */
+/* Applies to both the CKEditor editing surface (.ck-content) and the rendered
+   block output (.rich-text), so the preview matches what's displayed. */
+:is(.ck-content, .rich-text) h1 { font-size: 1.6em; font-weight: 700; line-height: 1.2; margin: 0.6em 0 0.3em; }
+:is(.ck-content, .rich-text) h2 { font-size: 1.4em; font-weight: 700; line-height: 1.25; margin: 0.6em 0 0.3em; }
+:is(.ck-content, .rich-text) h3 { font-size: 1.2em; font-weight: 600; line-height: 1.3; margin: 0.5em 0 0.25em; }
+:is(.ck-content, .rich-text) h4 { font-size: 1.05em; font-weight: 600; margin: 0.5em 0 0.25em; }
+:is(.ck-content, .rich-text) p { margin: 0.5em 0; }
+:is(.ck-content, .rich-text) p:first-child { margin-top: 0; }
+:is(.ck-content, .rich-text) p:last-child { margin-bottom: 0; }
+:is(.ck-content, .rich-text) ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
+:is(.ck-content, .rich-text) ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+:is(.ck-content, .rich-text) li { display: list-item; margin: 0.15em 0; }
+:is(.ck-content, .rich-text) blockquote {
+  border-left: 3px solid var(--color-pasha-line);
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: var(--color-pasha-muted);
+  font-style: italic;
+}
+:is(.ck-content, .rich-text) strong, :is(.ck-content, .rich-text) b { font-weight: 700; }
+:is(.ck-content, .rich-text) em, :is(.ck-content, .rich-text) i { font-style: italic; }
+:is(.ck-content, .rich-text) u { text-decoration: underline; }
+:is(.ck-content, .rich-text) a { color: var(--color-pasha-red); text-decoration: underline; }
+:is(.ck-content, .rich-text) hr { border: 0; border-top: 1px solid var(--color-pasha-line); margin: 1em 0; }
+
+/* Compact variant — flatten block children to one line so a rich one-liner
+   still reads as a single line and line-clamp works (directory cards). */
+.rich-text-inline :is(p, ul, ol, h1, h2, h3, h4, h5, h6, blockquote) {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+.rich-text-inline li {
+  display: inline;
+  margin-right: 0.5rem;
+}
+.rich-text-inline a {
+  color: var(--color-pasha-red);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

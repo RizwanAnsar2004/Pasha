@@ -7,7 +7,7 @@ import { ArrowLeft, Check, Copy, Eye, Loader2, Lock, Mail, Pencil, Plus, Trash2 
 import { cn } from "@/lib/utils";
 
 // CKEditor touches `window` at import time → load client-only.
-const RichTextEditor = dynamic(() => import("./RichTextEditor"), {
+const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
   ssr: false,
   loading: () => <div className="text-sm text-pasha-muted px-1 py-3">Loading editor…</div>,
 });
@@ -20,6 +20,7 @@ import {
   type EmailTemplateRow,
   type EmailTemplateStatus,
 } from "@/lib/email-templates";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
@@ -282,11 +283,12 @@ export function EmailTemplatesClient({
                   />
                 </Field>
                 <Field label="Status">
-                  <select className={inputCls} value={form.status} onChange={(e) => set("status", e.target.value as EmailTemplateStatus)}>
-                    {EMAIL_TEMPLATE_STATUSES.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
+                  <SelectMenu
+                    className="w-full"
+                    value={form.status}
+                    onValueChange={(v) => set("status", v as EmailTemplateStatus)}
+                    options={EMAIL_TEMPLATE_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+                  />
                 </Field>
               </div>
               <Field label="Name">

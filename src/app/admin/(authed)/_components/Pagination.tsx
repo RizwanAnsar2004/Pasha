@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useListNav } from "./useListNav";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 
 type Props = {
   total: number;
@@ -56,18 +57,14 @@ export function Pagination({
         </span>
         <label className="flex items-center gap-1.5">
           <span>Rows</span>
-          <select
-            value={pageSize}
-            onChange={(e) => push({ pageSize: Number(e.target.value), page: 1 })}
+          <SelectMenu
+            value={String(pageSize)}
+            onValueChange={(v) => push({ pageSize: Number(v), page: 1 })}
             disabled={busy}
-            className="h-7 rounded border border-pasha-line bg-white px-1.5 text-xs disabled:opacity-50"
-          >
-            {options.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+            aria-label="Rows per page"
+            className="h-7 rounded px-1.5 text-xs"
+            options={options.map((n) => ({ value: String(n), label: String(n) }))}
+          />
         </label>
       </div>
 

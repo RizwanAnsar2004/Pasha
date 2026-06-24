@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Download, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
@@ -274,19 +275,14 @@ export function CommitteeActivityClient({
             </label>
             <label className="block text-sm text-pasha-ink">
               Type
-              <select
-                className={cn(inputCls, "mt-1.5")}
+              <SelectMenu
+                className="mt-1.5 w-full"
                 value={form.type}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, type: e.target.value as ActivityType }))
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, type: v as ActivityType }))
                 }
-              >
-                {ACTIVITY_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                options={ACTIVITY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+              />
             </label>
           </div>
 

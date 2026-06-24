@@ -12,6 +12,8 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn, formatNumber, formatCurrency } from "@/lib/utils";
+import { SelectMenu } from "@/components/ui/SelectMenu";
+import { htmlToText } from "@/lib/sanitize-html";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
@@ -156,40 +158,38 @@ export function DatabankClient({
             className="h-10 w-full rounded-lg border border-pasha-line bg-white pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
           />
         </div>
-        <select
+        <SelectMenu
           value={sector}
-          onChange={(e) => setSectorAndReset(e.target.value)}
-          className="h-10 rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red"
-        >
-          <option value="all">All sectors</option>
-          {initial.sectors.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select
+          onValueChange={setSectorAndReset}
+          aria-label="Filter by sector"
+          options={[
+            { value: "all", label: "All sectors" },
+            ...initial.sectors.map((s) => ({ value: s, label: s })),
+          ]}
+        />
+        <SelectMenu
           value={outreach}
-          onChange={(e) => setOutreachAndReset(e.target.value)}
-          className="h-10 rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red"
-        >
-          <option value="all">Any outreach</option>
-          <option value="not_contacted">Not contacted</option>
-          <option value="invited">Invited</option>
-          <option value="responded">Responded</option>
-          <option value="submitted">Submitted</option>
-          <option value="declined">Declined</option>
-        </select>
-        <select
+          onValueChange={setOutreachAndReset}
+          aria-label="Filter by outreach status"
+          options={[
+            { value: "all", label: "Any outreach" },
+            { value: "not_contacted", label: "Not contacted" },
+            { value: "invited", label: "Invited" },
+            { value: "responded", label: "Responded" },
+            { value: "submitted", label: "Submitted" },
+            { value: "declined", label: "Declined" },
+          ]}
+        />
+        <SelectMenu
           value={verifiedFilter}
-          onChange={(e) => setVerifiedAndReset(e.target.value as "all" | "yes" | "no")}
-          className="h-10 rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red"
+          onValueChange={(v) => setVerifiedAndReset(v as "all" | "yes" | "no")}
           aria-label="Filter by verified status"
-        >
-          <option value="all">Any verified</option>
-          <option value="yes">Verified only</option>
-          <option value="no">Not verified</option>
-        </select>
+          options={[
+            { value: "all", label: "Any verified" },
+            { value: "yes", label: "Verified only" },
+            { value: "no", label: "Not verified" },
+          ]}
+        />
         <button
           type="button"
           onClick={exportCSV}
@@ -236,8 +236,8 @@ export function DatabankClient({
                           <BadgeCheck className="w-3.5 h-3.5 text-pasha-red" aria-label="Verified" />
                         )}
                       </span>
-                      {r.tagline ? (
-                        <span className="text-xs text-pasha-muted line-clamp-1">{r.tagline}</span>
+                      {htmlToText(r.tagline) ? (
+                        <span className="text-xs text-pasha-muted line-clamp-1">{htmlToText(r.tagline)}</span>
                       ) : null}
                     </div>
                   </Td>

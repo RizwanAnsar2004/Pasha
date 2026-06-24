@@ -4,7 +4,8 @@ import { useFormContext, useWatch, useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "@/components/form/Field";
 import { Input, Textarea } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { SelectField } from "@/components/form/SelectField";
+import { RichTextField } from "@/components/form/RichTextField";
 import { CheckboxGroup, YesNo, RadioCardGroup } from "@/components/ui/RadioCard";
 import { FileUpload } from "@/components/form/FileUpload";
 import { CityField } from "@/components/form/controls/CityField";
@@ -97,11 +98,18 @@ export function DynamicField({
         </Field>
       );
 
+    case InputType.RICH_TEXT:
+      return (
+        <Field label={label} hint={hint} required={required} error={error}>
+          <RichTextField name={path} />
+        </Field>
+      );
+
     case InputType.SELECT:
       return (
         <Field label={label} hint={hint} required={required} error={error}>
-          <Select
-            {...form.register(path)}
+          <SelectField
+            name={path}
             placeholder={field.placeholder ?? "Select…"}
             options={resolveOptions(field, optionRegistry)}
           />

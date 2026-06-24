@@ -33,6 +33,7 @@ import {
   type Speaker,
 } from "@/lib/events";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
@@ -329,18 +330,10 @@ export function EventsClient({
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Type *">
-                <select className={inputCls} value={form.event_type} onChange={(e) => set("event_type", e.target.value as EventType)}>
-                  {EVENT_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                <SelectMenu className="w-full" value={form.event_type} onValueChange={(v) => set("event_type", v as EventType)} options={EVENT_TYPES} />
               </Field>
               <Field label="Format">
-                <select className={inputCls} value={form.format} onChange={(e) => set("format", e.target.value as EventFormat)}>
-                  {EVENT_FORMATS.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
+                <SelectMenu className="w-full" value={form.format} onValueChange={(v) => set("format", v as EventFormat)} options={EVENT_FORMATS} />
               </Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -394,16 +387,10 @@ export function EventsClient({
         <Section title="Registration (display only for now)">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Registration status">
-              <select className={inputCls} value={form.registration_status} onChange={(e) => set("registration_status", e.target.value as RegistrationStatus)}>
-                <option value="open">Open</option>
-                <option value="closed">Closed</option>
-              </select>
+              <SelectMenu className="w-full" value={form.registration_status} onValueChange={(v) => set("registration_status", v as RegistrationStatus)} options={[{ value: "open", label: "Open" }, { value: "closed", label: "Closed" }]} />
             </Field>
             <Field label="Entry type">
-              <select className={inputCls} value={form.entry_type} onChange={(e) => set("entry_type", e.target.value as EntryType)}>
-                <option value="free">Free</option>
-                <option value="paid">Paid</option>
-              </select>
+              <SelectMenu className="w-full" value={form.entry_type} onValueChange={(v) => set("entry_type", v as EntryType)} options={[{ value: "free", label: "Free" }, { value: "paid", label: "Paid" }]} />
             </Field>
             <Field label="Capacity">
               <input
@@ -467,15 +454,16 @@ export function EventsClient({
                 next[i] = { ...item, title: e.target.value };
                 set("agenda_items", next);
               }} />
-              <select className={cn(inputCls, "w-32 shrink-0")} value={item.tag} onChange={(e) => {
-                const next = [...form.agenda_items];
-                next[i] = { ...item, tag: e.target.value as AgendaItem["tag"] };
-                set("agenda_items", next);
-              }}>
-                {AGENDA_TAGS.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+              <SelectMenu
+                className="w-32 shrink-0"
+                value={item.tag}
+                onValueChange={(v) => {
+                  const next = [...form.agenda_items];
+                  next[i] = { ...item, tag: v as AgendaItem["tag"] };
+                  set("agenda_items", next);
+                }}
+                options={AGENDA_TAGS}
+              />
               <RemoveBtn onClick={() => set("agenda_items", form.agenda_items.filter((_, j) => j !== i))} />
             </div>
           ))}

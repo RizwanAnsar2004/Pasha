@@ -3,7 +3,7 @@
 import { useFormContext, useWatch } from "react-hook-form";
 import { Field } from "@/components/form/Field";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { SelectField } from "@/components/form/SelectField";
 import { YesNo } from "@/components/ui/RadioCard";
 import { HQ_CITIES } from "@/lib/options";
 import { COUNTRIES } from "@/lib/countries";
@@ -59,8 +59,8 @@ export function CityField() {
             required
             error={errors.hq_city?.message as string | undefined}
           >
-            <Select
-              {...form.register("hq_city")}
+            <SelectField
+              name="hq_city"
               placeholder="Select your city"
               options={[...HQ_CITIES]}
             />
@@ -81,8 +81,8 @@ export function CityField() {
           required
           error={errors.hq_country?.message as string | undefined}
         >
-          <Select
-            {...form.register("hq_country")}
+          <SelectField
+            name="hq_country"
             placeholder="Select country"
             options={[...COUNTRIES]}
           />

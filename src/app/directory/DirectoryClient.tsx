@@ -7,6 +7,8 @@ import { Search, Filter, Globe, Users, TrendingUp, ArrowUpRight, MapPin, Buildin
 import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { SelectMenu } from "@/components/ui/SelectMenu";
+import { RichText, htmlToText } from "@/components/ui/RichText";
 
 type Row = {
   id: string;
@@ -430,34 +432,21 @@ function FilterDropdown({
           isActive ? "text-pasha-red" : "text-pasha-muted"
         )}
       />
-      <select
+      <SelectMenu
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
         aria-label={`Filter by ${label.toLowerCase()}`}
         className={cn(
-          "h-9 appearance-none rounded-lg border bg-white pl-8 pr-8 text-[12.5px] font-medium cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/15",
+          "h-9 pl-8 text-[12.5px] font-medium transition-all",
           isActive
             ? "border-pasha-red/40 text-pasha-red bg-pasha-red/[0.04]"
-            : "border-pasha-line text-pasha-ink/70 hover:border-pasha-ink/15 hover:text-pasha-ink"
+            : "text-pasha-ink/70 hover:border-pasha-ink/15 hover:text-pasha-ink"
         )}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.value === "all" ? o.label : `${label}: ${o.label}`}
-          </option>
-        ))}
-      </select>
-      <svg
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3",
-          isActive ? "text-pasha-red" : "text-pasha-muted"
-        )}
-        viewBox="0 0 16 16"
-        fill="none"
-      >
-        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+        options={options.map((o) => ({
+          value: o.value,
+          label: o.value === "all" ? o.label : `${label}: ${o.label}`,
+        }))}
+      />
     </div>
   );
 }
@@ -603,11 +592,11 @@ function ListCard({
           </div>
 
           {/* Tagline */}
-          {tagline && (
-            <p className="mt-1 text-[13px] text-pasha-muted leading-snug line-clamp-1 max-w-2xl">
-              {tagline}
-            </p>
-          )}
+          <RichText
+            inline
+            value={tagline}
+            className="mt-1 text-[13px] text-pasha-muted leading-snug line-clamp-1 max-w-2xl"
+          />
 
           {/* §13 directory badges */}
           <DirectoryBadges r={r} className="mt-1.5" />
@@ -768,7 +757,7 @@ export function DirectoryClient({
       if (womenLedOnly && !r.women_led) return false;
       if (hiringOnly && !r.hiring) return false;
       if (!needle) return true;
-      const hay = [r.startup_name, r.tagline, r.primary_industry, r.nic_name, r.city, r.founder_name]
+      const hay = [r.startup_name, htmlToText(r.tagline), r.primary_industry, r.nic_name, r.city, r.founder_name]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -1237,9 +1226,17 @@ export function DirectoryClient({
                   TAGLINE — italic serif accent
                   ─────────────────────────────────────────────── */}
               <div className="relative z-20 pointer-events-none px-5 pb-4 flex-1">
-                <p className="text-[14px] leading-relaxed line-clamp-3 text-pasha-ink/75">
-                  {displayTagline ?? <span className="italic text-pasha-muted/50">No description available</span>}
-                </p>
+                {displayTagline ? (
+                  <RichText
+                    inline
+                    value={displayTagline}
+                    className="text-[14px] leading-relaxed line-clamp-3 text-pasha-ink/75"
+                  />
+                ) : (
+                  <p className="text-[14px] leading-relaxed line-clamp-3 text-pasha-ink/75">
+                    <span className="italic text-pasha-muted/50">No description available</span>
+                  </p>
+                )}
               </div>
 
               {/* ───────────────────────────────────────────────

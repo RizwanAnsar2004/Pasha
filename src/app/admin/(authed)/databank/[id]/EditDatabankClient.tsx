@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Save, Trash2, Loader2, X } from "lucide-react";
 import { Field } from "@/components/form/Field";
 import { Input, Textarea } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { FileUpload } from "@/components/form/FileUpload";
 import { YesNo } from "@/components/ui/RadioCard";
 import {
@@ -17,6 +18,14 @@ import {
   FOUNDER_GENDERS,
 } from "@/lib/options";
 import { COUNTRIES } from "@/lib/countries";
+
+// CKEditor touches `window`; load it client-only. Props: { value, onChange }.
+const TaglineEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-32 w-full rounded-lg border border-pasha-line bg-pasha-stone/30 animate-pulse" />
+  ),
+});
 
 // All editable columns. Matches the EDITABLE_COLUMNS set in
 // /api/admin/databank/route.ts — the API will silently drop anything else
@@ -298,11 +307,10 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
             />
           </Field>
         </div>
-        <Field label="Tagline" hint="One sentence — shown publicly under the name.">
-          <Input
+        <Field label="Tagline" hint="Rich text — shown publicly under the name.">
+          <TaglineEditor
             value={row.tagline ?? ""}
-            onChange={(e) => update("tagline", e.target.value || null)}
-            placeholder="e.g. Faster healthcare for everyone in Pakistan"
+            onChange={(html) => update("tagline", html || null)}
           />
         </Field>
         <div className="grid sm:grid-cols-2 gap-5">
@@ -342,25 +350,28 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
       <Section title="Location & category">
         <div className="grid sm:grid-cols-2 gap-5">
           <Field label="HQ city (or 'Other' for write-in)">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.city ?? ""}
-              onChange={(e) => update("city", e.target.value || null)}
+              onValueChange={(v) => update("city", v || null)}
               placeholder="Select city"
               options={[...HQ_CITIES]}
             />
           </Field>
           <Field label="Country (if outside Pakistan)">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.hq_country ?? ""}
-              onChange={(e) => update("hq_country", e.target.value || null)}
+              onValueChange={(v) => update("hq_country", v || null)}
               placeholder="Select country"
               options={[...COUNTRIES]}
             />
           </Field>
           <Field label="Primary industry">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.primary_industry ?? ""}
-              onChange={(e) => update("primary_industry", e.target.value || null)}
+              onValueChange={(v) => update("primary_industry", v || null)}
               placeholder="Select primary industry"
               options={[...SECTORS]}
             />
@@ -375,9 +386,10 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
             />
           </Field>
           <Field label="Business model / type">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.business_types ?? ""}
-              onChange={(e) => update("business_types", e.target.value || null)}
+              onValueChange={(v) => update("business_types", v || null)}
               placeholder="Select business model"
               options={[...BUSINESS_MODELS]}
             />
@@ -394,9 +406,10 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
       <Section title="Incubation">
         <div className="grid sm:grid-cols-2 gap-5">
           <Field label="NIC / incubation center">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.nic_name ?? ""}
-              onChange={(e) => update("nic_name", e.target.value || null)}
+              onValueChange={(v) => update("nic_name", v || null)}
               placeholder="Select center"
               options={[...NIC_CENTERS]}
             />
@@ -578,9 +591,10 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
             />
           </Field>
           <Field label="Outreach status">
-            <Select
+            <SelectMenu
+              className="w-full"
               value={row.outreach_status ?? ""}
-              onChange={(e) => update("outreach_status", e.target.value || null)}
+              onValueChange={(v) => update("outreach_status", v || null)}
               placeholder="—"
               options={[
                 { value: "not_contacted", label: "Not contacted" },
@@ -828,9 +842,10 @@ function KeyPersonsEditor({
               />
             </Field>
             <Field label="Gender">
-              <Select
+              <SelectMenu
+                className="w-full"
                 value={p.gender ?? ""}
-                onChange={(e) => patch(idx, { gender: e.target.value })}
+                onValueChange={(v) => patch(idx, { gender: v })}
                 placeholder="Select gender"
                 options={[...FOUNDER_GENDERS]}
               />

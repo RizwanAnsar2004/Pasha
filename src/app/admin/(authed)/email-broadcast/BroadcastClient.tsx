@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 
 export type TemplateOption = { template_id: string; name: string };
 
@@ -73,22 +74,24 @@ export function BroadcastClient({ templates }: { templates: TemplateOption[] }) 
           <label className="block text-sm text-pasha-ink">
             Template
             <div className="mt-1.5">
-              <select className={inputCls} value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-                {templates.map((t) => (
-                  <option key={t.template_id} value={t.template_id}>{t.name}</option>
-                ))}
-              </select>
+              <SelectMenu
+                className="w-full"
+                value={templateId}
+                onValueChange={setTemplateId}
+                options={templates.map((t) => ({ value: t.template_id, label: t.name }))}
+              />
             </div>
           </label>
 
           <label className="block text-sm text-pasha-ink">
             Recipients
             <div className="mt-1.5">
-              <select className={inputCls} value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
-                {SCOPES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
+              <SelectMenu
+                className="w-full"
+                value={scope}
+                onValueChange={(v) => setScope(v as Scope)}
+                options={SCOPES.map((s) => ({ value: s.value, label: s.label }))}
+              />
             </div>
             <p className="mt-1 text-xs text-pasha-muted">{scopeHint}</p>
           </label>

@@ -3,6 +3,7 @@ import { clearAdminSessionCookie } from "@/lib/admin-session";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { registerApplicant, seedApplicantDraft } from "@/lib/applicant-auth";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getRegistrationConfig } from "@/lib/form-config.server";
 import { buildZodSchema } from "@/lib/form-config";
 import {
@@ -41,7 +42,13 @@ export async function POST(req: NextRequest) {
   }
 
   const action =
-    body.action === "register" ? "register" : body.action === "resend" ? "resend" : "login";
+    body.action === "register"
+      ? "register"
+      : body.action === "resend"
+      ? "resend"
+      : body.action === "check"
+      ? "check"
+      : "login";
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
 
@@ -52,7 +59,7 @@ export async function POST(req: NextRequest) {
   if (emailErr) {
     return NextResponse.json({ error: emailErr }, { status: 400 });
   }
-  if (action !== "resend" && !password) {
+  if (action !== "resend" && action !== "check" && !password) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
 
@@ -62,6 +69,20 @@ export async function POST(req: NextRequest) {
       { error: "This email is registered for committee access. Please use the admin portal." },
       { status: 403 }
     );
+  }
+
+  // ── Email existence check (signup step 1) ──────────────────────────────────
+  // Lets the UI flag an already-registered email before the applicant fills out
+  // the whole form. Fails open (exists:false) so a hiccup never blocks signup.
+  if (action === "check") {
+    try {
+      const admin = createServiceClient();
+      const { data, error } = await admin.rpc("applicant_email_exists", { p_email: email });
+      if (error) return NextResponse.json({ exists: false });
+      return NextResponse.json({ exists: Boolean(data) });
+    } catch {
+      return NextResponse.json({ exists: false });
+    }
   }
 
   const { supabase, applyCookies } = createRouteHandlerClient(req);
