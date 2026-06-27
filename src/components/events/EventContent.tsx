@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Calendar, ChevronDown, Clock, MapPin, Users } from "lucide-react";
+import { ArrowUpRight, Calendar, ChevronDown, Clock, MapPin, Users } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
 import { useState } from "react";
 import { cn, initials } from "@/lib/utils";
 import { eventSlug } from "@/lib/slug";
@@ -14,6 +15,18 @@ import {
   formatLabel,
   type EventRow,
 } from "@/lib/events";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+const containerV: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+
+const itemV: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+};
 
 function formatTime12h(time: string) {
   const [hStr, mStr] = time.split(":");
@@ -32,52 +45,119 @@ function timeRange(start: string, end: string, tz: string) {
 export function EventsList({ events }: { events: EventRow[] }) {
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-pasha-line bg-white px-6 py-16 text-center">
-        <p className="text-pasha-muted">No upcoming events at the moment. Check back soon.</p>
+      <div className="rounded-3xl border border-pasha-line bg-white px-6 py-20 text-center">
+        <Calendar className="w-10 h-10 text-pasha-red/30 mx-auto mb-4" />
+        <p className="font-serif text-lg text-pasha-ink">No upcoming events</p>
+        <p className="mt-1 text-sm text-pasha-muted">Check back soon — events are added regularly.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-5 md:grid-cols-2">
+    <motion.div
+      variants={containerV}
+      initial="hidden"
+      animate="show"
+      className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+    >
       {events.map((event) => (
-        <Link
-          key={event.id}
-          href={`/events/${eventSlug(event.title, event.id)}`}
-          className="group rounded-2xl border border-pasha-line bg-white p-6 shadow-sm hover:border-pasha-red/30 hover:shadow-md transition-all"
-        >
-          <div className="flex items-center gap-2">
-            <span className="rounded-md bg-pasha-red/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[1px] text-pasha-red">
-              {eventTypeLabel(event.event_type)}
-            </span>
-            {event.registration_status === "open" && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[1px] text-emerald-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <EventCard key={event.id} event={event} />
+      ))}
+    </motion.div>
+  );
+}
+
+function EventCard({ event }: { event: EventRow }) {
+  const isOpen = event.registration_status === "open";
+  const dateStr = format(parseISO(event.event_date), "MMM d, yyyy");
+  const dayStr = format(parseISO(event.event_date), "d");
+  const monthStr = format(parseISO(event.event_date), "MMM").toUpperCase();
+
+  return (
+    <motion.div
+      variants={itemV}
+      whileHover={{ y: -8 }}
+      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+      className="group relative flex flex-col"
+    >
+      <Link
+        href={`/events/${eventSlug(event.title, event.id)}`}
+        className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-none"
+      />
+
+      <div className="relative flex flex-col flex-1 rounded-3xl overflow-hidden border border-pasha-line/50 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_20px_60px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-500">
+
+        {/* Hero panel */}
+        <div className="relative h-32 bg-pasha-stone overflow-hidden shrink-0">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-pasha-red/[0.10] blur-2xl group-hover:bg-pasha-red/[0.18] transition-all duration-500" />
+          <div className="absolute -top-4 left-1/3 w-24 h-24 rounded-full bg-pasha-red/[0.04] blur-xl" />
+          {/* Shine sweep */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
+
+          {/* Date block — left */}
+          <div className="absolute top-4 left-5 flex flex-col items-start">
+            <span className="text-[10px] font-mono uppercase tracking-[2px] text-pasha-red">{monthStr}</span>
+            <span className="font-serif text-4xl leading-none text-pasha-ink font-bold">{dayStr}</span>
+          </div>
+
+          {/* Status + type — right */}
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {isOpen && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[1px] text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Open
               </span>
             )}
+            <span className="rounded-full bg-white/80 border border-pasha-line/60 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[1px] text-pasha-muted">
+              {eventTypeLabel(event.event_type)}
+            </span>
           </div>
-          <h2 className="mt-3 font-serif text-xl text-pasha-ink group-hover:text-pasha-red transition-colors">
+
+          {/* Bottom line */}
+          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-pasha-red/20 to-transparent" />
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col flex-1 px-5 pt-4 pb-5 gap-2">
+          <h2 className="font-serif text-lg text-pasha-ink leading-snug line-clamp-2 group-hover:text-pasha-red transition-colors duration-200">
             {event.title}
           </h2>
+
           {event.summary && (
-            <p className="mt-2 text-sm text-pasha-muted line-clamp-2">{event.summary}</p>
+            <p className="text-sm text-pasha-muted/70 leading-relaxed line-clamp-2">
+              {event.summary}
+            </p>
           )}
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-pasha-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              {format(parseISO(event.event_date), "MMMM d, yyyy")}
+
+          <div className="flex-1" />
+
+          {/* Meta */}
+          <div className="mt-3 pt-3 border-t border-pasha-line/40 flex flex-wrap gap-x-4 gap-y-1.5">
+            <span className="inline-flex items-center gap-1.5 text-xs text-pasha-muted/70">
+              <Calendar className="w-3.5 h-3.5 text-pasha-red/50 shrink-0" />
+              {dateStr}
             </span>
             {event.location && (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-pasha-muted/70">
+                <MapPin className="w-3.5 h-3.5 text-pasha-red/50 shrink-0" />
                 {event.location}
               </span>
             )}
           </div>
-        </Link>
-      ))}
-    </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-pasha-line/30 bg-pasha-stone/30 group-hover:bg-pasha-red/[0.03] group-hover:border-pasha-red/10 flex items-center justify-between transition-all duration-300">
+          <span className="text-xs font-semibold text-pasha-muted/50 group-hover:text-pasha-red/60 transition-colors">
+            View Event
+          </span>
+          <span className="w-7 h-7 rounded-full border border-pasha-line/50 group-hover:border-pasha-red/30 group-hover:bg-pasha-red group-hover:text-white grid place-items-center text-pasha-muted/30 transition-all duration-300">
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

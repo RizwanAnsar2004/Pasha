@@ -18,6 +18,7 @@ import {
   Zap,
   Compass,
   Crown,
+  Building2,
 } from "lucide-react";
 import { initials, cn } from "@/lib/utils";
 import {
@@ -34,49 +35,34 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const OBJECTIVES = [
   {
     icon: CheckCircle2,
-    color: "bg-emerald-500/10 text-emerald-600",
     title: "Verify & Curate",
     body: "Maintain the highest standards for startup verification and directory quality.",
   },
   {
     icon: Globe2,
-    color: "bg-teal-500/10 text-teal-600",
     title: "Connect Ecosystem",
     body: "Bridge startups with investors, corporates, partners, and global opportunities.",
   },
   {
     icon: Users,
-    color: "bg-rose-500/10 text-rose-600",
     title: "Amplify Women Founders",
     body: "Reduce barriers and create tailored support for women-led startups.",
   },
   {
     icon: Target,
-    color: "bg-violet-500/10 text-violet-600",
     title: "Drive Policy",
     body: "Engage government to shape startup-friendly regulation and national programs.",
   },
   {
     icon: Zap,
-    color: "bg-amber-500/10 text-amber-600",
     title: "Build Programs",
     body: "Organise events, accelerators, and capacity-building initiatives year-round.",
   },
   {
     icon: Compass,
-    color: "bg-pasha-red/10 text-pasha-red",
     title: "Enable Export",
     body: "Help Pakistan's tech startups access international markets and export leads.",
   },
-];
-
-const ACCENTS = [
-  "from-rose-500 to-red-500",
-  "from-violet-500 to-purple-500",
-  "from-emerald-500 to-teal-500",
-  "from-pink-500 to-rose-500",
-  "from-teal-500 to-cyan-500",
-  "from-amber-500 to-orange-500",
 ];
 
 function activityAuthorDisplay(email: string | null) {
@@ -90,6 +76,70 @@ function activityAuthorDisplay(email: string | null) {
       .join(" ");
   }
   return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function MemberCard({
+  member,
+  index,
+}: {
+  member: CommitteeMemberRow;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay: index * 0.07, ease: EASE }}
+      whileHover={{ y: -6 }}
+      className="group relative flex flex-col h-full"
+    >
+      <div className="relative flex flex-col flex-1 rounded-3xl overflow-hidden border border-pasha-line/50 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-500">
+
+        {/* Hero panel */}
+        <div className="relative h-28 bg-pasha-stone overflow-hidden shrink-0">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="absolute -bottom-4 -left-4 w-32 h-32 rounded-full bg-pasha-red/[0.10] blur-2xl group-hover:bg-pasha-red/[0.18] transition-all duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
+
+          {/* Ghost initial */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-serif text-5xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.10] transition-colors duration-500">
+              {initials(member.name)}
+            </span>
+          </div>
+
+          {/* Member chip */}
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur border border-pasha-line/60 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-ink/40">
+            {COMMITTEE_MEMBER_TAG}
+          </span>
+        </div>
+
+        {/* Avatar overlap */}
+        <div className="relative z-10 px-4 -mt-6">
+          <div className="w-12 h-12 rounded-2xl bg-pasha-ink/[0.07] ring-[3px] ring-white border border-pasha-line/30 grid place-items-center font-bold text-sm text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm">
+            {initials(member.name)}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col flex-1 px-4 pt-2.5 pb-4 gap-1">
+          <h3 className="font-serif text-base text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
+            {member.name}
+          </h3>
+          {member.role && (
+            <p className="text-xs font-semibold text-pasha-red/70">{member.role}</p>
+          )}
+          {member.org && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
+              <p className="text-xs text-pasha-muted/70 truncate">{member.org}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 export function CommitteeContent({
@@ -119,7 +169,7 @@ export function CommitteeContent({
   return (
     <>
       {/* ───────────────────────────────────────────────────────
-          HERO — matching the editorial light hero used elsewhere
+          HERO
           ─────────────────────────────────────────────────────── */}
       <section
         onMouseMove={onMouseMove}
@@ -258,12 +308,10 @@ export function CommitteeContent({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.5, delay: i * 0.06, ease: EASE }}
-                  className="flex flex-col h-full rounded-2xl bg-white border border-pasha-line p-5 hover:border-pasha-ink/30 hover:shadow-[0_20px_50px_-20px_rgba(14,14,16,0.14)] transition-all duration-300"
+                  className="flex flex-col h-full rounded-2xl bg-white border border-pasha-line p-5 hover:border-pasha-red/20 hover:shadow-[0_20px_50px_-20px_rgba(14,14,16,0.14)] transition-all duration-300"
                 >
-                  <div
-                    className={`w-10 h-10 rounded-xl ${obj.color} grid place-items-center`}
-                  >
-                    <obj.icon className="w-5 h-5" strokeWidth={1.75} />
+                  <div className="w-10 h-10 rounded-xl bg-pasha-red/[0.08] border border-pasha-red/10 grid place-items-center">
+                    <obj.icon className="w-5 h-5 text-pasha-red/70" strokeWidth={1.75} />
                   </div>
                   <h3 className="mt-4 font-serif text-lg text-pasha-ink leading-tight">
                     {obj.title}
@@ -279,7 +327,7 @@ export function CommitteeContent({
       </section>
 
       {/* ───────────────────────────────────────────────────────
-          MEET THE COMMITTEE
+          MEET THE COMMITTEE — ORGANOGRAM
           ─────────────────────────────────────────────────────── */}
       <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28 overflow-hidden">
         <div
@@ -287,12 +335,14 @@ export function CommitteeContent({
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-orange-200/[0.08] to-pasha-red/[0.06] blur-3xl"
         />
         <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
+
+          {/* Section header */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6, ease: EASE }}
-            className="max-w-2xl mb-12"
+            className="text-center max-w-2xl mx-auto mb-14"
           >
             <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
               Committee Members
@@ -306,108 +356,116 @@ export function CommitteeContent({
             </p>
           </motion.div>
 
-          {/* Featured chairman banner */}
+          {/* ── ORGANOGRAM ── */}
           {chair ? (
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.55, ease: EASE }}
-            whileHover={{ y: -4 }}
-            className="group relative mb-5 rounded-2xl bg-white border border-pasha-red/25 overflow-hidden transition-shadow duration-300 hover:shadow-[0_24px_60px_-20px_rgba(14,14,16,0.2)]"
-          >
-            <div className="h-1.5 bg-gradient-to-r from-pasha-red to-orange-500" />
-            <div className="p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="relative shrink-0">
-                <div
-                  aria-hidden
-                  className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-pasha-red to-orange-500 opacity-0 group-hover:opacity-30 blur-md transition-opacity duration-300"
-                />
-                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-pasha-red to-orange-500 grid place-items-center text-white font-bold text-lg shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  {initials(chair.name)}
-                </div>
-              </div>
+            <div className="flex flex-col items-center">
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-serif text-xl text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors">
-                    {chair.name}
-                  </h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-pasha-red/10 px-2.5 py-1">
-                    <Crown className="w-3 h-3 text-pasha-red" />
-                    <span className="text-[9px] font-mono uppercase tracking-[1.5px] text-pasha-red font-semibold">
-                      Chair
-                    </span>
-                  </span>
-                </div>
-                {chair.role ? (
-                  <p className="mt-1 text-sm font-medium text-pasha-red">{chair.role}</p>
-                ) : null}
-                {chair.org ? (
-                  <p className="mt-0.5 text-sm text-pasha-muted">{chair.org}</p>
-                ) : null}
-              </div>
+              {/* TIER 1: Chair */}
+              <motion.div
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, ease: EASE }}
+                whileHover={{ y: -4 }}
+                className="group relative w-full max-w-xs sm:max-w-sm"
+              >
+                <div className="relative flex flex-col rounded-3xl overflow-hidden border border-pasha-red/20 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/35 transition-all duration-500">
 
-              <span className="inline-flex items-center self-start sm:self-center shrink-0 rounded-full bg-pasha-ink/5 px-3 py-1.5 text-[11px] font-medium text-pasha-muted group-hover:bg-pasha-red/[0.07] group-hover:text-pasha-red transition-colors">
-                {COMMITTEE_CHAIR_TAG}
-              </span>
-            </div>
-          </motion.div>
-          ) : null}
+                  {/* Hero panel */}
+                  <div className="relative h-36 bg-gradient-to-br from-pasha-stone via-pasha-stone to-white overflow-hidden shrink-0">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
+                    <div className="absolute -bottom-6 -left-6 w-44 h-44 rounded-full bg-pasha-red/[0.15] blur-2xl group-hover:bg-pasha-red/[0.25] transition-all duration-500" />
+                    <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-pasha-red/[0.07] blur-xl" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
 
-          {/* Member grid — fills evenly, no dangling cells */}
-          {committeeMembers.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-            {committeeMembers.map((member, i) => {
-              const accent = ACCENTS[(i + 1) % ACCENTS.length];
-              return (
-                <motion.div
-                  key={member.email}
-                  initial={{ opacity: 0, y: 28 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.55, delay: i * 0.08, ease: EASE }}
-                  whileHover={{ y: -6 }}
-                  className="group relative flex flex-col h-full rounded-2xl bg-white border border-pasha-line hover:border-pasha-ink/30 overflow-hidden transition-shadow duration-300 hover:shadow-[0_24px_60px_-20px_rgba(14,14,16,0.2)]"
-                >
-                  <div
-                    className={`h-1 bg-gradient-to-r ${accent} group-hover:h-1.5 transition-all duration-300`}
-                  />
-
-                  <div className="p-6 flex flex-col flex-1 items-center text-center">
-                    <div className="relative">
-                      <div
-                        aria-hidden
-                        className={`absolute -inset-1.5 rounded-2xl bg-gradient-to-br ${accent} opacity-0 group-hover:opacity-30 blur-md transition-opacity duration-300`}
-                      />
-                      <div
-                        className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${accent} grid place-items-center text-white font-bold text-base shadow-sm group-hover:scale-110 transition-transform duration-300`}
-                      >
-                        {initials(member.name)}
-                      </div>
+                    {/* Ghost initial */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="font-serif text-7xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.12] transition-colors duration-500">
+                        {initials(chair.name)}
+                      </span>
                     </div>
 
-                    <h3 className="mt-4 font-serif text-base text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors">
-                      {member.name}
-                    </h3>
-                    {member.role ? (
-                      <p className="mt-1 text-sm font-medium text-pasha-red">{member.role}</p>
-                    ) : null}
-                    {member.org ? (
-                      <p className="mt-0.5 text-sm text-pasha-muted">{member.org}</p>
-                    ) : null}
-
-                    <span className="mt-auto pt-4 inline-flex items-center justify-center rounded-full bg-pasha-ink/5 px-2.5 py-1 text-[11px] font-medium text-pasha-muted group-hover:bg-pasha-red/[0.07] group-hover:text-pasha-red transition-colors">
-                      {COMMITTEE_MEMBER_TAG}
+                    {/* Chair badge */}
+                    <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur border border-pasha-red/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-red/90 shadow-sm">
+                      <Crown className="w-2.5 h-2.5" /> Chair
                     </span>
                   </div>
+
+                  {/* Avatar overlap */}
+                  <div className="relative z-10 px-6 -mt-8">
+                    <div className="w-16 h-16 rounded-2xl bg-pasha-ink/[0.07] ring-4 ring-white border border-pasha-line/30 grid place-items-center font-bold text-lg text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm">
+                      {initials(chair.name)}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="px-6 pt-3 pb-6">
+                    <h3 className="font-serif text-2xl text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
+                      {chair.name}
+                    </h3>
+                    {chair.role && (
+                      <p className="mt-1 text-sm font-semibold text-pasha-red/70">{chair.role}</p>
+                    )}
+                    {chair.org && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-pasha-muted/50 shrink-0" />
+                        <p className="text-sm text-pasha-muted/70">{chair.org}</p>
+                      </div>
+                    )}
+                    <p className="mt-3 text-xs text-pasha-muted/50 leading-relaxed">
+                      {COMMITTEE_CHAIR_TAG}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Connector: vertical stem from chair */}
+              {committeeMembers.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  whileInView={{ opacity: 1, scaleY: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: 0.3 }}
+                  style={{ transformOrigin: "top" }}
+                  className="w-px h-8 bg-gradient-to-b from-pasha-red/40 to-pasha-line"
+                />
+              )}
+
+              {/* TIER 2: Members — single row with horizontal bus + drop lines */}
+              {committeeMembers.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="relative w-full"
+                >
+                  {/* Horizontal bus spanning full width */}
+                  <div className="absolute top-0 left-0 right-0 h-px bg-pasha-line" />
+
+                  {/* Single-row flex — overflow-x-auto on small screens */}
+                  <div className="flex flex-nowrap gap-4 overflow-x-auto pb-2 scrollbar-none">
+                    {committeeMembers.map((member, i) => (
+                      <div
+                        key={member.email}
+                        className="relative flex-1 min-w-[180px] max-w-[240px] pt-8"
+                      >
+                        {/* Drop line from bus to card */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-8 bg-pasha-line" />
+                        {/* Junction dot */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-pasha-line" />
+                        <MemberCard member={member} index={i} />
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
-              );
-            })}
-          </div>
-          ) : !chair ? (
-            <p className="text-sm text-pasha-muted">Committee profiles will appear here soon.</p>
-          ) : null}
+              )}
+
+            </div>
+          ) : (
+            <p className="text-sm text-pasha-muted text-center">Committee profiles will appear here soon.</p>
+          )}
+
         </div>
       </section>
 
