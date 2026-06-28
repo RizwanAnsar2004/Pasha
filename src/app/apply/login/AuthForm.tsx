@@ -10,6 +10,7 @@ import { TermsModal } from "./TermsModal";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DynamicField } from "@/components/form/DynamicField";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { OptionListsProvider, type OptionRegistry } from "@/components/form/OptionListsContext";
 import { buildZodSchema, buildDefaultValues, type FormConfig, type FormFieldConfig } from "@/lib/form-config";
 import { InputType } from "@/lib/form-enums";
@@ -322,8 +323,7 @@ function AuthInner({
       </div>
       <div>
         <label className="text-sm font-medium text-pasha-ink">Password</label>
-        <input
-          type="password"
+        <PasswordInput
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);

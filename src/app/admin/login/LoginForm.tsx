@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 function LoginInner() {
   const sp = useSearchParams();
@@ -80,14 +81,14 @@ function LoginInner() {
               </div>
               <div>
                 <label className="text-sm font-medium text-pasha-ink">Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+                  wrapperClassName="mt-1.5"
+                  className="h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                 />
               </div>
               {error && (

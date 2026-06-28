@@ -3,9 +3,14 @@ import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail, bustAdminAllowlistCache } from "@/lib/admin-allowlist";
 import { parsePagination } from "@/lib/pagination";
+import { provisionSupabaseAuthUser, deleteSupabaseAuthUser } from "@/lib/admin-auth-provision";
+import { generatePassword, sendCommitteeInvite } from "@/lib/committee-invite";
 
 const addSchema = z.object({
   email: z.string().email(),
+  // Admin-set sign-in password for the new member. Optional: if omitted, a
+  // strong one is generated. When provided it must meet the minimum length.
+  password: z.string().min(8, "Password must be at least 8 characters.").max(200).optional(),
   roles: z.string().max(200).optional(),
   org: z.string().max(200).optional(),
 });
@@ -102,6 +107,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insErr.message }, { status: 500 });
   }
 
+  bustAdminAllowlistCache();
+
+  // Provision a Supabase Auth account with a generated password and email the
+  // new member their sign-in details. The member is already allowlisted, so
+  // this is best-effort: if the account already existed we don't reset it, and
+  // if the email can't be sent we hand the password back to the admin so the
+  // new member isn't locked out (they'd have no way to know the generated one).
+  let provisioned = false;
+  let emailed = false;
+  let emailError: string | undefined;
+  let fallbackPassword: string | undefined;
+
+  // Use the admin-entered password; fall back to a generated one if omitted.
+  const password = parsed.data.password?.trim() || generatePassword();
+  provisioned = await provisionSupabaseAuthUser(email, password);
+  if (provisioned) {
+    const sendRes = await sendCommitteeInvite({ email, role: roles, password, createdBy: actor });
+    emailed = sendRes.ok;
+    if (!sendRes.ok) {
+      emailError = sendRes.error;
+      fallbackPassword = password; // surface so the admin can deliver it manually
+    }
+  }
+
   await supabase
     .from("audit_log")
     .insert({
@@ -110,12 +139,18 @@ export async function POST(req: Request) {
       action: "admin_users.add",
       resource_type: "admin_users",
       resource_id: email,
-      payload: { added_by: actor, roles, org },
+      payload: { added_by: actor, roles, org, provisioned, emailed },
     })
     .then(() => {}, () => {});
 
-  bustAdminAllowlistCache();
-  return NextResponse.json({ ok: true, email });
+  return NextResponse.json({
+    ok: true,
+    email,
+    provisioned,
+    emailed,
+    ...(emailError ? { emailError } : {}),
+    ...(fallbackPassword ? { password: fallbackPassword } : {}),
+  });
 }
 
 export async function PATCH(req: Request) {
@@ -178,6 +213,11 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: delErr.message }, { status: 500 });
   }
 
+  // Also delete the Supabase Auth account so the removed member can no longer
+  // authenticate (the allowlist row alone doesn't revoke an existing session's
+  // credentials). Best-effort: failure is logged but doesn't block removal.
+  const authDeleted = await deleteSupabaseAuthUser(target);
+
   await supabase
     .from("audit_log")
     .insert({
@@ -186,10 +226,10 @@ export async function DELETE(req: Request) {
       action: "admin_users.remove",
       resource_type: "admin_users",
       resource_id: target,
-      payload: { removed_by: actor },
+      payload: { removed_by: actor, authDeleted },
     })
     .then(() => {}, () => {});
 
   bustAdminAllowlistCache();
-  return NextResponse.json({ ok: true, email: target });
+  return NextResponse.json({ ok: true, email: target, authDeleted });
 }

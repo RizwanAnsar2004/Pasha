@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { href: "/admin/featured-startups",    label: "Featured Startups",   icon: Star },
   { href: "/admin/events",               label: "Events",              icon: CalendarDays },
   { href: "/admin/committee-activity",   label: "Committee Activity",  icon: Activity },
-  { href: "/admin/committee-management", label: "Committee Mgmt",      icon: Users },
+  { href: "/admin/committee-management", label: "Committee Management",      icon: Users },
   { href: "/admin/forms",                label: "Form Builder",        icon: FileCode2 },
   { href: "/admin/option-lists",         label: "Option Lists",        icon: List },
   { href: "/admin/email-templates",      label: "Email Templates",     icon: Mail },

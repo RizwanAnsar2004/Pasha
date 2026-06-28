@@ -37,6 +37,44 @@ export async function provisionSupabaseAuthUser(
   return false;
 }
 
+/**
+ * Delete a Supabase Auth user by email. Returns true when a user was found and
+ * deleted, false when none existed (or on config/error). Best-effort.
+ */
+export async function deleteSupabaseAuthUser(email: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return false;
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(url, key, { auth: { persistSession: false } });
+
+  const normalized = email.toLowerCase();
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.error("listUsers failed:", error.message);
+      return false;
+    }
+    const match = data.users.find((u) => u.email?.toLowerCase() === normalized);
+    if (match) {
+      const { error: delErr } = await admin.auth.admin.deleteUser(match.id);
+      if (delErr) {
+        console.error("deleteUser failed:", delErr.message);
+        return false;
+      }
+      return true;
+    }
+    if (data.users.length < perPage) break;
+    page += 1;
+  }
+
+  return false;
+}
+
 /** Set password on an existing Supabase Auth user (by email). */
 export async function setSupabaseAuthPassword(
   email: string,

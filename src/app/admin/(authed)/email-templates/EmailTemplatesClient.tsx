@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ArrowLeft, Check, Copy, Eye, Loader2, Lock, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -100,8 +101,18 @@ export function EmailTemplatesClient({
   pageSize: number;
 }) {
   const { isPending, setParams } = useListNav();
+  const router = useRouter();
   const [rows, setRows] = useState<EmailTemplateRow[]>(initial);
-  useEffect(() => { setRows(initial); }, [initial]);
+  // Reconcile with a freshly re-fetched server listing (e.g. after
+  // router.refresh() following a save/delete). React's recommended
+  // "adjust state when a prop changes" pattern — set during render, not in an
+  // effect — so the new server rows replace the optimistic ones without an
+  // extra render pass.
+  const [syncedInitial, setSyncedInitial] = useState(initial);
+  if (syncedInitial !== initial) {
+    setSyncedInitial(initial);
+    setRows(initial);
+  }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -168,6 +179,11 @@ export function EmailTemplatesClient({
           setRows((prev) => [template, ...prev]);
           closeForm();
         }
+        // Re-fetch the server-rendered listing so the table reflects the
+        // authoritative DB state (and any server-side side effects) without a
+        // manual refresh. The optimistic setRows above keeps the UI instant;
+        // this reconciles it.
+        router.refresh();
       },
       status === "active" ? "Template activated" : status === "archived" ? "Template archived" : "Saved as draft"
     );
@@ -180,6 +196,7 @@ export function EmailTemplatesClient({
       setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
       if (editingId === deleteTarget.id) closeForm();
+      router.refresh();
     });
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>

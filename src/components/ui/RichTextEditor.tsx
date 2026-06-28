@@ -35,7 +35,21 @@ export default function RichTextEditor({
   onChange: (html: string) => void;
 }) {
   return (
-    <div className="ck-rich-text">
+    // While SourceEditing is active, CKEditor keeps raw-HTML edits in its own
+    // <textarea> and does NOT sync them into the model (so editor.getData() and
+    // the onChange below return stale data) until source mode is toggled off.
+    // Capture the textarea's input directly so the form value stays current even
+    // if the user saves without leaving source mode. The only <textarea> inside
+    // the editor is the source-editing one, so the instanceof guard is enough.
+    <div
+      className="ck-rich-text"
+      onInput={(e) => {
+        const target = e.target;
+        if (target instanceof HTMLTextAreaElement) {
+          onChange(target.value);
+        }
+      }}
+    >
       <CKEditor
         editor={ClassicEditor}
         data={value}

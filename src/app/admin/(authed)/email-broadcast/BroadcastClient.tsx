@@ -57,7 +57,7 @@ export function BroadcastClient({ templates }: { templates: TemplateOption[] }) 
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <div>
         <h1 className="font-serif text-2xl text-pasha-ink">Send Email</h1>
         <p className="mt-1 text-sm text-pasha-muted">
@@ -66,66 +66,62 @@ export function BroadcastClient({ templates }: { templates: TemplateOption[] }) 
       </div>
 
       {templates.length === 0 ? (
-        <p className="rounded-xl border border-pasha-line bg-white p-5 text-sm text-pasha-muted">
-          No active templates. Create one and set its status to <strong>Active</strong> first.
-        </p>
+        <div className="rounded-2xl border border-pasha-line bg-white p-6 text-sm text-pasha-muted shadow-sm">
+          No active templates. Create one in Email Templates and set its status to <strong>Active</strong> first.
+        </div>
       ) : (
-        <div className="rounded-2xl border border-pasha-line bg-white p-5 shadow-sm space-y-4">
-          <label className="block text-sm text-pasha-ink">
-            Template
-            <div className="mt-1.5">
+        <div className="rounded-2xl border border-pasha-line bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-pasha-ink">Compose</h2>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm text-pasha-ink">
+              Template
               <SelectMenu
-                className="w-full"
+                className="mt-1.5 w-full"
                 value={templateId}
                 onValueChange={setTemplateId}
                 options={templates.map((t) => ({ value: t.template_id, label: t.name }))}
               />
-            </div>
-          </label>
-
-          <label className="block text-sm text-pasha-ink">
-            Recipients
-            <div className="mt-1.5">
+            </label>
+            <label className="block text-sm text-pasha-ink">
+              Recipients
               <SelectMenu
-                className="w-full"
+                className="mt-1.5 w-full"
                 value={scope}
                 onValueChange={(v) => setScope(v as Scope)}
                 options={SCOPES.map((s) => ({ value: s.value, label: s.label }))}
               />
-            </div>
-            <p className="mt-1 text-xs text-pasha-muted">{scopeHint}</p>
-          </label>
+              <span className="mt-1.5 block text-xs font-normal text-pasha-muted">{scopeHint}</span>
+            </label>
+          </div>
 
           {scope === "custom" && (
-            <label className="block text-sm text-pasha-ink">
+            <label className="mt-4 block text-sm text-pasha-ink">
               Email addresses
-              <div className="mt-1.5">
-                <textarea
-                  className={`${inputCls} min-h-[120px] resize-y font-mono text-xs`}
-                  value={emailsText}
-                  onChange={(e) => setEmailsText(e.target.value)}
-                  placeholder={"alice@example.com\nbob@example.com"}
-                />
-              </div>
+              <textarea
+                className={cn(inputCls, "mt-1.5 min-h-[120px] resize-y font-mono text-xs")}
+                value={emailsText}
+                onChange={(e) => setEmailsText(e.target.value)}
+                placeholder={"alice@example.com\nbob@example.com"}
+              />
             </label>
           )}
 
-          {msg && (
-            <p className={cn("text-sm", msg.kind === "ok" ? "text-tier-featured" : "text-pasha-red")}>
-              {msg.text}
-            </p>
-          )}
-
-          <div className="flex justify-end">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={send}
               disabled={busy || !templateId}
-              className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red-dark disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-pasha-red px-5 py-2.5 text-sm font-medium text-white hover:bg-pasha-red-dark transition-colors disabled:opacity-50"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Send
             </button>
+            {msg && (
+              <span className={cn("text-sm", msg.kind === "ok" ? "text-tier-featured" : "text-pasha-red")}>
+                {msg.text}
+              </span>
+            )}
           </div>
         </div>
       )}

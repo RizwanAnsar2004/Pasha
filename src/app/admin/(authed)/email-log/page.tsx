@@ -1,5 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { format, parseISO } from "date-fns";
+import { parsePagination } from "@/lib/pagination";
+import { Pagination } from "../_components/Pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +16,17 @@ type SendRow = {
 
 type Counts = { total: number; sent: number; failed: number; queued: number };
 
-async function loadLog() {
+async function loadLog(range: { from: number; to: number }) {
   const supabase = createServiceClient();
-  const { data: sends, error } = await supabase
+  const { data: sends, count, error } = await supabase
     .from("email_sends")
-    .select("id, template_id, kind, subject, created_by, created_at")
+    .select("id, template_id, kind, subject, created_by, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(range.from, range.to);
 
   if (error) {
-    if (/email_sends|does not exist/i.test(error.message)) return { rows: [], counts: {} as Record<string, Counts>, names: {} as Record<string, string> };
+    if (/email_sends|does not exist/i.test(error.message))
+      return { rows: [], counts: {} as Record<string, Counts>, names: {} as Record<string, string>, total: 0 };
     throw new Error(error.message);
   }
 
@@ -54,11 +57,17 @@ async function loadLog() {
     names[t.id] = t.name || t.template_id;
   }
 
-  return { rows: sendRows, counts, names };
+  return { rows: sendRows, counts, names, total: count ?? 0 };
 }
 
-export default async function EmailLogPage() {
-  const { rows, counts, names } = await loadLog();
+export default async function EmailLogPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const pagination = parsePagination(sp);
+  const { rows, counts, names, total } = await loadLog(pagination);
 
   return (
     <div className="space-y-6">
@@ -100,6 +109,7 @@ export default async function EmailLogPage() {
             })}
           </div>
         )}
+        <Pagination total={total} page={pagination.page} pageSize={pagination.pageSize} />
       </div>
     </div>
   );

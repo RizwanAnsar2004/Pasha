@@ -172,7 +172,7 @@ export function UpcomingEvents({ events }: { events: EventRow[] }) {
                         href={detailHref}
                         className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-pasha-ink px-4 py-2 text-sm font-medium text-white hover:bg-pasha-red transition-colors self-start sm:self-center"
                       >
-                        {event.registration_status === "open" ? "Register" : "Details"}
+                        {event.registration_status === "open" ? "Details" : "Details"}
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>

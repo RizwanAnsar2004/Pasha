@@ -32,8 +32,14 @@ export function CommitteeManagementClient({
     return () => clearTimeout(t);
   }, [q, initialQ, setParams]);
   const [rows, setRows] = useState<MemberRow[]>(initial);
-  // Sync local row state when the server returns a fresh page.
-  useEffect(() => { setRows(initial); }, [initial]);
+  // Sync local row state when the server returns a fresh page — React's
+  // "adjust state when a prop changes" pattern (set during render, not in an
+  // effect) so it doesn't clobber on an extra render pass.
+  const [syncedInitial, setSyncedInitial] = useState(initial);
+  if (syncedInitial !== initial) {
+    setSyncedInitial(initial);
+    setRows(initial);
+  }
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState("");
   const [org, setOrg] = useState("");
@@ -110,7 +116,17 @@ export function CommitteeManagementClient({
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Could not add committee member");
-      setSuccess(`Added ${j.email}. They can now sign in to /admin.`);
+      if (j.emailed) {
+        setSuccess(`Added ${j.email}. Their login email, role, and password have been emailed to them.`);
+      } else if (j.password) {
+        // Email couldn't be sent — show the password so the admin can share it
+        // manually (otherwise the new member can't sign in).
+        setSuccess(
+          `Added ${j.email}, but the invite email could not be sent. Share these credentials manually — password: ${j.password}`
+        );
+      } else {
+        setSuccess(`Added ${j.email}. They can now sign in to /admin.`);
+      }
       setEmail("");
       setRoles("");
       setOrg("");
@@ -200,6 +216,9 @@ export function CommitteeManagementClient({
               className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
           </div>
+          <p className="text-xs text-pasha-muted">
+            A password is generated automatically and emailed to the member with their sign-in email and role.
+          </p>
           <button
             type="submit"
             disabled={adding}

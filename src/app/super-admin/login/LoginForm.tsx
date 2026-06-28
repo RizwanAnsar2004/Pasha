@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Loader2, AlertCircle } from "lucide-react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function SuperAdminLoginForm() {
   const router = useRouter();
@@ -64,13 +65,13 @@ export function SuperAdminLoginForm() {
               <label className="text-sm font-medium text-pasha-ink">
                 Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
-                className="mt-1.5 h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+                wrapperClassName="mt-1.5"
+                className="h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
               />
             </div>
             {error && (

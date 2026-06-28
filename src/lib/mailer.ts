@@ -130,6 +130,82 @@ export async function sendTemplate(opts: {
   return { ok: true, sendId: send.id };
 }
 
+/**
+ * Send a one-off email with inline subject/HTML — no DB template required.
+ * Used for system/transactional mail (e.g. committee-invite credentials) that
+ * isn't admin-editable. Still records email_sends (template_id null) +
+ * email_recipients so delivery shows up in the Email Log and the .NET mailer
+ * can flip the recipient status. Best-effort, same failure semantics as
+ * sendTemplate.
+ */
+export async function sendRawEmail(opts: {
+  to: { email: string; userId?: string | null };
+  subject: string;
+  html: string;
+  kind?: "transactional" | "broadcast";
+  context?: Record<string, unknown>;
+  createdBy?: string | null;
+}): Promise<SendTemplateResult> {
+  const { subject, html, kind = "transactional", context = {}, createdBy = null } = opts;
+  const email = opts.to.email?.trim().toLowerCase();
+  if (!email) return { ok: false, error: "no_recipient" };
+
+  const url = process.env.DOTNET_MAILER_URL;
+  const secret = process.env.INTERNAL_MAILER_SECRET;
+  if (!url || !secret) {
+    console.warn("[mailer] DOTNET_MAILER_URL / INTERNAL_MAILER_SECRET not set");
+    return { ok: false, error: "mailer_not_configured" };
+  }
+  const base = url.replace(/\/$/, "");
+  if (!(await mailerReachable(base))) {
+    console.warn("[mailer] service unreachable; nothing recorded");
+    return { ok: false, error: "mailer_unavailable" };
+  }
+
+  const supabase = createServiceClient();
+
+  const { data: send, error: sErr } = await supabase
+    .from("email_sends")
+    .insert({ template_id: null, kind, subject, context, created_by: createdBy })
+    .select("id")
+    .single();
+  if (sErr || !send) {
+    console.error("[mailer] failed to record raw send:", sErr?.message);
+    return { ok: false, error: "send_insert_failed" };
+  }
+
+  const { data: recs, error: rErr } = await supabase
+    .from("email_recipients")
+    .insert([{ send_id: send.id, to_email: email, to_user_id: opts.to.userId ?? null }])
+    .select("id, to_email");
+  if (rErr || !recs || recs.length === 0) {
+    console.error("[mailer] failed to record raw recipient:", rErr?.message);
+    return { ok: false, sendId: send.id, error: "recipients_insert_failed" };
+  }
+
+  const payload = [{ recipientId: recs[0].id, email: recs[0].to_email, subject, html }];
+
+  try {
+    const res = await fetch(`${base}/api/email/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Internal-Secret": secret },
+      body: JSON.stringify({ recipients: payload }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.error("[mailer] .NET mailer responded", res.status);
+      await supabase.from("email_sends").delete().eq("id", send.id); // cascades to recipients
+      return { ok: false, error: "mailer_unavailable" };
+    }
+  } catch (e) {
+    console.error("[mailer] .NET mailer unreachable:", e instanceof Error ? e.message : e);
+    await supabase.from("email_sends").delete().eq("id", send.id); // cascades to recipients
+    return { ok: false, error: "mailer_unavailable" };
+  }
+
+  return { ok: true, sendId: send.id };
+}
+
 // Quick liveness check so we never record a send when the mailer is down.
 async function mailerReachable(base: string): Promise<boolean> {
   try {
