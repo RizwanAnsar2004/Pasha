@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { parsePagination } from "@/lib/pagination";
+import { fetchAllRowsBatched } from "@/lib/csv";
 
 // Whitelist of columns an admin can edit. Anything not on this list is
 // silently dropped from the payload so a malformed/attacker-shaped body
@@ -116,27 +117,45 @@ export async function GET(req: Request) {
   const sector = url.searchParams.get("sector")?.trim() ?? "";
   const outreach = url.searchParams.get("outreach")?.trim() ?? "";
   const verified = url.searchParams.get("verified")?.trim() ?? "";
+  const all = url.searchParams.get("all") === "1";
   const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
 
-  let query = supabase.from("databank").select(LIST_COLS, { count: "exact" });
+  // Fresh, filtered query each call — the builder can't be reused once awaited,
+  // and the export path needs to run it for several row ranges.
+  const buildQuery = () => {
+    let query = supabase.from("databank").select(LIST_COLS, { count: "exact" });
+    if (q.length >= 1) {
+      const pattern = `%${q}%`;
+      query = query.or(
+        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+      );
+    }
+    if (sector && sector !== "all") query = query.eq("primary_industry", sector);
+    if (outreach && outreach !== "all") query = query.eq("outreach_status", outreach);
+    if (verified === "yes") query = query.eq("pasha_verified", true);
+    if (verified === "no") query = query.or("pasha_verified.is.null,pasha_verified.eq.false");
+    return query
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .order("current_revenue", { ascending: false, nullsFirst: false });
+  };
 
-  if (q.length >= 1) {
-    const pattern = `%${q}%`;
-    query = query.or(
-      `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
-    );
+  if (all) {
+    // Batch past PostgREST's 1000-row cap to export the whole filtered set.
+    try {
+      const { rows, total } = await fetchAllRowsBatched<Record<string, unknown>>((f, t) =>
+        buildQuery().range(f, t)
+      );
+      return NextResponse.json({ rows, total, page, pageSize });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Export failed" },
+        { status: 500 }
+      );
+    }
   }
-  if (sector && sector !== "all") query = query.eq("primary_industry", sector);
-  if (outreach && outreach !== "all") query = query.eq("outreach_status", outreach);
-  if (verified === "yes") query = query.eq("pasha_verified", true);
-  if (verified === "no") query = query.or("pasha_verified.is.null,pasha_verified.eq.false");
 
-  query = query
-    .order("created_at", { ascending: false, nullsFirst: false })
-    .order("current_revenue", { ascending: false, nullsFirst: false });
-
-  const { data, count, error: dbErr } = await query.range(from, to);
+  const { data, count, error: dbErr } = await buildQuery().range(from, to);
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }

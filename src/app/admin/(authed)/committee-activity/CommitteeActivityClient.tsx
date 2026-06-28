@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { format } from "date-fns";
 import { Download, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
 
 export type ActivityType =
   | "verification"
@@ -120,7 +121,11 @@ export function CommitteeActivityClient({
 }) {
   const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<ActivityRow[]>(initial);
-  useEffect(() => { setRows(initial); }, [initial]);
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (prevInitial !== initial) {
+    setPrevInitial(initial);
+    setRows(initial);
+  }
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -192,30 +197,32 @@ export function CommitteeActivityClient({
       setDeleteTarget(null);
     });
 
-  const exportCSV = () => {
+  const [exporting, setExporting] = useState(false);
+
+  // Export every activity (all pages), not just the page on screen.
+  const exportCSV = async () => {
     const cols = ["date", "type", "title", "description", "status", "author"];
-    const lines = [
-      cols.join(","),
-      ...rows.map((r) =>
-        [
+    setExporting(true);
+    try {
+      const data = await fetchAllForExport("/api/admin/committee-activity");
+      const allRows = (data.activities as ActivityRow[]) ?? [];
+      const csv = toCsv(
+        cols,
+        allRows.map((r) => [
           format(new Date(r.created_at), "yyyy-MM"),
           typeLabel(r.type),
           r.title,
           r.description,
           r.status,
           r.author_email ?? "",
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(",")
-      ),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `committee-activity-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+        ])
+      );
+      downloadCsv(`committee-activity-${Date.now()}.csv`, csv);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Could not export CSV.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -231,10 +238,10 @@ export function CommitteeActivityClient({
           <button
             type="button"
             onClick={exportCSV}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || exporting}
             className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-3.5 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-colors disabled:opacity-40"
           >
-            <Download className="w-4 h-4" />
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Export
           </button>
           <button

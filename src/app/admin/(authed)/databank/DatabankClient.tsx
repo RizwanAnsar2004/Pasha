@@ -17,6 +17,7 @@ import { htmlToText } from "@/lib/sanitize-html";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
 
 type Row = {
   id: string;
@@ -59,9 +60,13 @@ export function DatabankClient({
 
   // Whenever the server returns a fresh page (URL change), sync the local
   // row state. Without this, optimistic updates would survive page changes.
-  useEffect(() => {
+  // Done during render (not in an effect) per the React "adjust state on prop
+  // change" pattern.
+  const [prevRows, setPrevRows] = useState(initial.rows);
+  if (prevRows !== initial.rows) {
+    setPrevRows(initial.rows);
     setRowsState(initial.rows);
-  }, [initial.rows]);
+  }
 
   // Debounce search → URL.
   useEffect(() => {
@@ -112,7 +117,11 @@ export function DatabankClient({
   const filtered = rowsState;
   const paginated = filtered;
 
-  const exportCSV = () => {
+  const [exporting, setExporting] = useState(false);
+
+  // Export every row matching the current filters — not just the page on
+  // screen — by re-querying the list API with `all=1`.
+  const exportCSV = async () => {
     const cols = [
       "startup_name",
       "primary_industry",
@@ -125,25 +134,20 @@ export function DatabankClient({
       "total_employees",
       "outreach_status",
     ];
-    const lines = [
-      cols.join(","),
-      ...filtered.map((r) =>
-        cols
-          .map((c) => {
-            const v = (r as unknown as Record<string, unknown>)[c];
-            const s = v === null || v === undefined ? "" : String(v);
-            return `"${s.replace(/"/g, '""')}"`;
-          })
-          .join(",")
-      ),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pasha-databank-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setExporting(true);
+    try {
+      const data = await fetchAllForExport("/api/admin/databank");
+      const allRows = (data.rows as Record<string, unknown>[]) ?? [];
+      const csv = toCsv(
+        cols,
+        allRows.map((r) => cols.map((c) => r[c]))
+      );
+      downloadCsv(`pasha-databank-${Date.now()}.csv`, csv);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not export CSV.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -193,9 +197,15 @@ export function DatabankClient({
         <button
           type="button"
           onClick={exportCSV}
-          className="h-10 inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-3.5 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-colors"
+          disabled={exporting}
+          className="h-10 inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-3.5 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-colors disabled:opacity-60"
         >
-          <Download className="w-3.5 h-3.5" /> Export CSV
+          {exporting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Download className="w-3.5 h-3.5" />
+          )}{" "}
+          Export CSV
         </button>
       </div>
 

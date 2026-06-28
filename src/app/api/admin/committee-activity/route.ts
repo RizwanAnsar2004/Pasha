@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { parsePagination } from "@/lib/pagination";
+import { fetchAllRowsBatched } from "@/lib/csv";
 
 const ACTIVITY_TYPES = [
   "verification",
@@ -50,13 +51,33 @@ export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
-  const { page, pageSize, from, to } = parsePagination(new URL(req.url));
+  const url = new URL(req.url);
+  const all = url.searchParams.get("all") === "1";
+  const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
-  const { data, count, error: dbErr } = await supabase
-    .from("committee_activities")
-    .select("id,title,type,description,status,author_email,created_at", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  const buildQuery = () =>
+    supabase
+      .from("committee_activities")
+      .select("id,title,type,description,status,author_email,created_at", { count: "exact" })
+      .order("created_at", { ascending: false });
+
+  if (all) {
+    // Batch past PostgREST's 1000-row cap to export every activity.
+    try {
+      const { rows, total } = await fetchAllRowsBatched<Record<string, unknown>>((f, t) =>
+        buildQuery().range(f, t)
+      );
+      return NextResponse.json({ activities: rows, total, page, pageSize });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Export failed";
+      if (/committee_activities|does not exist/i.test(msg)) {
+        return NextResponse.json({ activities: [], total: 0, page, pageSize });
+      }
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+  }
+
+  const { data, count, error: dbErr } = await buildQuery().range(from, to);
 
   if (dbErr) {
     if (/committee_activities|does not exist/i.test(dbErr.message)) {

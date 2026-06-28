@@ -39,7 +39,7 @@ function AuthInner({
   const [mode, setMode] = useState<"login" | "register">("login");
   const [regStep, setRegStep] = useState<1 | 2>(1);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [screen, setScreen] = useState<"form" | "verify">("form");
+  const [screen, setScreen] = useState<"form" | "verify" | "forgot">("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -219,6 +219,38 @@ function AuthInner({
     }
   }
 
+  // Send a password-reset link. The API only mails real applicant accounts and
+  // returns 404 ("No account found with this email.") otherwise.
+  async function sendForgot(e: React.FormEvent) {
+    e.preventDefault();
+    const eErr = applicantEmailError(email);
+    setEmailError(eErr);
+    if (eErr) return;
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      const { res, j } = await postAuth({ action: "forgot", email });
+      if (!res.ok) {
+        applyApiError(j.error ?? "Could not send the reset email.");
+        return;
+      }
+      setInfo("Reset link sent. Check your inbox (and spam) to set a new password.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the reset email.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openForgot() {
+    setScreen("forgot");
+    setError(null);
+    setInfo(null);
+    setEmailError(null);
+    setPasswordError(null);
+  }
+
   async function resendVerification() {
     setError(null);
     setInfo(null);
@@ -298,6 +330,94 @@ function AuthInner({
     </div>
   );
 
+  // ── "Forgot password" screen ─────────────────────────────────────────────
+  const forgotScreen = (
+    info ? (
+      // Confirmation screen after the reset link is sent.
+      <div className="text-center">
+        <div className="mx-auto w-12 h-12 rounded-xl bg-green-600/10 grid place-items-center mb-5">
+          <MailCheck className="w-6 h-6 text-green-700" />
+        </div>
+        <h1 className="font-serif text-2xl tracking-tight text-pasha-ink">Email sent</h1>
+        <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
+          We&apos;ve sent a password reset link to{" "}
+          <span className="font-medium text-pasha-ink">{email}</span>. Open it to set a new
+          password. Don&apos;t forget to check your spam folder.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setScreen("form");
+            setMode("login");
+            setError(null);
+            setInfo(null);
+            setEmailError(null);
+          }}
+          className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors"
+        >
+          Back to sign in
+        </button>
+      </div>
+    ) : (
+      <>
+        <div className="w-10 h-10 rounded-lg bg-pasha-red/10 grid place-items-center mb-5">
+          <Rocket className="w-5 h-5 text-pasha-red" />
+        </div>
+        <h1 className="font-serif text-2xl tracking-tight text-pasha-ink">Reset your password</h1>
+        <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
+          Enter the email for your applicant account and we&apos;ll send a link to set a new
+          password.
+        </p>
+        <form onSubmit={sendForgot} className="mt-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-pasha-ink">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError(null);
+              }}
+              required
+              autoComplete="email"
+              placeholder="you@startup.com"
+              aria-invalid={emailError ? true : undefined}
+              className={`${inputClass}${emailError ? " border-pasha-red focus-visible:border-pasha-red" : ""}`}
+            />
+            {emailError && <p className="mt-1.5 text-xs text-pasha-red">{emailError}</p>}
+          </div>
+          {error && (
+            <div className="rounded-lg border border-pasha-red/30 bg-pasha-red/[0.04] p-3 flex items-start gap-2.5 text-xs text-pasha-red">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Send reset link
+          </button>
+        </form>
+        <button
+          type="button"
+          onClick={() => {
+            setScreen("form");
+            setMode("login");
+            setError(null);
+            setInfo(null);
+            setEmailError(null);
+          }}
+          className="mt-4 block w-full text-center text-sm font-medium text-pasha-red hover:text-pasha-red-dark transition-colors"
+        >
+          Back to sign in
+        </button>
+      </>
+    )
+  );
+
   // ── Account fields (email + password) — shared by login and register step 1 ─
   const accountFields = (
     <>
@@ -322,7 +442,18 @@ function AuthInner({
         {emailError && <p className="mt-1.5 text-xs text-pasha-red">{emailError}</p>}
       </div>
       <div>
-        <label className="text-sm font-medium text-pasha-ink">Password</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-pasha-ink">Password</label>
+          {!isRegister && (
+            <button
+              type="button"
+              onClick={openForgot}
+              className="text-xs font-medium text-pasha-red hover:text-pasha-red-dark transition-colors"
+            >
+              Forgot password?
+            </button>
+          )}
+        </div>
         <PasswordInput
           value={password}
           onChange={(e) => {
@@ -382,6 +513,8 @@ function AuthInner({
   let bodyContent: React.ReactNode;
   if (screen === "verify") {
     bodyContent = verifyScreen;
+  } else if (screen === "forgot") {
+    bodyContent = forgotScreen;
   } else if (isRegister && regStep === 2 && hasRegForm) {
     // Step 2 — the admin-configured §3 startup-basics fields.
     bodyContent = (

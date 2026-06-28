@@ -5,6 +5,7 @@ import { sendTemplate, firstNameOf } from "@/lib/mailer";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 import { parsePagination } from "@/lib/pagination";
+import { EXPORT_MAX_ROWS } from "@/lib/csv";
 
 const DATABANK_SELECT =
   "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage";
@@ -66,13 +67,31 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q")?.trim().toLowerCase() ?? "";
   const listQ = url.searchParams.get("listQ")?.trim() ?? "";
   const status = url.searchParams.get("status")?.trim() ?? "all";
+  const all = url.searchParams.get("all") === "1";
   const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
 
-  const [featured, settings] = await Promise.all([
-    getFeaturedForAdmin({ from, to }, { q: listQ, status }),
-    getFeaturedSettings(),
-  ]);
+  const loadFeatured = async () => {
+    if (!all) return getFeaturedForAdmin({ from, to }, { q: listQ, status });
+    // Batch past PostgREST's 1000-row cap to export every featured entry.
+    const PAGE = 1000;
+    const rows: unknown[] = [];
+    let total = 0;
+    let offset = 0;
+    for (;;) {
+      const res = await getFeaturedForAdmin(
+        { from: offset, to: offset + PAGE - 1 },
+        { q: listQ, status }
+      );
+      total = res.total;
+      rows.push(...res.rows);
+      if (res.rows.length < PAGE || rows.length >= EXPORT_MAX_ROWS) break;
+      offset += PAGE;
+    }
+    return { rows, total };
+  };
+
+  const [featured, settings] = await Promise.all([loadFeatured(), getFeaturedSettings()]);
 
   let candidates: Record<string, unknown>[] = [];
   if (q.length >= 1) {

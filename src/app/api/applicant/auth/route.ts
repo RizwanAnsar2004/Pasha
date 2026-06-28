@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       ? "resend"
       : body.action === "check"
       ? "check"
+      : body.action === "forgot"
+      ? "forgot"
       : "login";
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
@@ -59,12 +61,14 @@ export async function POST(req: NextRequest) {
   if (emailErr) {
     return NextResponse.json({ error: emailErr }, { status: 400 });
   }
-  if (action !== "resend" && action !== "check" && !password) {
+  if (action !== "resend" && action !== "check" && action !== "forgot" && !password) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
 
-  // Admins belong in the committee portal — keep the audiences separate.
-  if (await isAdminEmail(email)) {
+  // Admins belong in the committee portal — keep the audiences separate. (Skip
+  // for "forgot": an admin email simply isn't an applicant, so the existence
+  // check below returns the same generic "no account" result.)
+  if (action !== "forgot" && (await isAdminEmail(email))) {
     return NextResponse.json(
       { error: "Invalid Email And Password." },
       { status: 403 }
@@ -83,6 +87,43 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ exists: false });
     }
+  }
+
+  // ── Forgot password ─────────────────────────────────────────────────────
+  // Only send a reset link to a real applicant account; otherwise tell the UI
+  // no account was found. (Admin emails were already excluded above, so they
+  // fall through to the same "no account" response.)
+  if (action === "forgot") {
+    let exists = false;
+    try {
+      const admin = createServiceClient();
+      const { data, error } = await admin.rpc("applicant_email_exists", { p_email: email });
+      // A committee/admin email has a Supabase auth user too, so the existence
+      // RPC alone would match it — exclude admins here so applicant reset is
+      // only ever sent to real applicant accounts. (Admins reset via /admin.)
+      exists = !error && Boolean(data) && !(await isAdminEmail(email));
+    } catch {
+      exists = false;
+    }
+    if (!exists) {
+      return NextResponse.json(
+        { error: "No account found with this email." },
+        { status: 404 }
+      );
+    }
+    const { supabase, applyCookies } = createRouteHandlerClient(req);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${req.nextUrl.origin}/apply/auth/callback?redirect=/apply/reset-password`,
+    });
+    if (error) {
+      return NextResponse.json(
+        { error: "Could not send the reset email. Please try again." },
+        { status: 500 }
+      );
+    }
+    // Return the PKCE code_verifier cookie so the callback can exchange the
+    // recovery code later; without it the reset link reads as expired.
+    return applyCookies(NextResponse.json({ ok: true }));
   }
 
   const { supabase, applyCookies } = createRouteHandlerClient(req);

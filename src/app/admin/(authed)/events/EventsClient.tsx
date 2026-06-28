@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import {
@@ -37,6 +37,7 @@ import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
 
 export type EventListRow = EventRow;
 
@@ -164,7 +165,11 @@ export function EventsClient({
 }) {
   const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<EventListRow[]>(initial);
-  useEffect(() => { setRows(initial); }, [initial]);
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (prevInitial !== initial) {
+    setPrevInitial(initial);
+    setRows(initial);
+  }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -238,22 +243,24 @@ export function EventsClient({
       if (editingId === deleteTarget.id) closeForm();
     });
 
-  const exportCSV = () => {
-    const lines = [
-      "title,type,date,status,location",
-      ...rows.map((r) =>
-        [r.title, r.event_type, r.event_date, r.status, r.location]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(",")
-      ),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `events-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [exporting, setExporting] = useState(false);
+
+  // Export every event (all pages), not just the page on screen.
+  const exportCSV = async () => {
+    setExporting(true);
+    try {
+      const data = await fetchAllForExport("/api/admin/events");
+      const allRows = (data.events as EventRow[]) ?? [];
+      const csv = toCsv(
+        ["title", "type", "date", "status", "location"],
+        allRows.map((r) => [r.title, r.event_type, r.event_date, r.status, r.location])
+      );
+      downloadCsv(`events-${Date.now()}.csv`, csv);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Could not export CSV.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -526,8 +533,8 @@ export function EventsClient({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={exportCSV} className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60">
-            <Download className="w-3.5 h-3.5" />
+          <button type="button" onClick={exportCSV} disabled={exporting} className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-xs font-medium text-pasha-ink hover:bg-pasha-stone/60 disabled:opacity-60">
+            {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
             Export
           </button>
           <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red-dark">

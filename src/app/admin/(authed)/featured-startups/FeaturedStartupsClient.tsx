@@ -18,6 +18,7 @@ import { cn, initials } from "@/lib/utils";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
 
 type DatabankSummary = {
   id: string;
@@ -119,7 +120,11 @@ export function FeaturedStartupsClient({
 }) {
   const { isPending, setParams } = useListNav();
   const [entries, setEntries] = useState<FeaturedEntry[]>(initialFeatured);
-  useEffect(() => { setEntries(initialFeatured); }, [initialFeatured]);
+  const [prevInitial, setPrevInitial] = useState(initialFeatured);
+  if (prevInitial !== initialFeatured) {
+    setPrevInitial(initialFeatured);
+    setEntries(initialFeatured);
+  }
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const filter = filters.status as Filter;
   const setFilter = (v: Filter) => setParams({ status: v === "all" ? null : v, page: 1 });
@@ -253,30 +258,34 @@ export function FeaturedStartupsClient({
       setSettings(saved);
     });
 
-  const exportCSV = () => {
-    const lines = [
-      "startup,industry,city,featured_from,featured_until,status",
-      ...entries.map((e) => {
-        const db = databankOf(e);
-        return [
-          db?.startup_name ?? "",
-          db?.primary_industry ?? "",
-          db?.city ?? "",
-          e.featured_from,
-          e.featured_until,
-          statusOf(e),
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(",");
-      }),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `featured-startups-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [exporting, setExporting] = useState(false);
+
+  // Export every featured entry (all pages), not just the page on screen.
+  const exportCSV = async () => {
+    setExporting(true);
+    try {
+      const data = await fetchAllForExport("/api/admin/featured-startups");
+      const allRows = (data.featured as FeaturedEntry[]) ?? [];
+      const csv = toCsv(
+        ["startup", "industry", "city", "featured_from", "featured_until", "status"],
+        allRows.map((e) => {
+          const db = databankOf(e);
+          return [
+            db?.startup_name ?? "",
+            db?.primary_industry ?? "",
+            db?.city ?? "",
+            e.featured_from,
+            e.featured_until,
+            statusOf(e),
+          ];
+        })
+      );
+      downloadCsv(`featured-startups-${Date.now()}.csv`, csv);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not export CSV.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -293,10 +302,10 @@ export function FeaturedStartupsClient({
           <button
             type="button"
             onClick={exportCSV}
-            disabled={entries.length === 0}
+            disabled={entries.length === 0 || exporting}
             className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-3.5 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 transition-colors disabled:opacity-40"
           >
-            <Download className="w-4 h-4" />
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Export
           </button>
           <button

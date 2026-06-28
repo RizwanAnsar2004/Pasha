@@ -8,7 +8,7 @@ import { provisionSupabaseAuthUser } from "@/lib/admin-auth-provision";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 export async function POST(req: NextRequest) {
-  let body: { email?: string; password?: string };
+  let body: { action?: string; email?: string; password?: string };
   try {
     body = await req.json();
   } catch {
@@ -17,6 +17,36 @@ export async function POST(req: NextRequest) {
 
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
+
+  // ── Forgot password ─────────────────────────────────────────────────────
+  // Only allowlisted committee emails get a reset link; everyone else gets the
+  // same generic "no account" response. Committee members always have a
+  // Supabase Auth account (provisioned on invite / first sign-in), so the
+  // recovery email is delivered.
+  if (body.action === "forgot") {
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+    if (!(await isAdminEmail(email))) {
+      return NextResponse.json(
+        { error: "No account found with this email." },
+        { status: 404 }
+      );
+    }
+    const { supabase, applyCookies } = createRouteHandlerClient(req);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${req.nextUrl.origin}/apply/auth/callback?redirect=/admin/reset-password`,
+    });
+    if (error) {
+      return NextResponse.json(
+        { error: "Could not send the reset email. Please try again." },
+        { status: 500 }
+      );
+    }
+    // Return the PKCE code_verifier cookie so the callback can exchange the
+    // recovery code later; without it the reset link reads as expired.
+    return applyCookies(NextResponse.json({ ok: true }));
+  }
 
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
