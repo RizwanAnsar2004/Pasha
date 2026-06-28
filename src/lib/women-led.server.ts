@@ -15,10 +15,20 @@ type DatabankRow = {
   product_stage?: string | null;
   contact_email?: string | null;
   website?: string | null;
+  logo_url?: string | null;
+  answers?: Record<string, unknown> | null;
   key_persons?: unknown;
 };
 
-const LIST_COLS = "id,startup_name,primary_industry,city,tagline,product_stage,contact_email,website,key_persons";
+const LIST_COLS =
+  "id,startup_name,primary_industry,city,tagline,product_stage,contact_email,website,logo_url,answers,key_persons";
+
+// Cover image is an admin-defined form field (no column_map), so it lives in the
+// answers JSONB bag mirrored onto databank.answers on approval.
+function coverFromAnswers(answers: Record<string, unknown> | null | undefined): string | null {
+  const v = answers?.cover_image;
+  return typeof v === "string" && v.trim() ? v : null;
+}
 
 function founderNameFromKeyPersons(keyPersons: unknown): string | null {
   if (!Array.isArray(keyPersons)) return null;
@@ -56,6 +66,8 @@ function toWomenLedStartup(row: DatabankRow): WomenLedStartup {
     product_stage: row.product_stage,
     contact_email: row.contact_email,
     website: row.website,
+    logo_url: row.logo_url ?? null,
+    cover_image: coverFromAnswers(row.answers),
     slug: startupSlug(row.startup_name, row.id),
   };
 }

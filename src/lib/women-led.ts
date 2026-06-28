@@ -9,5 +9,7 @@ export type WomenLedStartup = {
   product_stage?: string | null;
   contact_email?: string | null;
   website?: string | null;
+  logo_url?: string | null;
+  cover_image?: string | null;
   slug: string;
 };

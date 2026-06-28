@@ -52,6 +52,16 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   green: "bg-green-600/10 text-green-700",
 };
 
+// Highlighted container border for an EARNED badge, matching its pill tone so
+// acquired badges visibly stand out from locked ones. Border only — no fill.
+const BADGE_BORDER_CLASS: Record<BadgeTone, string> = {
+  verified: "border-pasha-red/40",
+  gold: "border-amber-300",
+  pink: "border-pink-300",
+  blue: "border-sky-300",
+  green: "border-green-400/60",
+};
+
 const STAGE_ICON: Record<WorkflowStage, typeof CheckCircle2> = {
   draft: ClipboardList,
   submitted: Clock,
@@ -272,8 +282,8 @@ export default async function ApplicantOverviewPage() {
           {badges.map((b) => (
             <div
               key={b.key}
-              className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${
-                b.earned ? "border-pasha-line" : "border-dashed border-pasha-line bg-pasha-stone/20"
+              className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                b.earned ? BADGE_BORDER_CLASS[b.tone] : "border-dashed border-pasha-line bg-pasha-stone/20"
               }`}
             >
               <span

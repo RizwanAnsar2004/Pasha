@@ -386,7 +386,7 @@ export default async function StartupDetailPage({
                 <img
                   src={row.logo_url!}
                   alt={`${row.startup_name} logo`}
-                  className="w-full h-full object-contain p-2"
+                  className="w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
                 />

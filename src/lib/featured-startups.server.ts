@@ -10,7 +10,7 @@ export type FeaturedSettings = {
 };
 
 const DATABANK_COLS =
-  "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage";
+  "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage,answers";
 
 const DEFAULT_SETTINGS: FeaturedSettings = {
   auto_rotate: true,
@@ -121,7 +121,15 @@ export async function getActiveFeaturedStartups(now = new Date()): Promise<{
 type DatabankFeatured = FeaturedStartup & {
   product_stage?: string | null;
   incubation_stage?: string | null;
+  answers?: Record<string, unknown> | null;
 };
+
+// The cover image is an admin-defined form field with no column_map, so it lives
+// in the answers JSONB bag (mirrored onto databank.answers on approval).
+function coverFromAnswers(answers: Record<string, unknown> | null | undefined): string | null {
+  const v = answers?.cover_image;
+  return typeof v === "string" && v.trim() ? v : null;
+}
 
 function toWatchlistStartup(s: DatabankFeatured): WatchlistStartup {
   return {
@@ -132,6 +140,8 @@ function toWatchlistStartup(s: DatabankFeatured): WatchlistStartup {
     city: s.city,
     product_stage: stageLabel(s.product_stage, s.incubation_stage),
     pasha_verified: s.pasha_verified,
+    logo_url: s.logo_url ?? null,
+    cover_image: coverFromAnswers(s.answers),
   };
 }
 

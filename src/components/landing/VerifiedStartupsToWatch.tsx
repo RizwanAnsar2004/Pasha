@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, type Variants, useMotionValue, useTransform, animate } from "framer-motion";
 import { ArrowUpRight, BadgeCheck, ChevronLeft, ChevronRight, MapPin, Sparkles } from "lucide-react";
 import { initials } from "@/lib/utils";
+import { safeImageSrc } from "@/lib/safe-url";
 import { RichText } from "@/components/ui/RichText";
 import { useState, useRef, useCallback } from "react";
 
@@ -18,7 +19,89 @@ export type WatchlistStartup = {
   city?: string | null;
   product_stage?: string | null;
   pasha_verified?: boolean | null;
+  logo_url?: string | null;
+  cover_image?: string | null;
 };
+
+/**
+ * Hero background — the uploaded cover image when present, otherwise the
+ * decorative grid + glow + ghost-initial fallback. Falls back gracefully if
+ * the image URL is unsafe or fails to load.
+ */
+function CardCover({ src, name }: { src?: string | null; name: string }) {
+  const safe = safeImageSrc(src);
+  const [errored, setErrored] = useState(false);
+  const showImage = safe && !errored;
+
+  if (showImage) {
+    return (
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={safe}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          onError={() => setErrored(true)}
+        />
+        {/* legibility wash for the badge sitting on top */}
+        <div className="absolute inset-0 bg-gradient-to-t from-pasha-ink/20 via-transparent to-transparent" />
+        {/* shine on hover */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
+      <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-pasha-red/[0.12] blur-2xl group-hover:bg-pasha-red/[0.20] transition-all duration-500" />
+      <div className="absolute -top-4 -right-4 w-28 h-28 rounded-full bg-pasha-red/[0.06] blur-xl" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="font-serif text-6xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.10] transition-colors duration-500">
+          {initials(name)}
+        </span>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Avatar — the uploaded logo when present, otherwise the startup initials.
+ */
+function CardLogo({ src, name }: { src?: string | null; name: string }) {
+  const safe = safeImageSrc(src);
+  const [errored, setErrored] = useState(false);
+  const showImage = safe && !errored;
+
+  return (
+    <div
+      className={`w-14 h-14 rounded-2xl ring-[3px] ring-white border border-pasha-line/30 grid place-items-center overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-105 ${
+        showImage
+          ? "bg-white"
+          : "bg-pasha-ink/[0.07] font-bold text-base text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15"
+      }`}
+    >
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={safe}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+          onError={() => setErrored(true)}
+        />
+      ) : (
+        <span aria-hidden>{initials(name)}</span>
+      )}
+    </div>
+  );
+}
 
 const containerV: Variants = {
   hidden: {},
@@ -37,17 +120,7 @@ function StartupCard({ startup }: { startup: WatchlistStartup }) {
 
         {/* Hero panel */}
         <div className="relative h-36 bg-pasha-stone overflow-hidden shrink-0">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
-          <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-pasha-red/[0.12] blur-2xl group-hover:bg-pasha-red/[0.20] transition-all duration-500" />
-          <div className="absolute -top-4 -right-4 w-28 h-28 rounded-full bg-pasha-red/[0.06] blur-xl" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
-
-          {/* Ghost initial */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-serif text-6xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.10] transition-colors duration-500">
-              {initials(startup.startup_name)}
-            </span>
-          </div>
+          <CardCover src={startup.cover_image} name={startup.startup_name} />
 
           {startup.pasha_verified ? (
             <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur border border-pasha-line/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-red/80">
@@ -62,9 +135,7 @@ function StartupCard({ startup }: { startup: WatchlistStartup }) {
 
         {/* Avatar */}
         <div className="relative z-10 px-5 -mt-7">
-          <div className="w-14 h-14 rounded-2xl bg-pasha-ink/[0.07] ring-[3px] ring-white border border-pasha-line/30 grid place-items-center font-bold text-base text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm">
-            {initials(startup.startup_name)}
-          </div>
+          <CardLogo src={startup.logo_url} name={startup.startup_name} />
         </div>
 
         {/* Content */}

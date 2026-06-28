@@ -249,7 +249,7 @@ function LogoTile({
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-contain p-2"
+          className="w-full h-full object-cover"
           onError={() => setErrored(true)}
         />
       ) : (
