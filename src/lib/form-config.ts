@@ -141,6 +141,49 @@ function makeRequiredString(
   return z.preprocess(emptyToEmpty, buildStringBase(spec, opts, true));
 }
 
+// Collapse an HTML fragment (CKEditor stores HTML) down to its visible text so
+// length rules count what the user actually typed, not the markup. Block-level
+// closers and <br> become spaces, remaining tags are dropped, and the common
+// named/numeric entities are decoded. Isomorphic (no DOM) so it runs the same on
+// client and server.
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6]|tr|blockquote|td|th)>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;/gi, "'")
+    .replace(/ /g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Rich-text fields hold an HTML string, but min/max length must apply to the
+// visible text, not the markup. Required/optional empty checks also use the
+// stripped text so "<p>&nbsp;</p>" counts as empty.
+function makeRichText(spec: ValidationSpec, required: boolean): z.ZodTypeAny {
+  return z.preprocess(
+    (v) => (v === null || v === undefined ? "" : String(v)),
+    z.string().superRefine((html, ctx) => {
+      const len = htmlToPlainText(html).length;
+      if (len === 0) {
+        if (required) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required" });
+        return; // optional + empty is fine; no further length checks
+      }
+      if (spec.minLength && len < spec.minLength) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `At least ${spec.minLength} characters` });
+      }
+      if (spec.maxLength && len > spec.maxLength) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `At most ${spec.maxLength} characters` });
+      }
+    })
+  );
+}
+
 function makeNumber(spec: ValidationSpec, required: boolean): z.ZodTypeAny {
   const isInt = spec.integer !== false;
   return z.preprocess(
@@ -195,6 +238,10 @@ function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
       break;
     case InputType.MULTISELECT:
       schema = makeArray(req);
+      break;
+    case InputType.RICH_TEXT:
+      // Value is an HTML string; length rules apply to the visible text.
+      schema = makeRichText(spec, req);
       break;
     case InputType.EMAIL:
       schema = req
