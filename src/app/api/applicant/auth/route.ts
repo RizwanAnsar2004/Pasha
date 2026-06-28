@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   // Admins belong in the committee portal — keep the audiences separate.
   if (await isAdminEmail(email)) {
     return NextResponse.json(
-      { error: "This email is registered for committee access. Please use the admin portal." },
+      { error: "Invalid Email And Password." },
       { status: 403 }
     );
   }
