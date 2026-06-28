@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getDatabankDynamicFields } from "@/lib/form-config.server";
 import { EditDatabankClient, type DatabankRow } from "./EditDatabankClient";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function EditDatabankPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const row = await load(id);
+  const [row, dynamicFields] = await Promise.all([
+    load(id),
+    getDatabankDynamicFields(),
+  ]);
   if (!row) notFound();
-  return <EditDatabankClient initial={row} />;
+  return <EditDatabankClient initial={row} dynamicFields={dynamicFields} />;
 }

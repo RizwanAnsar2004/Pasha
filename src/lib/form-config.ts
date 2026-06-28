@@ -511,6 +511,75 @@ export function buildFieldLabelMap(config: FormConfig): FieldLabelMap {
   return map;
 }
 
+// ---------------------------------------------------------------------------
+// Dynamic (answers-bag) field metadata — fields with NO column_map. These are
+// the admin-defined fields routeValues() funnels into submissions.answers (and
+// mirrored onto databank.answers on approval). The admin databank editor
+// surfaces them so cover_image and any other custom field can be edited.
+// ---------------------------------------------------------------------------
+
+export type DynamicFieldDef = {
+  section: string;
+  field_key: string;
+  label: string;
+  input_type: number;
+  hint: string | null;
+  placeholder: string | null;
+  options: { value: string; label: string }[];
+  // FILE_UPLOAD config (from the field's validation bag).
+  bucket?: "logos" | "founder-photos" | "pitch-decks";
+  accept?: Record<string, string[]>;
+  maxSizeMB?: number;
+};
+
+// Types that don't hold a single editable answers value here.
+const DYNAMIC_SKIP_TYPES = new Set<number>([
+  InputType.HEADING,
+  InputType.GROUP,
+  InputType.CITY_COMPOSITE,
+]);
+
+function resolveFieldOptions(field: FormFieldConfig): { value: string; label: string }[] {
+  if (Array.isArray(field.options) && field.options.length > 0) {
+    return normalizeOptions(field.options);
+  }
+  if (field.options_source && OPTION_LISTS[field.options_source]) {
+    return normalizeOptions(OPTION_LISTS[field.options_source]);
+  }
+  return [];
+}
+
+/**
+ * Flatten the form config to the editable answers-bag fields: those with no
+ * column_map (column-mapped fields already have dedicated editors), skipping
+ * headings, groups, and the city composite. Powers the admin databank editor's
+ * "Application form fields" section.
+ */
+export function collectDynamicFields(config: FormConfig): DynamicFieldDef[] {
+  const out: DynamicFieldDef[] = [];
+  for (const section of config) {
+    for (const field of section.fields) {
+      if (DYNAMIC_SKIP_TYPES.has(field.input_type)) continue;
+      if (field.column_map) continue;
+      const label = field.label?.trim();
+      if (!label) continue;
+      out.push({
+        section: section.title,
+        field_key: field.field_key,
+        label,
+        input_type: field.input_type,
+        hint: field.hint ?? null,
+        placeholder: field.placeholder ?? null,
+        options: resolveFieldOptions(field),
+        bucket: field.validation?.bucket,
+        accept: field.validation?.accept,
+        maxSizeMB: field.validation?.maxSizeMB,
+      });
+    }
+  }
+  return out;
+}
+
 const FOUNDER_SUBFIELD_LABELS: Record<string, string> = {
   name: "Name",
   role: "Role",

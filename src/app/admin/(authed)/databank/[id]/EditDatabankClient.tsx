@@ -9,7 +9,7 @@ import { Field } from "@/components/form/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { FileUpload } from "@/components/form/FileUpload";
-import { YesNo } from "@/components/ui/RadioCard";
+import { YesNo, CheckboxGroup } from "@/components/ui/RadioCard";
 import {
   BUSINESS_MODELS,
   HQ_CITIES,
@@ -18,6 +18,8 @@ import {
   FOUNDER_GENDERS,
 } from "@/lib/options";
 import { COUNTRIES } from "@/lib/countries";
+import { InputType, htmlInputType } from "@/lib/form-enums";
+import type { DynamicFieldDef } from "@/lib/form-config";
 
 // CKEditor touches `window`; load it client-only. Props: { value, onChange }.
 const TaglineEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
@@ -75,6 +77,8 @@ export type DatabankRow = {
   company_facebook: string | null;
   company_youtube: string | null;
   key_persons: KeyPerson[] | null;
+  // Dynamic admin-defined form fields (cover_image, etc.) live here.
+  answers: Record<string, unknown> | null;
 };
 
 type KeyPerson = {
@@ -101,7 +105,13 @@ function asNumber(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
+export function EditDatabankClient({
+  initial,
+  dynamicFields = [],
+}: {
+  initial: DatabankRow;
+  dynamicFields?: DynamicFieldDef[];
+}) {
   const router = useRouter();
   const [row, setRow] = useState<DatabankRow>(initial);
   const [saving, setSaving] = useState(false);
@@ -128,6 +138,22 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
   function update<K extends keyof DatabankRow>(key: K, value: DatabankRow[K]) {
     setRow((r) => ({ ...r, [key]: value }));
   }
+
+  // Patch a single dynamic (answers-bag) field, merging into the JSONB column.
+  function setAnswer(key: string, value: unknown) {
+    setRow((r) => ({ ...r, answers: { ...(r.answers ?? {}), [key]: value } }));
+  }
+
+  // Dynamic fields grouped by their form section, preserving config order.
+  const groupedDynamic = useMemo(() => {
+    const m = new Map<string, DynamicFieldDef[]>();
+    for (const f of dynamicFields) {
+      const arr = m.get(f.section) ?? [];
+      arr.push(f);
+      m.set(f.section, arr);
+    }
+    return [...m.entries()];
+  }, [dynamicFields]);
 
   async function save() {
     if (!hasChanges) return;
@@ -663,6 +689,36 @@ export function EditDatabankClient({ initial }: { initial: DatabankRow }) {
         </div>
       </Section>
 
+      {groupedDynamic.length > 0 && (
+        <Section
+          title="Application form fields"
+          subtitle="Admin-defined fields from the dynamic form (e.g. cover image). Saved to this listing."
+        >
+          <div className="space-y-6">
+            {groupedDynamic.map(([sectionTitle, defs]) => (
+              <div key={sectionTitle} className="space-y-5">
+                <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted border-t border-pasha-line/60 pt-4 first:border-t-0 first:pt-0">
+                  {sectionTitle}
+                </h4>
+                {defs.map((def) => (
+                  <Field
+                    key={def.field_key}
+                    label={def.label}
+                    hint={def.hint ?? undefined}
+                  >
+                    <DynamicFieldControl
+                      def={def}
+                      value={(row.answers ?? {})[def.field_key]}
+                      onChange={(v) => setAnswer(def.field_key, v)}
+                    />
+                  </Field>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section
         title="Key persons"
         subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
@@ -728,6 +784,109 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DynamicFieldControl — editable control for an admin-defined answers-bag field,
+// chosen by its input_type. Mirrors the public DynamicField renderer so e.g.
+// cover_image edits with a file upload, selects with a dropdown, etc.
+// ---------------------------------------------------------------------------
+function DynamicFieldControl({
+  def,
+  value,
+  onChange,
+}: {
+  def: DynamicFieldDef;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const t = def.input_type;
+
+  if (t === InputType.YES_NO) {
+    return (
+      <YesNo
+        value={typeof value === "boolean" ? value : undefined}
+        onChange={(v) => onChange(v)}
+      />
+    );
+  }
+
+  if (t === InputType.MULTISELECT) {
+    const arr = Array.isArray(value) ? (value as string[]) : [];
+    return (
+      <CheckboxGroup
+        value={arr}
+        onChange={(next) => onChange(next)}
+        options={def.options.map((o) => o.value)}
+      />
+    );
+  }
+
+  if (t === InputType.SELECT || t === InputType.RADIO_CARDS) {
+    return (
+      <SelectMenu
+        className="w-full"
+        value={typeof value === "string" ? value : ""}
+        onValueChange={(v) => onChange(v || null)}
+        placeholder={def.placeholder ?? "Select"}
+        options={def.options}
+      />
+    );
+  }
+
+  if (t === InputType.FILE_UPLOAD) {
+    return (
+      <FileUpload
+        bucket={def.bucket ?? "logos"}
+        value={typeof value === "string" && value ? value : undefined}
+        onChange={(url) => onChange(url ?? null)}
+        accept={
+          def.accept ?? {
+            "image/*": [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".avif"],
+          }
+        }
+        maxSizeMB={def.maxSizeMB ?? 5}
+        label="Drop file or click to upload"
+      />
+    );
+  }
+
+  if (t === InputType.TEXTAREA) {
+    return (
+      <Textarea
+        value={typeof value === "string" ? value : ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        rows={4}
+        placeholder={def.placeholder ?? undefined}
+      />
+    );
+  }
+
+  if (t === InputType.RICH_TEXT) {
+    return (
+      <TaglineEditor
+        value={typeof value === "string" ? value : ""}
+        onChange={(html: string) => onChange(html || null)}
+      />
+    );
+  }
+
+  // Scalar inputs: text / email / url / phone / number / date.
+  return (
+    <Input
+      type={htmlInputType(t)}
+      value={value == null ? "" : String(value)}
+      placeholder={def.placeholder ?? undefined}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (t === InputType.NUMBER) {
+          onChange(raw === "" ? null : Number(raw));
+        } else {
+          onChange(raw || null);
+        }
+      }}
+    />
   );
 }
 

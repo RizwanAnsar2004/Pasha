@@ -83,6 +83,9 @@ const EDITABLE_COLUMNS = new Set([
 
   // key persons JSONB
   "key_persons",
+
+  // dynamic admin-defined form fields (cover_image, etc.) JSONB
+  "answers",
 ]);
 
 const patchSchema = z.object({
