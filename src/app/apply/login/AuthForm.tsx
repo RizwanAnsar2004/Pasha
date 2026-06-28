@@ -337,7 +337,8 @@ function AuthInner({
           autoComplete={isRegister ? "new-password" : "current-password"}
           placeholder="••••••••"
           aria-invalid={passwordError ? true : undefined}
-          className={`${inputClass}${passwordError ? " border-pasha-red focus-visible:border-pasha-red" : ""}`}
+          wrapperClassName="mt-1.5"
+          className={`${inputClass.replace("mt-1.5 ", "")}${passwordError ? " border-pasha-red focus-visible:border-pasha-red" : ""}`}
         />
         {passwordError ? (
           <p className="mt-1.5 text-xs text-pasha-red">{passwordError}</p>
