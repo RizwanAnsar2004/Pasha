@@ -108,9 +108,13 @@ function asNumber(v: string): number | null {
 export function EditDatabankClient({
   initial,
   dynamicFields = [],
+  // This page now renders ONLY the admin-defined dynamic form fields. The
+  // hardcoded column editors are gated off; flip to true to bring them back.
+  showStaticFields = false,
 }: {
   initial: DatabankRow;
   dynamicFields?: DynamicFieldDef[];
+  showStaticFields?: boolean;
 }) {
   const router = useRouter();
   const [row, setRow] = useState<DatabankRow>(initial);
@@ -293,6 +297,8 @@ export function EditDatabankClient({
         </div>
       )}
 
+      {showStaticFields && (
+        <>
       <Section title="Branding & identity">
         <Field label="Logo" hint="PNG / JPG / SVG. Square works best.">
           <FileUpload
@@ -688,8 +694,10 @@ export function EditDatabankClient({
           </Field>
         </div>
       </Section>
+        </>
+      )}
 
-      {groupedDynamic.length > 0 && (
+      {groupedDynamic.length > 0 ? (
         <Section
           title="Application form fields"
           subtitle="Admin-defined fields from the dynamic form (e.g. cover image). Saved to this listing."
@@ -717,17 +725,29 @@ export function EditDatabankClient({
             ))}
           </div>
         </Section>
+      ) : (
+        <Section
+          title="Application form fields"
+          subtitle="No admin-defined dynamic fields are configured for the application form yet."
+        >
+          <p className="text-sm text-pasha-muted">
+            Add fields in the form builder (Forms) and they will appear here for
+            editing.
+          </p>
+        </Section>
       )}
 
-      <Section
-        title="Key persons"
-        subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
-      >
-        <KeyPersonsEditor
-          persons={row.key_persons ?? []}
-          onChange={(next) => update("key_persons", next)}
-        />
-      </Section>
+      {showStaticFields && (
+        <Section
+          title="Key persons"
+          subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
+        >
+          <KeyPersonsEditor
+            persons={row.key_persons ?? []}
+            onChange={(next) => update("key_persons", next)}
+          />
+        </Section>
+      )}
 
       <div className="pt-2 flex items-center justify-end gap-2">
         <button
