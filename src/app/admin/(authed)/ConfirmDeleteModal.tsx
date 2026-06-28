@@ -33,7 +33,7 @@ export function ConfirmDeleteModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onCancel}
-            className="fixed inset-0 z-50 bg-pasha-ink/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-pasha-ink/40 h-[100vh] backdrop-blur-sm"
           />
           <motion.div
             key="confirm-delete-dialog"
