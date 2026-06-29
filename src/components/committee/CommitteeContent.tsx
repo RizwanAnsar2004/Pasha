@@ -32,6 +32,22 @@ import {
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Static committee roster — source of truth for the organogram.
+const STATIC_COMMITTEE: CommitteeMemberRow[] = [
+  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          added_at: "" },
+  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             added_at: "" },
+  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            added_at: "" },
+  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    added_at: "" },
+  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              added_at: "" },
+  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               added_at: "" },
+  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      added_at: "" },
+  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          added_at: "" },
+  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   added_at: "" },
+  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", added_at: "" },
+  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            added_at: "" },
+  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", added_at: "" },
+];
+
 const OBJECTIVES = [
   {
     icon: CheckCircle2,
@@ -92,48 +108,31 @@ function MemberCard({
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.5, delay: index * 0.07, ease: EASE }}
       whileHover={{ y: -6 }}
-      className="group relative flex flex-col h-full"
+      className="group"
     >
-      <div className="relative flex flex-col flex-1 rounded-3xl overflow-hidden border border-pasha-line/50 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-500">
+      <div className="flex flex-col rounded-2xl border border-pasha-line/60 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_20px_48px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-400 p-5">
+        {/* Member chip */}
+        <span className="self-start inline-flex items-center rounded-full bg-pasha-stone/80 border border-pasha-line/60 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-ink/40">
+          {COMMITTEE_MEMBER_TAG}
+        </span>
 
-        {/* Hero panel */}
-        <div className="relative h-28 bg-pasha-stone overflow-hidden shrink-0">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:24px_24px]" />
-          <div className="absolute -bottom-4 -left-4 w-32 h-32 rounded-full bg-pasha-red/[0.10] blur-2xl group-hover:bg-pasha-red/[0.18] transition-all duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
-
-          {/* Ghost initial */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-serif text-5xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.10] transition-colors duration-500">
-              {initials(member.name)}
-            </span>
-          </div>
-
-          {/* Member chip */}
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur border border-pasha-line/60 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-ink/40">
-            {COMMITTEE_MEMBER_TAG}
-          </span>
-        </div>
-
-        {/* Avatar overlap */}
-        <div className="relative z-10 px-4 -mt-6">
-          <div className="w-12 h-12 rounded-2xl bg-pasha-ink/[0.07] ring-[3px] ring-white border border-pasha-line/30 grid place-items-center font-bold text-sm text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm">
-            {initials(member.name)}
-          </div>
+        {/* Avatar */}
+        <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-ink/[0.07] border border-pasha-line/30 grid place-items-center font-bold text-sm text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
+          {initials(member.name)}
         </div>
 
         {/* Content */}
-        <div className="flex flex-col flex-1 px-4 pt-2.5 pb-4 gap-1">
-          <h3 className="font-serif text-base text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
+        <div className="mt-3 flex flex-col gap-0.5">
+          <h3 className="font-serif text-[15px] text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
             {member.name}
           </h3>
           {member.role && (
-            <p className="text-xs font-semibold text-pasha-red/70">{member.role}</p>
+            <p className="text-[11px] font-semibold text-pasha-red/70">{member.role}</p>
           )}
           {member.org && (
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-1.5 mt-1">
               <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
-              <p className="text-xs text-pasha-muted/70 truncate">{member.org}</p>
+              <p className="text-[11px] text-pasha-muted/70 truncate">{member.org}</p>
             </div>
           )}
         </div>
@@ -149,8 +148,9 @@ export function CommitteeContent({
   members: CommitteeMemberRow[];
   activities: CommitteeActivityRow[];
 }) {
-  const chair = members.length > 0 ? members[0] : null;
-  const committeeMembers = members.length > 1 ? members.slice(1) : [];
+  const roster = STATIC_COMMITTEE.length > 0 ? STATIC_COMMITTEE : members;
+  const chair = roster.length > 0 ? roster[0] : null;
+  const committeeMembers = roster.length > 1 ? roster.slice(1) : [];
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
@@ -367,52 +367,35 @@ export function CommitteeContent({
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, ease: EASE }}
                 whileHover={{ y: -4 }}
-                className="group relative w-full max-w-xs sm:max-w-sm"
+                className="group w-[220px]"
               >
-                <div className="relative flex flex-col rounded-3xl overflow-hidden border border-pasha-red/20 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/35 transition-all duration-500">
+                <div className="flex flex-col rounded-2xl border border-pasha-red/25 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/40 transition-all duration-500 p-5">
 
-                  {/* Hero panel */}
-                  <div className="relative h-36 bg-gradient-to-br from-pasha-stone via-pasha-stone to-white overflow-hidden shrink-0">
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(14,14,16,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,14,16,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
-                    <div className="absolute -bottom-6 -left-6 w-44 h-44 rounded-full bg-pasha-red/[0.15] blur-2xl group-hover:bg-pasha-red/[0.25] transition-all duration-500" />
-                    <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-pasha-red/[0.07] blur-xl" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700 pointer-events-none" />
+                  {/* Chair badge */}
+                  <span className="self-start inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-3 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
+                    <Crown className="w-2.5 h-2.5" /> Chair
+                  </span>
 
-                    {/* Ghost initial */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-serif text-7xl font-bold text-pasha-ink/[0.07] select-none leading-none group-hover:text-pasha-red/[0.12] transition-colors duration-500">
-                        {initials(chair.name)}
-                      </span>
-                    </div>
-
-                    {/* Chair badge */}
-                    <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur border border-pasha-red/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-red/90 shadow-sm">
-                      <Crown className="w-2.5 h-2.5" /> Chair
-                    </span>
-                  </div>
-
-                  {/* Avatar overlap */}
-                  <div className="relative z-10 px-6 -mt-8">
-                    <div className="w-16 h-16 rounded-2xl bg-pasha-ink/[0.07] ring-4 ring-white border border-pasha-line/30 grid place-items-center font-bold text-lg text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm">
-                      {initials(chair.name)}
-                    </div>
+                  {/* Avatar */}
+                  <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-sm text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
+                    {initials(chair.name)}
                   </div>
 
                   {/* Content */}
-                  <div className="px-6 pt-3 pb-6">
-                    <h3 className="font-serif text-2xl text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
+                  <div className="mt-3 flex flex-col gap-0.5">
+                    <h3 className="font-serif text-[15px] text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
                       {chair.name}
                     </h3>
                     {chair.role && (
-                      <p className="mt-1 text-sm font-semibold text-pasha-red/70">{chair.role}</p>
+                      <p className="text-[11px] font-semibold text-pasha-red/70">{chair.role}</p>
                     )}
                     {chair.org && (
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-pasha-muted/50 shrink-0" />
-                        <p className="text-sm text-pasha-muted/70">{chair.org}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
+                        <p className="text-[11px] text-pasha-muted/70">{chair.org}</p>
                       </div>
                     )}
-                    <p className="mt-3 text-xs text-pasha-muted/50 leading-relaxed">
+                    <p className="mt-2 text-[10px] text-pasha-muted/40 leading-relaxed">
                       {COMMITTEE_CHAIR_TAG}
                     </p>
                   </div>
@@ -448,7 +431,7 @@ export function CommitteeContent({
                     {committeeMembers.map((member, i) => (
                       <div
                         key={member.email}
-                        className="relative flex-1 min-w-[180px] max-w-[240px] pt-8"
+                        className="relative shrink-0 w-[220px] pt-8"
                       >
                         {/* Drop line from bus to card */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-8 bg-pasha-line" />

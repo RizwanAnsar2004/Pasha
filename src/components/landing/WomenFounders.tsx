@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { motion, type Variants } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Globe, Mail, MapPin, Phone, Sparkles, Users } from "lucide-react";
+import { motion, type Variants, useMotionValue, animate } from "framer-motion";
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Globe, Mail, MapPin, Phone, Sparkles, Users } from "lucide-react";
 import { initials, formatNumber } from "@/lib/utils";
 import { safeImageSrc } from "@/lib/safe-url";
 import { RichText } from "@/components/ui/RichText";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { WomenLedStartup } from "@/lib/women-led";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+const CARDS_PER_PAGE = 3;
 
 export type WomenFounderStartup = WomenLedStartup;
 
@@ -99,7 +100,7 @@ function CardLogo({ src, name }: { src?: string | null; name: string }) {
 
 const containerV: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
 };
 
 const itemV: Variants = {
@@ -109,12 +110,7 @@ const itemV: Variants = {
 
 function FounderCard({ startup }: { startup: WomenLedStartup }) {
   return (
-    <motion.div
-      variants={itemV}
-      whileHover={{ y: -10 }}
-      transition={{ type: "spring", stiffness: 280, damping: 22 }}
-      className="group relative flex flex-col"
-    >
+    <div className="group relative flex flex-col h-full">
       <Link href={`/directory/${startup.slug}`} className="absolute inset-0 z-20 rounded-3xl focus-visible:outline-none" />
 
       <div className="relative flex flex-col flex-1 rounded-3xl overflow-hidden border border-pasha-line/50 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-500">
@@ -123,13 +119,12 @@ function FounderCard({ startup }: { startup: WomenLedStartup }) {
         <div className="relative h-36 bg-pasha-stone overflow-hidden shrink-0">
           <CardCover src={startup.cover_image} name={startup.startup_name} />
 
-          {/* Women Led chip — top left */}
           <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur border border-pasha-line/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-red/80">
             <Users className="w-2.5 h-2.5" /> Women Led
           </span>
         </div>
 
-        {/* Avatar — floats over hero */}
+        {/* Avatar */}
         <div className="relative z-10 px-5 -mt-7">
           <CardLogo src={startup.logo_url} name={startup.startup_name} />
         </div>
@@ -141,9 +136,7 @@ function FounderCard({ startup }: { startup: WomenLedStartup }) {
           </h3>
 
           {startup.founder_name && (
-            <p className="text-sm text-pasha-muted font-medium">
-              {startup.founder_name}
-            </p>
+            <p className="text-sm text-pasha-muted font-medium">{startup.founder_name}</p>
           )}
 
           {startup.tagline && (
@@ -154,7 +147,6 @@ function FounderCard({ startup }: { startup: WomenLedStartup }) {
             />
           )}
 
-          {/* Industry + city tags */}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {startup.primary_industry && (
               <span className="inline-flex items-center rounded-full bg-pasha-red/[0.07] border border-pasha-red/12 px-3 py-1 text-xs font-semibold text-pasha-red/75">
@@ -171,7 +163,6 @@ function FounderCard({ startup }: { startup: WomenLedStartup }) {
 
           <div className="flex-1" />
 
-          {/* Contact info block */}
           {(startup.contact_email || startup.founder_mobile || cleanUrl(startup.website)) && (
             <div className="mt-3 pt-3 border-t border-pasha-line/40 space-y-2">
               {startup.contact_email && (
@@ -212,7 +203,7 @@ function FounderCard({ startup }: { startup: WomenLedStartup }) {
           </span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -225,8 +216,29 @@ export function WomenFounders({
 }) {
   if (startups.length === 0) return null;
 
-  const shown = startups.slice(0, 6);
+  const shown = startups.slice(0, 9);
   const remaining = Math.max(totalCount - shown.length, 0);
+
+  // Build pages: each page has up to CARDS_PER_PAGE cards; last page may include "+remaining" slot
+  const cardSlots: Array<WomenLedStartup | "more"> = [...shown, ...(remaining > 0 ? (["more"] as const) : [])];
+  const totalPages = Math.ceil(cardSlots.length / CARDS_PER_PAGE);
+
+  const [page, setPage] = useState(0);
+  const dragX = useMotionValue(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const goTo = useCallback((target: number) => {
+    const clamped = Math.max(0, Math.min(totalPages - 1, target));
+    setPage(clamped);
+  }, [totalPages]);
+
+  const handleDragEnd = useCallback((_: unknown, info: { offset: { x: number } }) => {
+    if (info.offset.x < -50) goTo(page + 1);
+    else if (info.offset.x > 50) goTo(page - 1);
+    animate(dragX, 0, { type: "spring", stiffness: 400, damping: 40 });
+  }, [page, goTo, dragX]);
+
+  const pageSlots = cardSlots.slice(page * CARDS_PER_PAGE, (page + 1) * CARDS_PER_PAGE);
 
   return (
     <section className="relative bg-white border-b border-pasha-line py-20 sm:py-28 overflow-hidden">
@@ -269,38 +281,95 @@ export function WomenFounders({
           </Link>
         </motion.div>
 
-        {/* Grid */}
-        <motion.div
-          variants={containerV}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-        >
-          {shown.map((startup) => (
-            <FounderCard key={startup.id} startup={startup} />
-          ))}
-
-          {remaining > 0 && (
-            <motion.div variants={itemV} whileHover={{ y: -10 }} transition={{ type: "spring", stiffness: 280, damping: 22 }}>
-              <Link
-                href="/directory?women_led=true"
-                className="group flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-pasha-line hover:border-pasha-red/30 bg-pasha-stone/40 hover:bg-pasha-red/[0.03] transition-all duration-400 px-5 py-10 h-full min-h-[200px]"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-pasha-red/10 border border-pasha-red/15 grid place-items-center">
-                  <span className="font-serif text-2xl text-pasha-red leading-none">+{remaining}</span>
-                </div>
-                <div className="text-center">
-                  <p className="font-serif text-lg text-pasha-ink group-hover:text-pasha-red transition-colors">+{formatNumber(remaining)} More</p>
-                  <p className="text-sm text-pasha-muted mt-0.5">Women-Led Startups</p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-pasha-red/50 group-hover:text-pasha-red transition-colors">
-                  Browse all <ArrowUpRight className="w-3 h-3" />
-                </span>
-              </Link>
+        {/* Carousel */}
+        <div className="relative">
+          {/* Draggable track */}
+          <motion.div
+            ref={trackRef}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.08}
+            style={{ x: dragX }}
+            onDragEnd={handleDragEnd}
+            className="cursor-grab active:cursor-grabbing select-none"
+          >
+            <motion.div
+              key={page}
+              variants={containerV}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch"
+            >
+              {pageSlots.map((slot, i) =>
+                slot === "more" ? (
+                  <motion.div key="more" variants={itemV} className="h-full">
+                    <Link
+                      href="/directory?women_led=true"
+                      className="group flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-pasha-line hover:border-pasha-red/30 bg-pasha-stone/40 hover:bg-pasha-red/[0.03] transition-all duration-300 px-5 py-10 h-full min-h-[260px]"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-pasha-red/10 border border-pasha-red/15 grid place-items-center">
+                        <span className="font-serif text-2xl text-pasha-red leading-none">+{remaining}</span>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-serif text-lg text-pasha-ink group-hover:text-pasha-red transition-colors">
+                          +{formatNumber(remaining)} More
+                        </p>
+                        <p className="text-sm text-pasha-muted mt-0.5">Women-Led Startups</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-pasha-red/50 group-hover:text-pasha-red transition-colors">
+                        Browse all <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </Link>
+                  </motion.div>
+                ) : (
+                  <motion.div key={(slot as WomenLedStartup).id} variants={itemV}>
+                    <FounderCard startup={slot as WomenLedStartup} />
+                  </motion.div>
+                )
+              )}
             </motion.div>
+          </motion.div>
+
+          {/* Prev / Next arrows */}
+          {totalPages > 1 && (
+            <>
+              <button
+                onClick={() => goTo(page - 1)}
+                disabled={page === 0}
+                aria-label="Previous"
+                className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-pasha-line shadow-md grid place-items-center text-pasha-ink/50 hover:text-pasha-red hover:border-pasha-red/30 hover:shadow-lg disabled:opacity-30 disabled:pointer-events-none transition-all duration-200"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => goTo(page + 1)}
+                disabled={page === totalPages - 1}
+                aria-label="Next"
+                className="absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-pasha-line shadow-md grid place-items-center text-pasha-ink/50 hover:text-pasha-red hover:border-pasha-red/30 hover:shadow-lg disabled:opacity-30 disabled:pointer-events-none transition-all duration-200"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
           )}
-        </motion.div>
+        </div>
+
+        {/* Dot indicators */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                aria-label={`Page ${i + 1}`}
+                className={`rounded-full transition-all duration-300 ${
+                  i === page
+                    ? "w-6 h-2 bg-pasha-red"
+                    : "w-2 h-2 bg-pasha-ink/15 hover:bg-pasha-red/40"
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
       </div>
     </section>

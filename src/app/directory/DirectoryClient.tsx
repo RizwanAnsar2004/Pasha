@@ -40,11 +40,11 @@ type Row = {
 };
 
 // Small directory badge pills (women-led / hiring / fundraising). Verified
-// keeps its own dedicated <VerifiedBadge>. Mirrors src/lib/badges.ts tones.
+// keeps its own dedicated <VerifiedBadge>. All use pasha theme tokens.
 const DIR_BADGE: Record<"women_led" | "hiring" | "fundraising", { label: string; cls: string }> = {
-  women_led: { label: "Women-led", cls: "bg-pink-50 text-pink-700 border-pink-100" },
-  hiring: { label: "Hiring", cls: "bg-sky-50 text-sky-700 border-sky-100" },
-  fundraising: { label: "Fundraising", cls: "bg-green-50 text-green-700 border-green-100" },
+  women_led: { label: "Women-led", cls: "bg-pasha-red/[0.07] text-pasha-red border-pasha-red/10" },
+  hiring: { label: "Hiring", cls: "bg-pasha-ink/[0.06] text-pasha-ink/70 border-pasha-ink/10" },
+  fundraising: { label: "Fundraising", cls: "bg-pasha-red/[0.05] text-pasha-red/70 border-pasha-red/[0.08]" },
 };
 
 function DirectoryBadges({ r, className }: { r: Row; className?: string }) {
@@ -119,72 +119,6 @@ type SectorTheme = {
   gradient: string; // subtle background tint for the header section
 };
 
-const SECTOR_THEMES: Record<string, SectorTheme> = {
-  fintech: {
-    stripe: "bg-gradient-to-r from-blue-500 to-cyan-500",
-    badge: "bg-blue-50 text-blue-700 border-blue-100",
-    logoBg: "bg-gradient-to-br from-blue-50 to-cyan-50",
-    logoText: "text-blue-700",
-    gradient: "from-blue-50/40",
-  },
-  agritech: {
-    stripe: "bg-gradient-to-r from-green-500 to-emerald-500",
-    badge: "bg-green-50 text-green-700 border-green-100",
-    logoBg: "bg-gradient-to-br from-green-50 to-emerald-50",
-    logoText: "text-green-700",
-    gradient: "from-green-50/40",
-  },
-  health: {
-    stripe: "bg-gradient-to-r from-emerald-500 to-teal-500",
-    badge: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    logoBg: "bg-gradient-to-br from-emerald-50 to-teal-50",
-    logoText: "text-emerald-700",
-    gradient: "from-emerald-50/40",
-  },
-  edtech: {
-    stripe: "bg-gradient-to-r from-violet-500 to-purple-500",
-    badge: "bg-violet-50 text-violet-700 border-violet-100",
-    logoBg: "bg-gradient-to-br from-violet-50 to-purple-50",
-    logoText: "text-violet-700",
-    gradient: "from-violet-50/40",
-  },
-  ecommerce: {
-    stripe: "bg-gradient-to-r from-orange-500 to-amber-500",
-    badge: "bg-orange-50 text-orange-700 border-orange-100",
-    logoBg: "bg-gradient-to-br from-orange-50 to-amber-50",
-    logoText: "text-orange-700",
-    gradient: "from-orange-50/40",
-  },
-  transport: {
-    stripe: "bg-gradient-to-r from-amber-500 to-yellow-500",
-    badge: "bg-amber-50 text-amber-700 border-amber-100",
-    logoBg: "bg-gradient-to-br from-amber-50 to-yellow-50",
-    logoText: "text-amber-700",
-    gradient: "from-amber-50/40",
-  },
-  hr: {
-    stripe: "bg-gradient-to-r from-pink-500 to-rose-500",
-    badge: "bg-pink-50 text-pink-700 border-pink-100",
-    logoBg: "bg-gradient-to-br from-pink-50 to-rose-50",
-    logoText: "text-pink-700",
-    gradient: "from-pink-50/40",
-  },
-  saas: {
-    stripe: "bg-gradient-to-r from-indigo-500 to-blue-500",
-    badge: "bg-indigo-50 text-indigo-700 border-indigo-100",
-    logoBg: "bg-gradient-to-br from-indigo-50 to-blue-50",
-    logoText: "text-indigo-700",
-    gradient: "from-indigo-50/40",
-  },
-  ai: {
-    stripe: "bg-gradient-to-r from-purple-500 to-fuchsia-500",
-    badge: "bg-purple-50 text-purple-700 border-purple-100",
-    logoBg: "bg-gradient-to-br from-purple-50 to-fuchsia-50",
-    logoText: "text-purple-700",
-    gradient: "from-purple-50/40",
-  },
-};
-
 const DEFAULT_THEME: SectorTheme = {
   stripe: "bg-gradient-to-r from-pasha-red to-pasha-red-light",
   badge: "bg-pasha-red/[0.07] text-pasha-red border-pasha-red/10",
@@ -193,19 +127,7 @@ const DEFAULT_THEME: SectorTheme = {
   gradient: "from-pasha-stone/30",
 };
 
-function themeFor(label: string | null): SectorTheme {
-  if (!label) return DEFAULT_THEME;
-  const key = label.toLowerCase();
-  if (key.includes("fintech") || key.includes("finance")) return SECTOR_THEMES.fintech;
-  if (key.includes("agri")) return SECTOR_THEMES.agritech;
-  if (key.includes("health")) return SECTOR_THEMES.health;
-  if (key.includes("edtech") || key.includes("education")) return SECTOR_THEMES.edtech;
-  if (key.includes("commerce") || key.includes("retail")) return SECTOR_THEMES.ecommerce;
-  if (key.includes("transport") || key.includes("logistics") || key.includes("mobility"))
-    return SECTOR_THEMES.transport;
-  if (key.includes("hr ")) return SECTOR_THEMES.hr;
-  if (key.includes("saas")) return SECTOR_THEMES.saas;
-  if (key.includes("ai") || key.includes("ml")) return SECTOR_THEMES.ai;
+function themeFor(_label: string | null): SectorTheme {
   return DEFAULT_THEME;
 }
 
@@ -904,8 +826,8 @@ export function DirectoryClient({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
               womenLedOnly
-                ? "border-pink-500 bg-pink-500 text-white shadow-sm"
-                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pink-300 hover:text-pasha-ink"
+                ? "border-pasha-red bg-pasha-red text-white shadow-sm"
+                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/30 hover:text-pasha-ink"
             )}
           >
             Women-led
@@ -922,8 +844,8 @@ export function DirectoryClient({
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
               hiringOnly
-                ? "border-sky-500 bg-sky-500 text-white shadow-sm"
-                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-sky-300 hover:text-pasha-ink"
+                ? "border-pasha-ink bg-pasha-ink text-white shadow-sm"
+                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-ink/30 hover:text-pasha-ink"
             )}
           >
             Hiring
@@ -1254,7 +1176,7 @@ export function DirectoryClient({
                       {/* Status dot — indicates active founder */}
                       <span
                         aria-hidden
-                        className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"
+                        className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-pasha-red border-2 border-white"
                       />
                     </div>
                     <div className="min-w-0 flex-1">

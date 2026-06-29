@@ -297,11 +297,8 @@ export default async function StartupDetailPage({
   const row = await getStartup(slug);
   if (!row) notFound();
 
-  // Canonical-slug redirect: if someone reaches this page with a stale name
-  // portion, we still render — but Next will canonicalize via metadata.
   const tagline = cleanText(row.tagline);
   const sector = cleanText(row.primary_industry);
-  // Prefer city if present, else hq_country (for outside-Pakistan rows).
   const cityRaw = cleanText(row.city);
   const country = cleanText(row.hq_country);
   const city = cityRaw ?? country;
@@ -316,8 +313,6 @@ export default async function StartupDetailPage({
   const modelHtml = sanitizeHtml(row.business_model);
   const impact = cleanText(row.social_impact);
 
-  // Public-safe dynamic fields synced from the application, labelled from the
-  // live form config (falls back to a humanised key).
   const formConfig = await getFormConfig();
   const answerLabels = formConfig ? fieldLabelMap(formConfig) : {};
   const answers = (row.answers && typeof row.answers === "object" ? row.answers : {}) as Record<string, unknown>;
@@ -343,203 +338,228 @@ export default async function StartupDetailPage({
   const logoOk = isSelfHostedImage(row.logo_url);
   const video = isVideoPitchLink(row.video_pitch) ? row.video_pitch : null;
 
+  const hasStats = !!(revenue || employees || female || customers);
+
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-pasha-stone/30">
+
+        {/* ── HERO BANNER ── */}
+        <div className="relative bg-white overflow-hidden border-b border-pasha-line">
+          {/* Dot texture */}
+          <div
+            aria-hidden
+            className="absolute inset-0 opacity-[0.40]"
+            style={{
+              backgroundImage: "radial-gradient(circle at 1px 1px, rgba(14,14,16,0.055) 1px, transparent 0)",
+              backgroundSize: "28px 28px",
+            }}
+          />
+          {/* Ambient glows */}
+          <div aria-hidden className="absolute -top-32 -left-24 w-[600px] h-[600px] rounded-full bg-pasha-red/[0.06] blur-[140px] pointer-events-none" />
+          <div aria-hidden className="absolute -bottom-24 right-1/4 w-[500px] h-[500px] rounded-full bg-pasha-red/[0.04] blur-[130px] pointer-events-none" />
+
+          <div className="relative mx-auto max-w-5xl px-5 sm:px-8 pt-5 pb-12 sm:pb-16">
+            {/* Back nav */}
+            <Link
+              href="/directory"
+              className="inline-flex items-center gap-1.5 text-sm text-pasha-muted hover:text-pasha-ink transition-colors group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" aria-hidden />
+              Back to directory
+            </Link>
+
+            {/* Claim banner */}
+            {row.source !== "submission" && (
+              <div className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-pasha-ink">
+                <p className="leading-relaxed">
+                  <strong className="font-medium">Is this your company?</strong>{" "}
+                  This profile was imported from a public source. To claim it
+                  and keep the information current, email{" "}
+                  <a
+                    href={`mailto:support@pasha.org.pk?subject=${encodeURIComponent(
+                      `Claim profile: ${row.startup_name}`
+                    )}`}
+                    className="text-pasha-red font-medium hover:underline"
+                  >
+                    support@pasha.org.pk
+                  </a>{" "}
+                  from a company-domain address.
+                </p>
+              </div>
+            )}
+
+            {/* Hero content */}
+            <div className="mt-8 flex flex-col sm:flex-row items-start gap-7 sm:gap-9">
+              {/* Logo tile with glow */}
+              <div className="shrink-0 relative">
+                <div aria-hidden className="absolute -inset-3 rounded-3xl bg-pasha-red/[0.15] blur-2xl" />
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border border-pasha-line bg-white grid place-items-center overflow-hidden shadow-[0_4px_24px_-4px_rgba(14,14,16,0.12)]">
+                  {logoOk ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={row.logo_url!}
+                      alt={`${row.startup_name} logo`}
+                      className="w-full h-full object-cover"
+                      loading="eager"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="font-serif text-3xl font-bold text-pasha-muted select-none">
+                      {initials(row.startup_name)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Name + meta */}
+              <div className="min-w-0 flex-1">
+                {/* Chip row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {sector && (
+                    <span className="inline-flex items-center text-[9px] font-mono font-bold uppercase tracking-[2px] px-3 py-1 rounded-full bg-pasha-red/[0.08] border border-pasha-red/15 text-pasha-red">
+                      {sector}
+                    </span>
+                  )}
+                  {row.secp_verified && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-[2px] px-3 py-1 rounded-full bg-pasha-ink/[0.05] border border-pasha-ink/10 text-pasha-ink/60">
+                      <CheckCircle2 className="w-3 h-3" aria-hidden /> SECP Verified
+                    </span>
+                  )}
+                  {row.pasha_verified && (
+                    <span className="inline-block">
+                      <VerifiedBadge size="sm" />
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-[52px] lg:leading-[1.1] tracking-tight text-pasha-ink text-balance">
+                  {row.startup_name}
+                </h1>
+
+                {tagline && (
+                  <AutoRichText
+                    value={tagline}
+                    className="mt-3 text-base sm:text-lg text-pasha-muted leading-relaxed text-pretty max-w-2xl"
+                  />
+                )}
+
+                {/* Status badges */}
+                {(() => {
+                  const badges = earnedBadges({
+                    womenLed: row.women_led,
+                    hiring: row.hiring,
+                    fundraising: row.fundraising,
+                  });
+                  if (badges.length === 0) return null;
+                  return (
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {badges.map((b) => (
+                        <span
+                          key={b.key}
+                          title={b.description}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full border border-pasha-red/20 bg-pasha-red/[0.07] text-pasha-red text-[10px] font-bold uppercase tracking-[1.5px]"
+                        >
+                          {b.short}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Meta row */}
+                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-sm text-pasha-muted">
+                  {city && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden /> {city}
+                    </span>
+                  )}
+                  {founded && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden /> Founded {founded}
+                    </span>
+                  )}
+                  {websiteShown && websiteHref !== "#" && (
+                    <a
+                      href={websiteHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 hover:text-pasha-red transition-colors"
+                    >
+                      <Globe className="w-3.5 h-3.5 shrink-0" aria-hidden /> {websiteShown}
+                    </a>
+                  )}
+                  {video && (
+                    <a
+                      href={safeHref(video)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-pasha-red hover:text-pasha-red-dark transition-colors font-medium"
+                    >
+                      <PlayCircle className="w-3.5 h-3.5 shrink-0" aria-hidden /> Watch pitch
+                    </a>
+                  )}
+                </div>
+
+                {/* Social icons */}
+                <div className="mt-3">
+                  <CompanySocials
+                    linkedin={row.company_linkedin}
+                    x={row.company_x}
+                    instagram={row.company_instagram}
+                    facebook={row.company_facebook}
+                    youtube={row.company_youtube}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Stats chips row */}
+            {hasStats && (
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {revenue && (
+                  <HeroStat icon={<TrendingUp className="w-3.5 h-3.5" />} label="Annual Revenue" value={revenue} />
+                )}
+                {employees && (
+                  <HeroStat icon={<Users className="w-3.5 h-3.5" />} label="Team Size" value={`${employees.toLocaleString("en-PK")} people`} />
+                )}
+                {female && (
+                  <HeroStat icon={<Sparkles className="w-3.5 h-3.5" />} label="Female Team" value={`${female.toLocaleString("en-PK")} people`} />
+                )}
+                {customers && (
+                  <HeroStat icon={<Coins className="w-3.5 h-3.5" />} label="Customers" value={customers.toLocaleString("en-PK")} />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── CONTENT AREA ── */}
         <div className="mx-auto max-w-5xl px-5 sm:px-8 py-10 sm:py-14">
-          <Link
-            href="/directory"
-            className="inline-flex items-center gap-1.5 text-sm text-pasha-muted hover:text-pasha-ink transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden /> Back to directory
-          </Link>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 lg:gap-12">
 
-          {/* Claim banner — shown for any startup that didn't come through
-              the apply form (i.e. our original scrape, or any other import).
-              source can be null on very old rows; we treat null as
-              "unknown / not claimed" too. */}
-          {row.source !== "submission" && (
-            <div className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-pasha-ink">
-              <p className="leading-relaxed">
-                <strong className="font-medium">Is this your company?</strong>{" "}
-                This profile was imported from a public source. To claim it
-                and keep the information current, email{" "}
-                <a
-                  href={`mailto:support@pasha.org.pk?subject=${encodeURIComponent(
-                    `Claim profile: ${row.startup_name}`
-                  )}`}
-                  className="text-pasha-red font-medium hover:underline"
-                >
-                  support@pasha.org.pk
-                </a>{" "}
-                from a company-domain address.
-              </p>
-            </div>
-          )}
-
-          {/* Hero */}
-          <header className="mt-6 flex flex-col sm:flex-row items-start gap-5 sm:gap-7">
-            <div className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border border-pasha-line bg-white grid place-items-center overflow-hidden">
-              {logoOk ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={row.logo_url!}
-                  alt={`${row.startup_name} logo`}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <span className="text-2xl font-semibold text-pasha-muted">{initials(row.startup_name)}</span>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                {sector && (
-                  <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[1px] px-2 py-1 rounded-md bg-pasha-red/[0.06] text-pasha-red">
-                    {sector}
-                  </span>
-                )}
-                {row.secp_verified && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[1px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700">
-                    <CheckCircle2 className="w-3 h-3" aria-hidden /> SECP verified
-                  </span>
-                )}
-              </div>
-              <h1 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance inline-flex items-center flex-wrap gap-x-3 gap-y-1">
-                <span>{row.startup_name}</span>
-                {row.pasha_verified && (
-                  <span className="inline-block translate-y-[2px]">
-                    <VerifiedBadge size="lg" />
-                  </span>
-                )}
-              </h1>
-              <AutoRichText
-                value={tagline}
-                className="mt-2 text-base sm:text-lg text-pasha-muted leading-relaxed text-pretty"
-              />
-              {(() => {
-                const badges = earnedBadges({
-                  womenLed: row.women_led,
-                  hiring: row.hiring,
-                  fundraising: row.fundraising,
-                }); // verified shown via VerifiedBadge above; featured handled elsewhere
-                if (badges.length === 0) return null;
-                const cls: Record<string, string> = {
-                  pink: "bg-pink-50 text-pink-700 border-pink-100",
-                  blue: "bg-sky-50 text-sky-700 border-sky-100",
-                  green: "bg-green-50 text-green-700 border-green-100",
-                };
-                return (
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    {badges.map((b) => (
-                      <span
-                        key={b.key}
-                        title={b.description}
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium ${cls[b.tone] ?? "bg-pasha-stone text-pasha-muted"}`}
-                      >
-                        {b.short}
-                      </span>
-                    ))}
-                  </div>
-                );
-              })()}
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-pasha-muted">
-                {city && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" aria-hidden /> {city}
-                  </span>
-                )}
-                {founded && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5" aria-hidden /> Founded {founded}
-                  </span>
-                )}
-                {websiteShown && websiteHref !== "#" && (
-                  <a
-                    href={websiteHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-pasha-ink hover:text-pasha-red transition-colors"
-                  >
-                    <Globe className="w-3.5 h-3.5" aria-hidden /> {websiteShown}
-                  </a>
-                )}
-                {video && (
-                  <a
-                    href={safeHref(video)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-pasha-ink hover:text-pasha-red transition-colors"
-                  >
-                    <PlayCircle className="w-3.5 h-3.5" aria-hidden /> Watch pitch
-                  </a>
-                )}
-                <CompanySocials
-                  linkedin={row.company_linkedin}
-                  x={row.company_x}
-                  instagram={row.company_instagram}
-                  facebook={row.company_facebook}
-                  youtube={row.company_youtube}
-                />
-              </div>
-            </div>
-          </header>
-
-          {/* Stats strip */}
-          {(revenue || employees || female || customers) && (
-            <section className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px rounded-xl overflow-hidden border border-pasha-line bg-pasha-line">
-              {revenue && (
-                <Stat icon={<TrendingUp className="w-3.5 h-3.5" aria-hidden />} label="Annual revenue" value={revenue} />
-              )}
-              {employees && (
-                <Stat
-                  icon={<Users className="w-3.5 h-3.5" aria-hidden />}
-                  label="Team"
-                  value={`${employees.toLocaleString("en-PK")} people`}
-                />
-              )}
-              {female && (
-                <Stat
-                  icon={<Sparkles className="w-3.5 h-3.5" aria-hidden />}
-                  label="Female team"
-                  value={`${female.toLocaleString("en-PK")} people`}
-                />
-              )}
-              {customers && (
-                <Stat
-                  icon={<Coins className="w-3.5 h-3.5" aria-hidden />}
-                  label="Customers"
-                  value={customers.toLocaleString("en-PK")}
-                />
-              )}
-            </section>
-          )}
-
-          <div className="mt-12 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10 lg:gap-14">
-            {/* Main column */}
-            <div className="min-w-0 space-y-10">
+            {/* ── Main column ── */}
+            <div className="min-w-0 space-y-5">
               {hasContent(ideaHtml) && (
-                <Section title="About">
+                <ContentCard title="About">
                   <RichText html={ideaHtml} />
-                </Section>
+                </ContentCard>
               )}
               {hasContent(modelHtml) && (
-                <Section title="Business model">
+                <ContentCard title="Business Model">
                   <RichText html={modelHtml} />
-                </Section>
+                </ContentCard>
               )}
               {businessItems.length > 0 && (
-                <Section title="Business profile">
-                  <dl className="space-y-4">
+                <ContentCard title="Business Profile">
+                  <dl className="space-y-0 divide-y divide-pasha-line/40">
                     {businessItems.map((it) => (
-                      <div key={it.key}>
-                        <dt className="text-[11px] font-mono uppercase tracking-[1.5px] text-pasha-muted">
+                      <div key={it.key} className="py-4 first:pt-0 last:pb-0">
+                        <dt className="text-[10px] font-mono uppercase tracking-[2px] text-pasha-muted mb-1.5">
                           {it.label}
                         </dt>
-                        <dd className="mt-1 text-[15px] text-pasha-ink/85 leading-relaxed">
+                        <dd className="text-[15px] text-pasha-ink/85 leading-relaxed">
                           {ANSWER_URL_KEYS.has(it.key) && typeof it.value === "string" ? (
                             <a
                               href={safeHref(it.value)}
@@ -558,47 +578,47 @@ export default async function StartupDetailPage({
                       </div>
                     ))}
                   </dl>
-                </Section>
+                </ContentCard>
               )}
               <KeyPersons persons={row.key_persons} />
               {cleanText(row.awards) && (
-                <Section title="Awards & recognition">
+                <ContentCard title="Awards & Recognition">
                   <p className="text-[15px] text-pasha-ink/85 leading-relaxed whitespace-pre-line">
                     {cleanText(row.awards)}
                   </p>
-                </Section>
+                </ContentCard>
               )}
               {cleanText(row.certifications) && (
-                <Section title="Certifications">
+                <ContentCard title="Certifications">
                   <p className="text-[15px] text-pasha-ink/85 leading-relaxed whitespace-pre-line">
                     {cleanText(row.certifications)}
                   </p>
-                </Section>
+                </ContentCard>
               )}
               {impact && (
-                <Section title="Social impact">
+                <ContentCard title="Social Impact">
                   <p className="text-[15px] text-pasha-ink/85 leading-relaxed">{impact}</p>
-                </Section>
+                </ContentCard>
               )}
               {sdgs.length > 0 && (
-                <Section title="UN sustainability alignment">
+                <ContentCard title="UN Sustainability Alignment">
                   <ul className="flex flex-wrap gap-2">
                     {sdgs.map((s) => (
                       <li
                         key={s}
-                        className="inline-flex items-center text-xs px-2.5 py-1.5 rounded-md border border-pasha-line bg-pasha-stone/40 text-pasha-ink/80"
+                        className="inline-flex items-center text-xs px-3 py-1.5 rounded-full border border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/20 hover:text-pasha-ink transition-colors"
                       >
                         {s}
                       </li>
                     ))}
                   </ul>
-                </Section>
+                </ContentCard>
               )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-              <DetailGroup title="Company">
+            {/* ── Sidebar ── */}
+            <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+              <SideCard title="Company">
                 <DetailRow label="Legal name" value={cleanText(row.company_name) ?? row.startup_name} />
                 <DetailRow label="Founded" value={founded} />
                 <DetailRow label="Primary industry" value={sector} />
@@ -610,19 +630,19 @@ export default async function StartupDetailPage({
                 )}
                 <DetailRow label="Product stage" value={cleanText(row.product_stage)} />
                 <DetailRow label="HQ" value={city} />
-              </DetailGroup>
+              </SideCard>
 
               {(nic || row.incubation_stage || row.cohort) && (
-                <DetailGroup title="Incubation">
+                <SideCard title="Incubation">
                   <DetailRow label="Network" value={nic} icon={<Building2 className="w-3 h-3" aria-hidden />} />
                   <DetailRow label="Stage" value={cleanText(row.incubation_stage)} />
                   <DetailRow label="Cohort" value={cleanText(row.cohort)} />
                   <DetailRow label="Joined" value={formatDate(row.joining_date)} />
-                </DetailGroup>
+                </SideCard>
               )}
 
               {(revenue || row.investment_raised || row.investment_commitment) && (
-                <DetailGroup title="Traction">
+                <SideCard title="Traction">
                   <DetailRow label="Revenue" value={revenue} />
                   <DetailRow label="Customers" value={customers ? customers.toLocaleString("en-PK") : null} />
                   <DetailRow
@@ -643,7 +663,7 @@ export default async function StartupDetailPage({
                     })()}
                   />
                   <DetailRow label="Source of capital" value={cleanText(row.investment_raised_from)} />
-                </DetailGroup>
+                </SideCard>
               )}
             </aside>
           </div>
@@ -655,43 +675,51 @@ export default async function StartupDetailPage({
 }
 
 // === presentational helpers ===
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+
+// Stat chip inside the light hero banner
+function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-white px-4 py-4">
-      <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[1.5px] text-pasha-muted">
-        {icon}
+    <div className="flex flex-col gap-1.5 rounded-2xl bg-white border border-pasha-line px-4 py-4 shadow-[0_2px_8px_-2px_rgba(14,14,16,0.07)] hover:border-pasha-red/20 hover:shadow-[0_4px_16px_-4px_rgba(230,22,15,0.10)] transition-all duration-200">
+      <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-[2px] text-pasha-muted">
+        <span className="[&_svg]:w-3 [&_svg]:h-3 text-pasha-red/60">{icon}</span>
         {label}
       </div>
-      <div className="mt-1.5 text-base sm:text-lg font-medium text-pasha-ink tabular-nums">{value}</div>
+      <div className="font-serif text-xl font-bold text-pasha-ink tabular-nums leading-tight">{value}</div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// White card with pasha-red left accent bar for main column sections
+function ContentCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
-      <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </section>
+    <div className="rounded-2xl bg-white border border-pasha-line shadow-[0_2px_12px_-4px_rgba(14,14,16,0.08)] overflow-hidden">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-pasha-line/60 bg-white">
+        <span aria-hidden className="w-[3px] h-5 rounded-full bg-pasha-red shrink-0" />
+        <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/60 font-semibold">{title}</h2>
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </div>
+  );
+}
+
+// Sidebar detail card with pasha-stone header row
+function SideCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl bg-white border border-pasha-line overflow-hidden shadow-[0_1px_4px_-2px_rgba(14,14,16,0.06)]">
+      <div className="px-4 py-2.5 bg-pasha-ink">
+        <h3 className="font-mono text-[9px] uppercase tracking-[2.5px] text-white/50 font-semibold">{title}</h3>
+      </div>
+      <dl className="divide-y divide-pasha-line/50">{children}</dl>
+    </div>
   );
 }
 
 function RichText({ html }: { html: string }) {
   return (
     <div
-      className="max-w-none text-[15px] text-pasha-ink/90 leading-relaxed [&_a]:text-pasha-red [&_a]:underline [&_a:hover]:text-pasha-red/80 [&_p]:my-2.5 [&_p:first-child]:mt-0 [&_ul]:my-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_strong]:text-pasha-ink [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:font-semibold"
-      // Sanitized server-side via sanitizeHtml allowlist.
+      className="max-w-none text-[15px] text-pasha-ink/85 leading-relaxed [&_a]:text-pasha-red [&_a]:underline [&_a:hover]:text-pasha-red/80 [&_p]:my-2.5 [&_p:first-child]:mt-0 [&_ul]:my-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_strong]:text-pasha-ink [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:font-semibold"
       dangerouslySetInnerHTML={{ __html: html }}
     />
-  );
-}
-
-function DetailGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-pasha-line bg-white p-5">
-      <h3 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">{title}</h3>
-      <dl className="mt-3 space-y-2.5">{children}</dl>
-    </div>
   );
 }
 
@@ -706,9 +734,9 @@ function DetailRow({
 }) {
   if (!value) return null;
   return (
-    <div className="grid grid-cols-[100px_1fr] gap-2 items-start text-xs">
-      <dt className="text-pasha-muted">{label}</dt>
-      <dd className="text-pasha-ink/90 inline-flex items-center gap-1.5 break-words">
+    <div className="flex items-start justify-between gap-3 px-4 py-2.5 text-xs">
+      <dt className="text-pasha-muted shrink-0 leading-relaxed">{label}</dt>
+      <dd className="text-pasha-ink/85 text-right break-words inline-flex items-center gap-1 justify-end leading-relaxed">
         {icon}
         <span>{value}</span>
       </dd>
