@@ -140,7 +140,8 @@ export async function POST(req: NextRequest) {
     if (error) {
       return NextResponse.json({ error: "Could not resend the email. Please try again." }, { status: 500 });
     }
-    return NextResponse.json({ ok: true, resent: true });
+    // Persist the refreshed PKCE code_verifier (same reason as register below).
+    return applyCookies(NextResponse.json({ ok: true, resent: true }));
   }
 
   // ── Register ────────────────────────────────────────────────────────────
@@ -213,8 +214,11 @@ export async function POST(req: NextRequest) {
       res.cookies.set(clearAdminSessionCookie());
       return res;
     }
-    // Normal path: must verify email before logging in.
-    return NextResponse.json({ ok: true, needsVerification: true });
+    // Normal path: must verify email before logging in. Persist the PKCE
+    // code_verifier cookie that signUp set on `supabase` — the email-link
+    // callback needs it to exchange the `?code=` for a session. Without
+    // applyCookies the verifier is lost and every fresh link reads as expired.
+    return applyCookies(NextResponse.json({ ok: true, needsVerification: true }));
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────

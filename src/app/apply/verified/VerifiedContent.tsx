@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  BadgeCheck,
+  ArrowRight,
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+
+/**
+ * Landing page the applicant reaches after clicking the email-verification link.
+ * The callback (src/app/apply/auth/callback/route.ts) establishes the session
+ * and redirects here on success, or here with `?error=1` when the link is
+ * expired/invalid. Mirrors the visual language of the submission success page.
+ */
+export function VerifiedContent() {
+  const sp = useSearchParams();
+  const failed = sp.get("error") != null;
+
+  // Celebrate a successful verification with the same confetti burst the
+  // submission-success page uses — only when the link actually worked.
+  useEffect(() => {
+    if (failed) return;
+    let cancelled = false;
+    let raf = 0;
+
+    void import("canvas-confetti").then((mod) => {
+      if (cancelled) return;
+      const confetti = (
+        "default" in mod && mod.default ? mod.default : mod
+      ) as typeof import("canvas-confetti");
+      const duration = 1800;
+      const end = Date.now() + duration;
+      const colors = ["#E6160F", "#FF3329", "#0E0E10", "#15803D"];
+
+      (function frame() {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          startVelocity: 45,
+          origin: { x: 0, y: 0.6 },
+          colors,
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          startVelocity: 45,
+          origin: { x: 1, y: 0.6 },
+          colors,
+        });
+        if (Date.now() < end) raf = requestAnimationFrame(frame);
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [failed]);
+
+  if (failed) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex-1 bg-pasha-stone/30">
+          <div className="mx-auto max-w-2xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-pasha-red/10 grid place-items-center mb-7">
+                <AlertCircle className="w-7 h-7 text-pasha-red" />
+              </div>
+              <h1 className="font-serif text-4xl sm:text-5xl tracking-tight text-pasha-ink text-balance">
+                This link has expired.
+              </h1>
+              <p className="mt-5 text-lg text-pasha-muted max-w-lg mx-auto leading-relaxed text-pretty">
+                Verification links are single-use and time out for your security.
+                Head back to sign in and we&apos;ll send you a fresh one.
+              </p>
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/apply/login"
+                  className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Back to sign in
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SiteHeader />
+      <main className="flex-1 bg-pasha-stone/30">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-4 py-1.5 mb-8">
+              <Sparkles className="w-3.5 h-3.5 text-pasha-red" />
+              <span className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/80">
+                Email verified
+              </span>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.15, type: "spring", bounce: 0.45 }}
+              className="mx-auto w-16 h-16 rounded-2xl bg-green-600/10 grid place-items-center mb-7"
+            >
+              <BadgeCheck className="w-9 h-9 text-green-700" />
+            </motion.div>
+
+            <h1 className="font-serif text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
+              You&apos;re all set.
+            </h1>
+            <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
+              Your email has been verified and your account is active. Pick up
+              right where you left off and complete your application whenever
+              you&apos;re ready.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.45 }}
+            className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Link
+              href="/apply"
+              className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
+            >
+              Continue to your application
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/directory"
+              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-6 py-3 text-sm text-pasha-ink hover:bg-pasha-stone/60 transition-colors"
+            >
+              Browse the directory
+            </Link>
+          </motion.div>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}

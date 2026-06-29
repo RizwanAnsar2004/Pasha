@@ -12,7 +12,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DynamicField } from "@/components/form/DynamicField";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { OptionListsProvider, type OptionRegistry } from "@/components/form/OptionListsContext";
-import { buildZodSchema, buildDefaultValues, type FormConfig, type FormFieldConfig } from "@/lib/form-config";
+import { buildZodSchema, buildDefaultValues, buildDevPrefill, type FormConfig, type FormFieldConfig } from "@/lib/form-config";
 import { InputType } from "@/lib/form-enums";
 import {
   APPLICANT_MIN_PASSWORD_LENGTH,
@@ -22,6 +22,14 @@ import {
 import { cn } from "@/lib/utils";
 
 type Values = Record<string, unknown>;
+
+// Local-testing only: prefill the account fields (and a unique email so repeat
+// runs don't collide with an existing account) so you can register without
+// typing. Stripped from production builds via the NODE_ENV guard.
+const DEV_PREFILL = process.env.NODE_ENV === "development";
+// Readable timestamp tag (YYYYMMDDHHmmss) on a real disposable inbox so you can
+// actually open the verification mail at yopmail.com.
+const devEmail = () => `dev+${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14)}@yopmail.com`;
 
 function AuthInner({
   registrationConfig,
@@ -36,12 +44,12 @@ function AuthInner({
 
   const hasRegForm = !!(registrationConfig && registrationConfig.length > 0);
 
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register">(DEV_PREFILL ? "register" : "login");
   const [regStep, setRegStep] = useState<1 | 2>(1);
   const [termsOpen, setTermsOpen] = useState(false);
   const [screen, setScreen] = useState<"form" | "verify" | "forgot">("form");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(() => (DEV_PREFILL ? devEmail() : ""));
+  const [password, setPassword] = useState(DEV_PREFILL ? "Admin.321" : "");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,8 +71,13 @@ function AuthInner({
     [hasRegForm, registrationConfig]
   );
   const defaults = useMemo(
-    () => (hasRegForm ? buildDefaultValues(registrationConfig!) : {}),
-    [hasRegForm, registrationConfig]
+    () =>
+      hasRegForm
+        ? DEV_PREFILL
+          ? buildDevPrefill(registrationConfig!, optionLists)
+          : buildDefaultValues(registrationConfig!)
+        : {},
+    [hasRegForm, registrationConfig, optionLists]
   );
   const form = useForm<Values>({
     resolver: schema ? (zodResolver(schema as never) as Resolver<Values>) : undefined,

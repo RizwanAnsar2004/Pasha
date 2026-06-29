@@ -441,6 +441,101 @@ function groupDefault(children: FormFieldConfig[]): Record<string, unknown> {
   return item;
 }
 
+// ---------------------------------------------------------------------------
+// Dev-only prefill
+// ---------------------------------------------------------------------------
+//
+// Generates plausible, schema-valid values for every field so the registration
+// form can be exercised end-to-end without manual typing. Intended strictly for
+// local testing — callers gate this behind `process.env.NODE_ENV === "development"`.
+export function buildDevPrefill(
+  config: FormConfig,
+  registry?: Record<string, { value: string; label: string }[]>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const section of config) {
+    for (const field of section.fields) {
+      if (field.input_type === InputType.HEADING) continue;
+      if (field.input_type === InputType.CITY_COMPOSITE) {
+        out.outside_pakistan = false;
+        out.hq_city = "Karachi";
+        out.hq_other = "";
+        out.hq_country = "";
+        continue;
+      }
+      out[field.field_key] = devValueForField(field, registry);
+    }
+  }
+  return out;
+}
+
+function devValueForField(
+  field: FormFieldConfig,
+  registry?: Record<string, { value: string; label: string }[]>
+): unknown {
+  switch (field.input_type) {
+    case InputType.EMAIL:
+      return "founder@example.com";
+    case InputType.URL:
+      return "https://example.com";
+    case InputType.PHONE:
+      return "+923001234567";
+    case InputType.NUMBER:
+      return String(field.validation?.min ?? 10);
+    case InputType.YES_NO:
+      return true;
+    case InputType.DATE:
+      return "2024-01-15";
+    case InputType.TEXTAREA:
+    case InputType.RICH_TEXT: {
+      const text =
+        "This is sample content generated for local testing of the registration flow.";
+      return field.input_type === InputType.RICH_TEXT ? `<p>${text}</p>` : text;
+    }
+    case InputType.SELECT:
+    case InputType.RADIO_CARDS: {
+      const opts = resolveOptions(field, registry);
+      return opts[0]?.value ?? "";
+    }
+    case InputType.MULTISELECT: {
+      const opts = resolveOptions(field, registry);
+      return opts[0] ? [opts[0].value] : [];
+    }
+    case InputType.GROUP: {
+      const item = devGroupValue(field.children ?? [], registry);
+      if (field.repeatable) {
+        const count = Math.max(field.min_items ?? 0, 1);
+        return Array.from({ length: count }, () => ({ ...item }));
+      }
+      return item;
+    }
+    case InputType.FILE_UPLOAD:
+      // Files can't be synthesised here — leave empty; testers attach manually.
+      return "";
+    default: {
+      // Plain text: honour minLength so the value clears validation.
+      const min = field.validation?.minLength ?? 0;
+      const base =
+        field.label && field.label.toLowerCase().includes("name")
+          ? "Test Startup"
+          : "Sample text";
+      return base.length >= min ? base : base.padEnd(min, " x").trim();
+    }
+  }
+}
+
+function devGroupValue(
+  children: FormFieldConfig[],
+  registry?: Record<string, { value: string; label: string }[]>
+): Record<string, unknown> {
+  const item: Record<string, unknown> = {};
+  for (const c of children) {
+    if (c.input_type === InputType.HEADING) continue;
+    item[c.field_key] = devValueForField(c, registry);
+  }
+  return item;
+}
+
 // Walk the config and split a validated payload into:
 //   columns: values whose field has a column_map → dedicated submissions column
 //   answers: everything else → submissions.answers JSONB (keyed by field_key)
