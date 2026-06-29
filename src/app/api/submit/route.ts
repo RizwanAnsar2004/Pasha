@@ -7,6 +7,7 @@ import { getFormConfig } from "@/lib/form-config.server";
 import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/form-config";
 import { getApplicantUser } from "@/lib/applicant-auth";
 import { computeCompletion, fieldLabelMap } from "@/lib/profile-completion";
+import { requestOrigin } from "@/lib/site-url";
 
 export async function POST(req: Request) {
   try {
@@ -290,7 +291,7 @@ export async function POST(req: Request) {
               values: {
                 "{{first_name}}": firstNameOf(primary?.name),
                 "{{startup_name}}": String(cols.startup_name ?? "your startup"),
-                "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/apply`,
+                "{{link}}": `${requestOrigin(req)}/apply`,
               },
             },
           ],

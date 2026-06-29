@@ -13,6 +13,7 @@ import { isAdminEmail } from "@/lib/admin-allowlist";
 import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 import { getFieldLabelMap } from "@/lib/form-config.server";
 import { isYes } from "@/lib/badges";
+import { requestOrigin } from "@/lib/site-url";
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -372,7 +373,7 @@ export async function PATCH(req: Request) {
               "{{first_name}}": firstNameOf(priorRow.founder_name),
               "{{startup_name}}": priorRow.startup_name ?? "your startup",
               "{{reviewer_notes}}": reviewer_notes ?? "",
-              "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/apply`,
+              "{{link}}": `${requestOrigin(req)}/apply`,
             },
           },
         ],
