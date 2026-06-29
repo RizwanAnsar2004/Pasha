@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2, Loader2, RotateCcw, Lock, X } from "lucide-react";
+import { Pagination } from "../_components/Pagination";
 
 export type OptionItem = { value: string; label: string };
 export type OptionListMeta = {
@@ -44,8 +46,21 @@ async function api(method: string, body: unknown) {
   return json;
 }
 
-export function OptionListsClient({ initial }: { initial: OptionListMeta[] }) {
-  const [lists, setLists] = useState(initial);
+export function OptionListsClient({
+  initial,
+  total,
+  page,
+  pageSize,
+}: {
+  initial: OptionListMeta[];
+  total: number;
+  page: number;
+  pageSize: number;
+}) {
+  const router = useRouter();
+  // Render the server-provided page slice directly. Mutations re-run the server
+  // component via router.refresh(), which re-slices the current page.
+  const lists = initial;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -53,10 +68,8 @@ export function OptionListsClient({ initial }: { initial: OptionListMeta[] }) {
   const [newText, setNewText] = useState("");
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/api/admin/option-lists");
-    const data = await res.json();
-    setLists(data.lists ?? []);
-  }, []);
+    router.refresh();
+  }, [router]);
 
   const run = useCallback(async (fn: () => Promise<void>, okMsg?: string) => {
     setBusy(true);
@@ -181,6 +194,10 @@ export function OptionListsClient({ initial }: { initial: OptionListMeta[] }) {
             onDelete={deleteList}
           />
         ))}
+      </div>
+
+      <div className="rounded-xl border border-pasha-line bg-white overflow-hidden">
+        <Pagination total={total} page={page} pageSize={pageSize} />
       </div>
     </div>
   );

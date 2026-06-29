@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback, useTransition } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search, Filter, Globe, Users, TrendingUp, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, BadgeCheck, Coins, Calendar, Layers } from "lucide-react";
@@ -8,10 +9,10 @@ import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
-import { RichText, htmlToText } from "@/components/ui/RichText";
+import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
 
-type Row = {
+export type DirectoryRow = {
   id: string;
   startup_name: string;
   tagline?: string | null;
@@ -38,6 +39,20 @@ type Row = {
   founder_name?: string | null;
   founder_photo_url?: string | null;
   founder_role?: string | null;
+};
+
+// Internal alias so the existing presentational components keep using `Row`.
+type Row = DirectoryRow;
+
+// Filter state — the server owns this (read from the URL); the client only
+// writes back to the URL when a control changes.
+export type DirectoryFilters = {
+  q: string;
+  sector: string; // "all" or a sector value
+  city: string; // "all" or a city value
+  verified: boolean;
+  womenLed: boolean;
+  hiring: boolean;
 };
 
 // Small directory badge pills (women-led / hiring / fundraising). Verified
@@ -648,65 +663,97 @@ function FounderAvatar({ src, name }: { src?: string | null; name: string }) {
 const PAGE_SIZE = 12;
 
 export function DirectoryClient({
-  initial,
-  initialWomenLedOnly = false,
+  rows,
+  total,
+  totalAll,
+  sectors,
+  cities,
+  filters,
+  page,
+  pageSize = PAGE_SIZE,
 }: {
-  initial: { rows: Row[]; total: number; sectors: string[] };
-  initialWomenLedOnly?: boolean;
+  rows: Row[];
+  /** Total rows matching the active filters (for pagination + result count). */
+  total: number;
+  /** Unfiltered total (for the "of N" context). */
+  totalAll: number;
+  sectors: string[];
+  cities: string[];
+  filters: DirectoryFilters;
+  page: number;
+  pageSize?: number;
 }) {
-  const [q, setQ] = useState("");
-  const [sector, setSector] = useState<string>("all");
-  const [city, setCity] = useState<string>("all");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [womenLedOnly, setWomenLedOnly] = useState(initialWomenLedOnly);
-  const [hiringOnly, setHiringOnly] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [page, setPage] = useState(1);
+  // Local mirror of the search box so typing stays instant; it's pushed to the
+  // URL (which triggers the server refetch) after a short debounce.
+  const [searchInput, setSearchInput] = useState(filters.q);
+  // Re-sync the box during render when the URL's q changes from elsewhere
+  // (Reset, browser back/forward) — React's recommended pattern over an effect.
+  const [prevQ, setPrevQ] = useState(filters.q);
+  if (filters.q !== prevQ) {
+    setPrevQ(filters.q);
+    setSearchInput(filters.q);
+  }
   // Hold card/empty-state entrance animations until the intro loader fades.
   const ready = usePageReady();
 
-  // Build unique city list from data
-  const cities = useMemo(() => {
-    const set = new Set<string>();
-    initial.rows.forEach((r) => {
-      const c = clean(r.city);
-      if (c) set.add(c);
-    });
-    return Array.from(set).sort();
-  }, [initial.rows]);
+  // Write a set of param changes to the URL and refetch the page server-side.
+  // Empty / falsy values are dropped so the URL stays clean.
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [k, v] of Object.entries(updates)) {
+        if (v === null || v === "") params.delete(k);
+        else params.set(k, v);
+      }
+      const qs = params.toString();
+      startTransition(() => {
+        router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
+    },
+    [router, pathname, searchParams]
+  );
 
-  const filtered = useMemo(() => {
-    const needle = q.toLowerCase().trim();
-    const out = initial.rows.filter((r) => {
-      if (sector !== "all" && r.primary_industry !== sector) return false;
-      if (city !== "all" && r.city !== city) return false;
-      if (verifiedOnly && !r.pasha_verified) return false;
-      if (womenLedOnly && !r.women_led) return false;
-      if (hiringOnly && !r.hiring) return false;
-      if (!needle) return true;
-      const hay = [r.startup_name, htmlToText(r.tagline), r.primary_industry, r.nic_name, r.city, r.founder_name]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(needle);
-    });
-    return out;
-  }, [initial.rows, q, sector, city, verifiedOnly, womenLedOnly, hiringOnly]);
+  // Debounce the search box → URL.
+  useEffect(() => {
+    const next = searchInput.trim();
+    if (next === filters.q) return;
+    const t = setTimeout(() => {
+      updateParams({ q: next || null, page: null });
+    }, 400);
+    return () => clearTimeout(t);
+    // updateParams is stable per searchParams; filters.q guard avoids loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const hasFilters =
-    q.trim() || sector !== "all" || city !== "all" || verifiedOnly || womenLedOnly || hiringOnly;
+    !!filters.q ||
+    filters.sector !== "all" ||
+    filters.city !== "all" ||
+    filters.verified ||
+    filters.womenLed ||
+    filters.hiring;
 
-  // Scroll to top of listing when page changes
+  // Scroll to top of listing when the page changes.
   const gridRef = useRef<HTMLDivElement>(null);
   function goToPage(p: number) {
-    setPage(p);
+    updateParams({ page: p > 1 ? String(p) : null });
     setTimeout(() => {
       gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
+  }
+
+  function resetFilters() {
+    setSearchInput("");
+    startTransition(() => router.push(pathname, { scroll: false }));
   }
 
   return (
@@ -721,19 +768,16 @@ export function DirectoryClient({
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pasha-muted pointer-events-none" />
             <input
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name, industry, founder, or incubator…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by name, industry, or incubator…"
               aria-label="Search startups"
               className="h-12 w-full box-border rounded-xl border border-pasha-line bg-white pl-11 pr-10 text-sm placeholder:text-pasha-muted/70 focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15 transition-colors"
             />
-            {q && (
+            {searchInput && (
               <button
                 type="button"
-                onClick={() => setQ("")}
+                onClick={() => setSearchInput("")}
                 aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md grid place-items-center text-pasha-muted hover:text-pasha-ink hover:bg-pasha-stone transition-colors"
               >
@@ -781,37 +825,28 @@ export function DirectoryClient({
           <FilterDropdown
             icon={Filter}
             label="Sector"
-            value={sector}
-            onChange={(v) => {
-              setSector(v);
-              setPage(1);
-            }}
-            options={[{ value: "all", label: "All sectors" }, ...initial.sectors.map((s) => ({ value: s, label: s }))]}
+            value={filters.sector}
+            onChange={(v) => updateParams({ sector: v === "all" ? null : v, page: null })}
+            options={[{ value: "all", label: "All sectors" }, ...sectors.map((s) => ({ value: s, label: s }))]}
           />
 
           {/* City filter */}
           <FilterDropdown
             icon={MapPin}
             label="City"
-            value={city}
-            onChange={(v) => {
-              setCity(v);
-              setPage(1);
-            }}
+            value={filters.city}
+            onChange={(v) => updateParams({ city: v === "all" ? null : v, page: null })}
             options={[{ value: "all", label: "All cities" }, ...cities.map((c) => ({ value: c, label: c }))]}
           />
 
           {/* Verified-only toggle */}
           <button
             type="button"
-            onClick={() => {
-              setVerifiedOnly((v) => !v);
-              setPage(1);
-            }}
-            aria-pressed={verifiedOnly}
+            onClick={() => updateParams({ verified: filters.verified ? null : "1", page: null })}
+            aria-pressed={filters.verified}
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              verifiedOnly
+              filters.verified
                 ? "border-pasha-red bg-pasha-red text-white shadow-sm"
                 : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/30 hover:text-pasha-ink"
             )}
@@ -823,14 +858,11 @@ export function DirectoryClient({
           {/* Women-led toggle */}
           <button
             type="button"
-            onClick={() => {
-              setWomenLedOnly((v) => !v);
-              setPage(1);
-            }}
-            aria-pressed={womenLedOnly}
+            onClick={() => updateParams({ women_led: filters.womenLed ? null : "1", page: null })}
+            aria-pressed={filters.womenLed}
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              womenLedOnly
+              filters.womenLed
                 ? "border-pasha-red bg-pasha-red text-white shadow-sm"
                 : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/30 hover:text-pasha-ink"
             )}
@@ -841,14 +873,11 @@ export function DirectoryClient({
           {/* Hiring toggle */}
           <button
             type="button"
-            onClick={() => {
-              setHiringOnly((v) => !v);
-              setPage(1);
-            }}
-            aria-pressed={hiringOnly}
+            onClick={() => updateParams({ hiring: filters.hiring ? null : "1", page: null })}
+            aria-pressed={filters.hiring}
             className={cn(
               "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              hiringOnly
+              filters.hiring
                 ? "border-pasha-ink bg-pasha-ink text-white shadow-sm"
                 : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-ink/30 hover:text-pasha-ink"
             )}
@@ -860,14 +889,7 @@ export function DirectoryClient({
           {hasFilters && (
             <button
               type="button"
-              onClick={() => {
-                setQ("");
-                setSector("all");
-                setCity("all");
-                setVerifiedOnly(false);
-                setWomenLedOnly(false);
-                setHiringOnly(false);
-              }}
+              onClick={resetFilters}
               className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 text-[12.5px] font-medium text-pasha-muted hover:text-pasha-red transition-colors"
             >
               <X className="w-3.5 h-3.5" />
@@ -881,42 +903,43 @@ export function DirectoryClient({
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div className="flex items-baseline gap-2">
           <span className="font-serif text-2xl font-semibold text-pasha-ink leading-none tabular-nums">
-            {filtered.length.toLocaleString()}
+            {total.toLocaleString()}
           </span>
           <span className="font-mono text-[11px] uppercase tracking-[1.5px] text-pasha-muted">
-            {filtered.length === 1 ? "result" : "results"}
-            {filtered.length !== initial.rows.length && (
-              <> of {initial.rows.length.toLocaleString()}</>
-            )}
+            {total === 1 ? "result" : "results"}
+            {total !== totalAll && <> of {totalAll.toLocaleString()}</>}
           </span>
         </div>
 
         {/* Active filter chips */}
         {hasFilters && (
           <div className="flex items-center gap-2 flex-wrap">
-            {sector !== "all" && (
+            {filters.sector !== "all" && (
               <button
                 type="button"
-                onClick={() => setSector("all")}
+                onClick={() => updateParams({ sector: null, page: null })}
                 className="group inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/15 text-pasha-red px-3 py-1 text-[11px] font-medium hover:bg-pasha-red/[0.12] transition-colors"
               >
                 <span className="font-mono text-[9px] uppercase tracking-[1.5px] opacity-70">
                   sector:
                 </span>
-                {sector}
+                {filters.sector}
                 <X className="w-3 h-3 opacity-60 group-hover:opacity-100" />
               </button>
             )}
-            {q.trim() && (
+            {filters.q && (
               <button
                 type="button"
-                onClick={() => setQ("")}
+                onClick={() => {
+                  setSearchInput("");
+                  updateParams({ q: null, page: null });
+                }}
                 className="group inline-flex items-center gap-1.5 rounded-full bg-pasha-ink/5 border border-pasha-ink/10 text-pasha-ink px-3 py-1 text-[11px] font-medium hover:bg-pasha-ink/10 transition-colors max-w-xs"
               >
                 <span className="font-mono text-[9px] uppercase tracking-[1.5px] opacity-60">
                   search:
                 </span>
-                <span className="truncate">&ldquo;{q.trim()}&rdquo;</span>
+                <span className="truncate">&ldquo;{filters.q}&rdquo;</span>
                 <X className="w-3 h-3 opacity-60 group-hover:opacity-100 shrink-0" />
               </button>
             )}
@@ -928,12 +951,14 @@ export function DirectoryClient({
       <div
         ref={gridRef}
         className={cn(
+          "transition-opacity duration-200",
+          isPending && "opacity-50 pointer-events-none",
           view === "grid"
             ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
             : "flex flex-col gap-3"
         )}
       >
-        {visible.map((r, i) => {
+        {rows.map((r, i) => {
           const tagline = clean(r.tagline);
           const sectorLabel = clean(r.primary_industry);
           const nic = clean(r.nic_name);
@@ -1279,14 +1304,14 @@ export function DirectoryClient({
         <Pagination
           page={safePage}
           totalPages={totalPages}
-          total={filtered.length}
-          pageSize={PAGE_SIZE}
+          total={total}
+          pageSize={pageSize}
           onPage={goToPage}
         />
       )}
 
       {/* Empty state */}
-      {filtered.length === 0 && (
+      {total === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
@@ -1301,15 +1326,12 @@ export function DirectoryClient({
           </h3>
           <p className="mt-2 text-sm text-pasha-muted max-w-sm mx-auto leading-relaxed">
             Try a different sector or clear your search to see all{" "}
-            {initial.rows.length.toLocaleString()} indexed startups.
+            {totalAll.toLocaleString()} indexed startups.
           </p>
           {hasFilters && (
             <button
               type="button"
-              onClick={() => {
-                setQ("");
-                setSector("all");
-              }}
+              onClick={resetFilters}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-pasha-ink px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red transition-colors"
             >
               Reset filters

@@ -38,6 +38,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the project root so Next doesn't infer the OS home directory as the
+  // workspace root (which happens when stray lockfiles exist above this folder)
+  // and end up watching/tracing a huge file tree, slowing dev compile + builds.
+  turbopack: { root: __dirname },
+  outputFileTracingRoot: __dirname,
   async headers() {
     return [
       {
