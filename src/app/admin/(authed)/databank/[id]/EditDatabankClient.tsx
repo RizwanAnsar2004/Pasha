@@ -708,19 +708,25 @@ export function EditDatabankClient({
                 <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted border-t border-pasha-line/60 pt-4 first:border-t-0 first:pt-0">
                   {sectionTitle}
                 </h4>
-                {defs.map((def) => (
-                  <Field
-                    key={def.field_key}
-                    label={def.label}
-                    hint={def.hint ?? undefined}
-                  >
-                    <DynamicFieldControl
-                      def={def}
-                      value={(row.answers ?? {})[def.field_key]}
-                      onChange={(v) => setAnswer(def.field_key, v)}
-                    />
-                  </Field>
-                ))}
+                {/* Two columns above md, three above lg; wide controls
+                    (long text, rich text, uploads, choice groups) span the
+                    full row so they keep room to breathe. */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5">
+                  {defs.map((def, i) => (
+                    <Field
+                      key={def.field_key}
+                      label={def.label}
+                      hint={def.hint ?? undefined}
+                      className={fieldSpan(def, i, defs)}
+                    >
+                      <DynamicFieldControl
+                        def={def}
+                        value={(row.answers ?? {})[def.field_key]}
+                        onChange={(v) => setAnswer(def.field_key, v)}
+                      />
+                    </Field>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -1152,6 +1158,90 @@ function CustomLinksEditor({
 }
 
 // ---------- helpers ----------
+
+/** Column span for a field inside the responsive grid.
+ *
+ * The grid is 1 col on mobile, 2 cols at md, and 6 cols at lg. The 6-col
+ * track at lg lets us mix densities cleanly:
+ *   - normal scalar field → 2 of 6 (3 per row)
+ *   - file upload run      → 3 of 6 (2 per row)
+ *   - wide field           → full row
+ *
+ * Long/rich text and choice groups (checkboxes / radio cards) always read
+ * poorly squeezed into a column, so they're always full width. A *run* of
+ * consecutive file uploads packs two per row, but a lone upload sitting on
+ * its own looks stranded, so it spans full width too. */
+function fieldSpan(
+  def: DynamicFieldDef,
+  i: number,
+  defs: DynamicFieldDef[]
+): string {
+  const t = def.input_type;
+  const full = "md:col-span-2 lg:col-span-6";
+
+  // Base span per field category:
+  //   choice (checkboxes / yes-no / dropdown) → 3 per row (2 of 6)
+  //   text / long text                        → 2 per row (3 of 6)
+  //   file run → 2 per row; lone file / radio cards → full width
+  let span: string;
+  if (isChoiceField(t)) {
+    span = "lg:col-span-2";
+  } else if (
+    t === InputType.TEXTAREA ||
+    t === InputType.RICH_TEXT ||
+    t === InputType.TEXT ||
+    t === InputType.EMAIL ||
+    t === InputType.URL ||
+    t === InputType.PHONE ||
+    t === InputType.NUMBER ||
+    t === InputType.DATE
+  ) {
+    span = "lg:col-span-3";
+  } else if (t === InputType.FILE_UPLOAD) {
+    const inRun =
+      defs[i - 1]?.input_type === InputType.FILE_UPLOAD ||
+      defs[i + 1]?.input_type === InputType.FILE_UPLOAD;
+    span = inRun ? "lg:col-span-3" : full;
+  } else {
+    span = full; // radio cards, group, etc.
+  }
+
+  // Start a new row whenever this field's category differs from the field
+  // before it — fields only share a row with same-category neighbours.
+  const startNew =
+    i === 0 || fieldCategory(t) !== fieldCategory(defs[i - 1].input_type);
+
+  return span + (startNew ? " lg:col-start-1" : "");
+}
+
+/** Checkbox group, yes/no, and single-select dropdown — compact choice
+ * controls that read well three-up. */
+function isChoiceField(t: number | undefined): boolean {
+  return (
+    t === InputType.MULTISELECT ||
+    t === InputType.YES_NO ||
+    t === InputType.SELECT
+  );
+}
+
+/** Coarse layout category — fields only share a grid row with neighbours of
+ * the same category, so a datatype change forces a new row. */
+function fieldCategory(t: number): string {
+  if (isChoiceField(t)) return "choice";
+  if (t === InputType.TEXTAREA || t === InputType.RICH_TEXT) return "longtext";
+  if (t === InputType.FILE_UPLOAD) return "file";
+  if (
+    t === InputType.TEXT ||
+    t === InputType.EMAIL ||
+    t === InputType.URL ||
+    t === InputType.PHONE ||
+    t === InputType.NUMBER ||
+    t === InputType.DATE
+  ) {
+    return "text";
+  }
+  return "other";
+}
 
 /** Strip HTML tags from incoming text so the textarea shows plain text.
  * On save, the user's plain-text edit replaces the column wholesale —

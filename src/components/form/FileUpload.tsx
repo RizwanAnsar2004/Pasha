@@ -123,7 +123,7 @@ export function FileUpload({
             <div
               {...getRootProps()}
               className={cn(
-                "rounded-lg border-2 border-dashed px-4 py-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer",
+                "min-h-[132px] rounded-lg border-2 border-dashed px-4 py-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer",
                 isDragActive
                   ? "border-pasha-red bg-pasha-red/[0.04]"
                   : "border-pasha-line bg-white hover:border-pasha-ink/30 hover:bg-pasha-stone/30",
