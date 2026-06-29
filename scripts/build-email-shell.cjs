@@ -47,7 +47,57 @@ if (
 }
 
 const header = html.slice(0, headerEnd);
-const footer = html.slice(footerStart);
+// Drop the MailerLite Unsubscribe link from the footer (the disclaimer text
+// above it stays). Kept here so a regen doesn't reintroduce it.
+const footer = html
+  .slice(footerStart)
+  .replace(
+    /\s*<tr>\s*<td height="10"><\/td>\s*<\/tr>\s*<tr>\s*<td align="center" class="bodyTitle"[^>]*>\s*<a href="https:\/\/click\.mailerlite\.com[^"]*"[^>]*>\s*<span[^>]*>Unsubscribe<\/span>\s*<\/a>\s*<\/td>\s*<\/tr>/i,
+    ""
+  );
+
+// Common P@SHA brand header injected on every email between the banner and the
+// content (see EMAIL_COMMON_HEADER in the generated module / email-preview.html).
+const COMMON_HEADER = `
+                        <!-- COMMON P@SHA HEADER -->
+                        <table align="center" border="0" bgcolor="#ffffff" class="mlContentTable mlContentTableDefault" cellpadding="0" cellspacing="0" width="640">
+                          <tr>
+                            <td class="mlContentTableCardTd">
+                              <table align="center" bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" class="mlContentTable ml-default" style="width: 640px; min-width: 640px;" width="640">
+                                <tr>
+                                  <td>
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="640" style="width: 640px; min-width: 640px;" class="mlContentTable">
+                                      <tr>
+                                        <td style="height: 4px; line-height: 4px; font-size: 0; background: #E6160F;">&nbsp;</td>
+                                      </tr>
+                                    </table>
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="640" style="width: 640px; min-width: 640px;" class="mlContentTable">
+                                      <tr>
+                                        <td align="center" style="padding: 22px 40px 16px 40px;" class="mlContentOuter">
+                                          <div style="font-family: 'Poppins', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: 0.02em; color: #0E0E10; line-height: 1;">P<span style="color: #E6160F;">@</span>SHA</div>
+                                          <div style="font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: #6B6B6B; padding-top: 8px;">Pakistan Software Houses Association</div>
+                                        </td>
+                                      </tr>
+                                    </table>
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="640" style="width: 640px; min-width: 640px;" class="mlContentTable">
+                                      <tr>
+                                        <td align="center" style="padding: 0px 40px;" class="mlContentOuter">
+                                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
+                                            <tr>
+                                              <td style="border-top: 1px solid #E5E5E2; height: 1px; line-height: 1px; font-size: 0;">&nbsp;</td>
+                                            </tr>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                        <!-- /COMMON P@SHA HEADER -->
+`;
 
 // Content-block wrapper: mirrors the original body block (40px side padding,
 // Poppins 14px base, top/bottom spacing) so admin-authored HTML renders with
@@ -112,15 +162,21 @@ const CONTENT_BLOCK_OPEN = ${JSON.stringify(CONTENT_OPEN)};
 
 const CONTENT_BLOCK_CLOSE = ${JSON.stringify(CONTENT_CLOSE)};
 
+// Common P@SHA brand header shown on every email, directly below the banner
+// image and above the admin-authored content: a thin brand-red accent rule, the
+// P@SHA wordmark + tagline, and a hairline divider. Mirrors email-preview.html.
+const EMAIL_COMMON_HEADER = ${JSON.stringify(COMMON_HEADER)};
+
 /**
  * Wrap admin-authored email body HTML in the P@SHA header/footer shell.
  * \`contentHtml\` is the already-rendered template body (placeholders substituted
  * and sanitized). It is dropped into a content block matching the template's
- * 40px padding + Poppins base styling so it looks native to the email.
+ * 40px padding + Poppins base styling so it looks native to the email. The
+ * common P@SHA header sits between the banner and the content on every email.
  */
 export function wrapEmail(contentHtml: string): string {
   const block = CONTENT_BLOCK_OPEN + contentHtml + CONTENT_BLOCK_CLOSE;
-  return EMAIL_SHELL_HEADER + block + EMAIL_SHELL_FOOTER;
+  return EMAIL_SHELL_HEADER + EMAIL_COMMON_HEADER + block + EMAIL_SHELL_FOOTER;
 }
 `;
 
