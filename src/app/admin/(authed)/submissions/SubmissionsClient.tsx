@@ -587,14 +587,17 @@ function SubmissionDrawer({
         onClick={onClose}
         className="fixed inset-0 z-[100] bg-pasha-ink/40 backdrop-blur-sm"
       />
-      <motion.aside
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 360, damping: 36 }}
-        className="fixed inset-y-0 right-0 z-[110] flex h-dvh max-h-dvh w-full flex-col bg-white shadow-2xl sm:w-[540px]"
+      {/* Centering layer: pointer-events-none so clicks on the backdrop around
+          the modal fall through to the overlay above and close it. */}
+      <div className="fixed inset-0 z-[110] grid place-items-center p-4 pointer-events-none">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ type: "spring", stiffness: 360, damping: 30 }}
+        className="pointer-events-auto flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-pasha-line px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-pasha-line px-8 py-4">
           <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
             Submission
           </span>
@@ -610,7 +613,7 @@ function SubmissionDrawer({
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
             <div className="flex items-start gap-4 mb-6">
               {row.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -664,7 +667,7 @@ function SubmissionDrawer({
 
             <FoundersSection row={row as Record<string, unknown>} />
 
-            <Section title="Company socials">
+            <Section title="Company socials" cols={2}>
               <SocialKV
                 k="LinkedIn"
                 v={(row as Record<string, unknown>).company_linkedin}
@@ -687,7 +690,7 @@ function SubmissionDrawer({
               />
             </Section>
 
-            <Section title="Startup">
+            <Section title="Startup" cols={2}>
               <FieldKV
                 fieldKey="tagline"
                 labels={fieldLabels}
@@ -725,13 +728,13 @@ function SubmissionDrawer({
               <FieldKV fieldKey="pasha_membership_number" labels={fieldLabels} v={renderPashaMember(row as Record<string, unknown>)} />
             </Section>
 
-            <Section title="Team & traction">
+            <Section title="Team & traction" cols={2}>
               <FieldKV fieldKey="total_employees" labels={fieldLabels} v={String(row.total_employees ?? "—")} />
               <FieldKV fieldKey="female_employees" labels={fieldLabels} v={String(row.female_employees ?? "—")} />
               <FieldKV fieldKey="revenue_band" labels={fieldLabels} v={String(row.revenue_band ?? "—")} />
             </Section>
 
-            <Section title="Funding">
+            <Section title="Funding" cols={2}>
               <FieldKV
                 fieldKey="total_funding_raised"
                 labels={fieldLabels}
@@ -766,7 +769,7 @@ function SubmissionDrawer({
               <AnswerKV row={row as Record<string, unknown>} fieldKey="market_source" labels={fieldLabels} />
             </Section>
 
-            <Section title="Ecosystem & IP">
+            <Section title="Ecosystem & IP" cols={2}>
               <FieldKV
                 fieldKey="incubated_in_nic"
                 labels={fieldLabels}
@@ -901,7 +904,7 @@ function SubmissionDrawer({
             ) : null}
           </div>
         )}
-        <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-6 py-4 space-y-3">
+        <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-8 py-4 space-y-3">
           {!isApproved && row ? (
             <textarea
               value={notes}
@@ -969,7 +972,8 @@ function SubmissionDrawer({
             ) : null}
           </div>
         </div>
-      </motion.aside>
+      </motion.div>
+      </div>
     </>
   );
 
@@ -977,13 +981,31 @@ function SubmissionDrawer({
   return createPortal(drawer, document.body);
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  cols = 1,
+}: {
+  title: string;
+  children: React.ReactNode;
+  /** 2 lays the KV rows out in a responsive two-column grid (empty fields
+   *  return null, so the grid simply reflows with no gaps). */
+  cols?: 1 | 2;
+}) {
   return (
     <div className="mb-7">
       <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted mb-3">
         {title}
       </h4>
-      <div className="space-y-2">{children}</div>
+      <div
+        className={
+          cols === 2
+            ? "grid grid-cols-1 gap-x-10 gap-y-2.5 sm:grid-cols-2"
+            : "space-y-2"
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }

@@ -35,6 +35,89 @@ export type StepProps = {
   form: UseFormReturn<SubmissionInput>;
 };
 
+// Dev-only sample data to prefill the whole wizard for quick flow testing.
+// Every value is chosen to satisfy submissionSchema — valid option values
+// (sectors/stages/cities from @/lib/options), http(s) URLs, and a valid phone
+// — so the form validates and submits without manual entry. Never shipped:
+// the trigger button is gated behind NODE_ENV !== "production".
+const SAMPLE_SUBMISSION: Record<string, unknown> = {
+  startup_name: "AtlasCloud",
+  tagline: "One-click managed hosting for Pakistani SaaS startups",
+  website: "https://atlascloud.example.com",
+  year_founded: "2022",
+  description:
+    "AtlasCloud gives Pakistani SaaS startups one-click managed hosting, autoscaling, and local-currency billing — so teams ship faster without a dedicated DevOps hire. We handle infra, monitoring, and backups end to end.",
+  logo_url: "https://placehold.co/200x200/png",
+  hq_city: "Karachi",
+  hq_other: "",
+  outside_pakistan: false,
+  hq_country: "",
+  primary_sector: "SaaS",
+  secondary_sector: "Fintech",
+  business_model: "Business to Business (B2B)",
+  stage: "growth",
+  revenue_models: ["Subscription", "Pay-As-You-Go (PAYG)"],
+  total_employees: "24",
+  female_employees: "8",
+  founding_team_composition: "mixed",
+  fbr_registered: true,
+  secp_registered: true,
+  is_pasha_member: true,
+  revenue_band: "250k-1m",
+  raised_funding: true,
+  funding_stage: "Seed",
+  currently_raising: true,
+  pitch_deck_url: "https://atlascloud.example.com/deck.pdf",
+  pitch_video: "https://youtube.com/watch?v=dQw4w9WgXcQ",
+  incubated_in_nic: true,
+  nic_name: "NIC Karachi",
+  nic_cohort: "Cohort 12",
+  nic_year: "2022",
+  company_linkedin: "https://linkedin.com/company/atlascloud",
+  company_x: "https://x.com/atlascloud",
+  company_instagram: "https://instagram.com/atlascloud",
+  company_facebook: "https://facebook.com/atlascloud",
+  company_youtube: "https://youtube.com/@atlascloud",
+  founders: [
+    {
+      name: "Ayesha Khan",
+      role: "CEO",
+      email: "dev-test-pasha@yopmail.com",
+      mobile: "+92 300 1234567",
+      linkedin: "https://linkedin.com/in/ayeshakhan",
+      x: "https://x.com/ayeshakhan",
+      instagram: "https://instagram.com/ayeshakhan",
+      facebook: "https://facebook.com/ayeshakhan",
+      custom_links: [],
+      photo_url: "https://placehold.co/200x200/png",
+      gender: "female",
+      is_primary: true,
+    },
+    {
+      name: "Bilal Ahmed",
+      role: "CTO",
+      email: "bilal-demo@yopmail.com",
+      mobile: "+92 301 7654321",
+      linkedin: "https://linkedin.com/in/bilalahmed",
+      x: "",
+      instagram: "",
+      facebook: "",
+      custom_links: [],
+      photo_url: "",
+      gender: "male",
+      is_primary: false,
+    },
+  ],
+  has_patents: true,
+  patents_count: "2",
+  awards: "Winner — National Tech Awards 2024\nTop 10 SaaS Startups (TechCrunch PK)",
+  certifications: "ISO 27001\nSOC 2 Type II",
+  engagement_interests: ["Mentorship (receive)", "Investor introductions"],
+  whatsapp_optin: true,
+  facebook_optin: true,
+  closing_notes: "Excited to join the P@SHA directory and connect with the ecosystem.",
+};
+
 const TOTAL_STEPS = 3;
 
 export function ApplyForm() {
@@ -163,6 +246,14 @@ const form = useForm<SubmissionInput>({
       window.localStorage.removeItem(DRAFT_KEY);
     } catch {}
     setDraftRestored(false);
+  };
+
+  // Dev helper: load SAMPLE_SUBMISSION into every field so a tester can walk the
+  // flow (or jump to step 3 and submit) without filling anything by hand.
+  const prefillDemo = () => {
+    form.reset({ ...form.getValues(), ...SAMPLE_SUBMISSION } as unknown as SubmissionInput);
+    form.clearErrors();
+    setError(null);
   };
 
   // Note: client-side live tier preview was removed. Vetting still runs
@@ -301,6 +392,22 @@ const form = useForm<SubmissionInput>({
 
   return (
     <FormProvider {...form}>
+      {/* ═══════════════════════════════════════════════════════
+          DEV-ONLY: prefill the whole wizard with sample data.
+          Statically stripped from production builds.
+          ═══════════════════════════════════════════════════════ */}
+      {process.env.NODE_ENV !== "production" && (
+        <div className="mb-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={prefillDemo}
+            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-pasha-red/50 bg-pasha-red/[0.04] px-3.5 py-1.5 text-xs font-medium text-pasha-red hover:bg-pasha-red/10 transition-colors"
+          >
+            ⚡ Prefill demo data (dev)
+          </button>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════
           Draft restored banner
           ═══════════════════════════════════════════════════════ */}

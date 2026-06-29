@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { InputType, INPUT_TYPE_LABELS } from "@/lib/form-enums";
 import { SelectMenu } from "@/components/ui/SelectMenu";
+import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 
 // Available option-list names (code + admin-managed DB lists), provided by the
 // page and surfaced as a dropdown so admins can discover/pick them instead of
@@ -559,6 +560,24 @@ function FieldNode({
   const isGroup = field.input_type === InputType.GROUP;
   const isHeadingField = field.input_type === InputType.HEADING;
   const isChoice = CHOICE_TYPES.has(field.input_type);
+  // Field edits change the live application form, so the explicit "Save" button
+  // routes through a confirmation modal. `pendingSave` holds the action to run
+  // once the admin confirms.
+  const [pendingSave, setPendingSave] = useState<(() => void) | null>(null);
+  const confirmModal = (
+    <ConfirmDeleteModal
+      open={pendingSave !== null}
+      title="Save field changes?"
+      description="This updates the field on the live application form and may affect new submissions."
+      confirmLabel="Save changes"
+      busy={busy}
+      onConfirm={() => {
+        pendingSave?.();
+        setPendingSave(null);
+      }}
+      onCancel={() => setPendingSave(null)}
+    />
+  );
   const optionListNames = useContext(OptionNamesContext);
   // Show the saved source even if it's not in the available list (e.g. a list
   // that was later deleted) so the admin can see/fix it.
@@ -601,7 +620,7 @@ function FieldNode({
         <button
           type="button"
           disabled={busy}
-          onClick={() => onSaveField(field.id, { label: draft.label })}
+          onClick={() => setPendingSave(() => () => onSaveField(field.id, { label: draft.label }))}
           className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-2 text-xs hover:border-pasha-red hover:text-pasha-red"
         >
           <Save className="w-3.5 h-3.5" /> Save
@@ -614,6 +633,7 @@ function FieldNode({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
+        {confirmModal}
       </div>
     );
   }
@@ -674,7 +694,7 @@ function FieldNode({
         <button
           type="button"
           disabled={busy}
-          onClick={save}
+          onClick={() => setPendingSave(() => save)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-2 text-xs hover:border-pasha-red hover:text-pasha-red"
         >
           <Save className="w-3.5 h-3.5" /> Save
@@ -766,7 +786,7 @@ function FieldNode({
             <button
               type="button"
               disabled={busy}
-              onClick={save}
+              onClick={() => setPendingSave(() => save)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-1.5 text-xs hover:border-pasha-red hover:text-pasha-red shrink-0"
             >
               <Save className="w-3.5 h-3.5" /> Save options
@@ -857,6 +877,7 @@ function FieldNode({
           </div>
         </div>
       )}
+      {confirmModal}
     </div>
   );
 }

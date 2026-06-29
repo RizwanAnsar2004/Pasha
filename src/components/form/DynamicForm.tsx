@@ -18,7 +18,6 @@ import {
 } from "@/lib/form-config";
 import { DynamicField } from "./DynamicField";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
-import { computeCompletion, fieldLabelMap } from "@/lib/profile-completion";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -88,11 +87,26 @@ export function DynamicForm({
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
 
-  // Spec §12 gate: submission requires Public Profile Ready (50%). We compute
-  // it live so the button enables the moment the last required field is filled.
-  const fieldLabels = useMemo(() => fieldLabelMap(config), [config]);
-  const completion = useMemo(() => computeCompletion(values, fieldLabels), [values, fieldLabels]);
-  const canSubmit = completion.publicProfileMet;
+  // Submission is gated on the form's own schema — the same rules (and the same
+  // admin `required` flags) that power per-step Continue validation. Optional
+  // fields (no admin `required`) never block submit, so the * markers, Continue,
+  // and this gate all agree. The §12 completion ladder stays a dashboard-only
+  // progress indicator. We re-validate live so the button enables the moment the
+  // last required field is filled.
+  const submitCheck = useMemo(() => schema.safeParse(values), [schema, values]);
+  const canSubmit = submitCheck.success;
+  const missingRequired = useMemo(() => {
+    if (submitCheck.success) return [] as { key: string; label: string }[];
+    const seen = new Set<string>();
+    const out: { key: string; label: string }[] = [];
+    for (const issue of submitCheck.error.issues) {
+      const key = String(issue.path[0] ?? "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ key, label: labelMap[key] ?? key });
+    }
+    return out;
+  }, [submitCheck, labelMap]);
 
   // Hydrate draft once (localStorage only). In server-persist mode the draft is
   // seeded into `defaults` from the DB, so there's nothing to restore here.
@@ -193,6 +207,18 @@ export function DynamicForm({
     // were populated by an earlier trigger() call.
     form.clearErrors();
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Advance WITHOUT validating the current step — lets applicants move past
+  // steps whose fields are all optional. Only offered on non-last steps; the
+  // final Submit stays gated by canSubmit (Public Profile Ready, 50%), so
+  // skipping can't push an under-filled application through.
+  const goSkip = () => {
+    if (stepIdx >= totalSteps - 1) return;
+    setError(null);
+    form.clearErrors();
+    setStepIdx(stepIdx + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -406,10 +432,9 @@ export function DynamicForm({
 
           {isLast && !canSubmit && (
             <div className="mt-6 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-medium">Reach Public Profile Ready (50%) to submit</p>
+              <p className="font-medium">Complete the required fields to submit</p>
               <p className="mt-1 text-amber-800/90">
-                Still needed:{" "}
-                {completion.publicProfileMissing.map((m) => m.label).join(", ")}.
+                Still needed: {missingRequired.map((m) => m.label).join(", ")}.
               </p>
             </div>
           )}
@@ -427,14 +452,23 @@ export function DynamicForm({
           </button>
 
           {!isLast ? (
-            <button
-              type="button"
-              onClick={goNext}
-              className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-ink px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-pasha-ink/15 hover:bg-pasha-red hover:-translate-y-0.5 transition-all"
-            >
-              <span className="relative">Continue</span>
-              <ArrowRight className="relative w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={goSkip}
+                className="inline-flex items-center rounded-full px-4 py-2.5 text-sm font-medium text-pasha-muted hover:text-pasha-ink transition-colors"
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-ink px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-pasha-ink/15 hover:bg-pasha-red hover:-translate-y-0.5 transition-all"
+              >
+                <span className="relative">Continue</span>
+                <ArrowRight className="relative w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -444,7 +478,7 @@ export function DynamicForm({
                 form.handleSubmit(onSubmit, onInvalid)();
               }}
               disabled={submitting || !canSubmit}
-              title={canSubmit ? undefined : "Reach Public Profile Ready (50%) to submit"}
+              title={canSubmit ? undefined : "Complete the required fields to submit"}
               className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-red px-7 py-3 text-sm font-medium text-white shadow-xl shadow-pasha-red/30 hover:bg-pasha-red-dark hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
             >
               {submitting ? (

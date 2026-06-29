@@ -8,6 +8,7 @@ import { PashaLogo } from "./PashaLogo";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/directory", label: "Directory" },
   { href: "/committee", label: "Committee" },
   { href: "/events", label: "Events" },

@@ -56,23 +56,15 @@ export async function POST(req: Request) {
       formData = cols;
     }
 
-    // Spec §12 gate: a profile must reach Public Profile Ready (50%) before it
-    // can be submitted for review. The client disables the button too, but the
-    // server is the authority.
+    // Submission is gated solely by the schema validation above — which is built
+    // from each field's admin `required` flag (buildZodSchema). A field the admin
+    // left optional never blocks submission, keeping the * markers, per-step
+    // Continue, and this gate in agreement. The §12 completion ladder below is
+    // computed only for the progress score / dashboard tiers — it does NOT gate.
     const completion = computeCompletion(
       formData,
       config && config.length > 0 ? fieldLabelMap(config) : undefined
     );
-    if (!completion.publicProfileMet) {
-      const missing = completion.publicProfileMissing.map((m) => m.label).join(", ");
-      return NextResponse.json(
-        {
-          error: `Complete the Public Profile (50%) before submitting${missing ? ` — still needed: ${missing}` : ""}.`,
-          completion: { percent: completion.percent, missing: completion.publicProfileMissing },
-        },
-        { status: 400 }
-      );
-    }
 
     // Helper: read a column value, coercing undefined → null for the insert.
     const col = (k: string) => (cols[k] === undefined ? null : cols[k]);

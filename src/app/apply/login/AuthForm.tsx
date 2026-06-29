@@ -23,13 +23,13 @@ import { cn } from "@/lib/utils";
 
 type Values = Record<string, unknown>;
 
-// Local-testing only: prefill the account fields (and a unique email so repeat
-// runs don't collide with an existing account) so you can register without
+// Local-testing only: prefill the account fields so you can register without
 // typing. Stripped from production builds via the NODE_ENV guard.
 const DEV_PREFILL = process.env.NODE_ENV === "development";
-// Readable timestamp tag (YYYYMMDDHHmmss) on a real disposable inbox so you can
-// actually open the verification mail at yopmail.com.
-const devEmail = () => `dev+${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14)}@yopmail.com`;
+// Fixed disposable inbox for local testing (open mail at yopmail.com). NOTE:
+// because it's fixed, the first run registers it and later runs will hit
+// "account already exists" — switch to Sign in (password below) after that.
+const devEmail = () => "dev-test-pasha@yopmail.com";
 
 function AuthInner({
   registrationConfig,
