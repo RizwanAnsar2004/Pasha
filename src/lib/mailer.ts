@@ -11,6 +11,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { renderTemplate, type Placeholders } from "@/lib/email-templates";
+import { wrapEmail } from "@/lib/email-shell";
 
 export type MailRecipient = {
   email: string;
@@ -103,7 +104,9 @@ export async function sendTemplate(opts: {
       recipientId: rec.id,
       email: rec.to_email,
       subject: renderTemplate(tpl.subject, values),
-      html: renderTemplate(tpl.body, values),
+      // Wrap the rendered body in the shared header/footer shell so every
+      // template email ships with consistent P@SHA chrome.
+      html: wrapEmail(renderTemplate(tpl.body, values)),
     };
   });
 

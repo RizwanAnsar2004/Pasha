@@ -21,6 +21,7 @@ import {
   type EmailTemplateRow,
   type EmailTemplateStatus,
 } from "@/lib/email-templates";
+import { wrapEmail } from "@/lib/email-shell";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
@@ -212,6 +213,9 @@ export function EmailTemplatesClient({
     () => renderTemplate(form.body, previewValues),
     [form.body, previewValues]
   );
+  // Show the body inside the shared header/footer shell — exactly what recipients
+  // get, since mailer.ts wraps the rendered body with wrapEmail() at send time.
+  const previewHtml = useMemo(() => wrapEmail(previewBody), [previewBody]);
 
   const canSave = form.template_id.trim().length > 0 && /^[a-z0-9_]+$/.test(form.template_id.trim());
 
@@ -279,11 +283,13 @@ export function EmailTemplatesClient({
               <p className="mt-1 text-sm font-medium text-pasha-ink">{previewSubject || "(no subject)"}</p>
             </div>
             <div>
-              <p className="text-xs font-mono uppercase tracking-[1px] text-pasha-muted mb-2">Body</p>
+              <p className="text-xs font-mono uppercase tracking-[1px] text-pasha-muted mb-2">
+                Body <span className="normal-case tracking-normal text-pasha-muted/70">— shown in the P@SHA header/footer shell</span>
+              </p>
               <iframe
                 title="Email preview"
                 className="w-full min-h-[420px] rounded-lg border border-pasha-line bg-white"
-                srcDoc={previewBody}
+                srcDoc={previewHtml}
               />
             </div>
           </div>
@@ -364,9 +370,10 @@ export function EmailTemplatesClient({
                     key={editingId ?? "new"}
                     value={form.body}
                     onChange={(html) => set("body", html)}
+                    sourceTabs
                   />
                   <p className="mt-1 text-xs text-pasha-muted">
-                    Use the <strong>Source</strong> button (top-left) to paste/edit raw HTML. Insert placeholders like <code className="font-mono">{"{{first_name}}"}</code> directly in the text.
+                    Switch to the <strong>HTML</strong> tab to paste/edit raw HTML, or stay on <strong>Visual</strong> for simple editing. Insert placeholders like <code className="font-mono">{"{{first_name}}"}</code> directly in the text.
                   </p>
                 </Field>
               </Section>
