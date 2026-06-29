@@ -7,6 +7,20 @@ import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 import type { MemberRow } from "./page";
+import {
+  COMMITTEE_MEMBER_TYPES,
+  committeeMemberTypeLabel,
+  type CommitteeMemberType,
+} from "@/lib/committee";
+
+const TYPE_BADGE: Record<CommitteeMemberType, string> = {
+  chairman: "bg-pasha-red/8 text-pasha-red border-pasha-red/20",
+  member: "bg-pasha-stone text-pasha-muted border-pasha-line",
+  admin: "bg-sky-50 text-sky-700 border-sky-200",
+};
+
+const selectCls =
+  "h-9 w-full rounded-lg border border-pasha-line bg-white px-2 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15";
 
 const inputCls =
   "h-9 w-full rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15";
@@ -17,12 +31,16 @@ export function CommitteeManagementClient({
   page,
   pageSize,
   initialQ,
+  initialType,
+  canOperate,
 }: {
   initial: MemberRow[];
   total: number;
   page: number;
   pageSize: number;
   initialQ: string;
+  initialType: string;
+  canOperate: boolean;
 }) {
   const { isPending, setParams } = useListNav();
   const [q, setQ] = useState(initialQ);
@@ -41,12 +59,16 @@ export function CommitteeManagementClient({
     setRows(initial);
   }
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [roles, setRoles] = useState("");
   const [org, setOrg] = useState("");
+  const [type, setType] = useState<CommitteeMemberType>("member");
   const [adding, setAdding] = useState(false);
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState("");
   const [editOrg, setEditOrg] = useState("");
+  const [editType, setEditType] = useState<CommitteeMemberType>("member");
   const [savingEmail, setSavingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -61,16 +83,20 @@ export function CommitteeManagementClient({
 
   function startEdit(row: MemberRow) {
     setEditingEmail(row.email);
+    setEditName(row.name ?? "");
     setEditRoles(row.roles ?? "");
     setEditOrg(row.org ?? "");
+    setEditType(row.type);
     setError(null);
     setSuccess(null);
   }
 
   function cancelEdit() {
     setEditingEmail(null);
+    setEditName("");
     setEditRoles("");
     setEditOrg("");
+    setEditType("member");
   }
 
   async function saveEdit(targetEmail: string) {
@@ -83,8 +109,10 @@ export function CommitteeManagementClient({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: targetEmail,
+          name: editName.trim(),
           roles: editRoles.trim() || undefined,
           org: editOrg.trim(),
+          type: editType,
         }),
       });
       const j = await res.json();
@@ -110,8 +138,10 @@ export function CommitteeManagementClient({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
+          name: name.trim() || undefined,
           roles: roles.trim() || undefined,
           org: org.trim() || undefined,
+          type,
         }),
       });
       const j = await res.json();
@@ -128,8 +158,10 @@ export function CommitteeManagementClient({
         setSuccess(`Added ${j.email}. They can now sign in to /admin.`);
       }
       setEmail("");
+      setName("");
       setRoles("");
       setOrg("");
+      setType("member");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add committee member");
@@ -187,12 +219,27 @@ export function CommitteeManagementClient({
         </div>
       )}
 
+      {!canOperate && (
+        <div className="rounded-lg border border-pasha-line bg-pasha-stone/40 px-4 py-3 text-sm text-pasha-muted">
+          You have view-only access. Only admins and chairmen can add, edit, or
+          remove committee members.
+        </div>
+      )}
+
+      {canOperate && (
       <section className="rounded-2xl border border-pasha-line bg-white p-6">
         <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red">
           Add committee member
         </h2>
         <form onSubmit={add} className="mt-4 space-y-3">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name "
+              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            />
             <input
               type="email"
               value={email}
@@ -215,6 +262,18 @@ export function CommitteeManagementClient({
               placeholder="Company (e.g. Bits Collision)"
               className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as CommitteeMemberType)}
+              aria-label="Member type"
+              className="h-11 rounded-lg border border-pasha-line bg-white px-3 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            >
+              {COMMITTEE_MEMBER_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </div>
           <p className="text-xs text-pasha-muted">
             A password is generated automatically and emailed to the member with their sign-in email and role.
@@ -229,6 +288,7 @@ export function CommitteeManagementClient({
           </button>
         </form>
       </section>
+      )}
 
       <section className="rounded-2xl border border-pasha-line bg-white overflow-hidden relative">
         <ShimmerOverlay active={isPending} />
@@ -237,7 +297,20 @@ export function CommitteeManagementClient({
           <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red shrink-0">
             Current members ({total})
           </h2>
-          <div className="relative ml-auto w-full max-w-xs">
+          <select
+            value={initialType}
+            onChange={(e) => setParams({ type: e.target.value || null, page: 1 })}
+            aria-label="Filter by type"
+            className="h-9 ml-auto rounded-lg border border-pasha-line bg-white px-2.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+          >
+            <option value="">All types</option>
+            {COMMITTEE_MEMBER_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <div className="relative w-full max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-pasha-muted" />
             <input
               value={q}
@@ -250,7 +323,9 @@ export function CommitteeManagementClient({
         <table className="w-full text-sm">
           <thead className="bg-pasha-stone/40 border-b border-pasha-line">
             <tr className="text-left">
+              <Th>Name</Th>
               <Th>Email</Th>
+              <Th>Type</Th>
               <Th>Role</Th>
               <Th>Company</Th>
               <Th>Added</Th>
@@ -268,7 +343,45 @@ export function CommitteeManagementClient({
                   className="border-b border-pasha-line/60 last:border-0 hover:bg-pasha-stone/40"
                 >
                   <Td>
-                    <span className="font-medium text-pasha-ink">{r.email}</span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Full name"
+                        className={inputCls}
+                      />
+                    ) : (
+                      <span className="font-medium text-pasha-ink">{r.name || "—"}</span>
+                    )}
+                  </Td>
+                  <Td>
+                    <span className="text-pasha-muted">{r.email}</span>
+                  </Td>
+                  <Td>
+                    {isEditing ? (
+                      <select
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value as CommitteeMemberType)}
+                        aria-label="Member type"
+                        className={selectCls}
+                      >
+                        {COMMITTEE_MEMBER_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className={
+                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium " +
+                          TYPE_BADGE[r.type]
+                        }
+                      >
+                        {committeeMemberTypeLabel(r.type)}
+                      </span>
+                    )}
                   </Td>
                   <Td>
                     {isEditing ? (
@@ -303,7 +416,7 @@ export function CommitteeManagementClient({
                   </Td>
                   <Td>
                     <div className="flex items-center gap-1.5 justify-end">
-                      {isEditing ? (
+                      {!canOperate ? null : isEditing ? (
                         <>
                           <button
                             type="button"
@@ -359,7 +472,7 @@ export function CommitteeManagementClient({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-pasha-muted text-sm">
+                <td colSpan={7} className="px-6 py-8 text-center text-pasha-muted text-sm">
                   No committee members yet.
                 </td>
               </tr>

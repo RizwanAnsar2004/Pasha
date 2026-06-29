@@ -466,7 +466,7 @@ export function FeaturedStartupsClient({
         />
       </div>
 
-      <section className="rounded-2xl border border-pasha-line bg-white p-6">
+      {/* <section className="rounded-2xl border border-pasha-line bg-white p-6">
         <h2 className="text-base font-semibold text-pasha-ink">Featured Settings</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <SettingToggle
@@ -494,7 +494,7 @@ export function FeaturedStartupsClient({
             onChange={(v) => updateSetting("show_in_search", v)}
           />
         </div>
-      </section>
+      </section> */}
 
       <AnimatePresence>
         {showModal && (

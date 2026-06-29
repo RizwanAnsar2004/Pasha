@@ -16,12 +16,25 @@ export type CommitteeActivityRow = {
   created_at: string;
 };
 
+export type CommitteeMemberType = "chairman" | "member" | "admin";
+
+export const COMMITTEE_MEMBER_TYPES: { value: CommitteeMemberType; label: string }[] = [
+  { value: "chairman", label: "Chairman" },
+  { value: "member", label: "Committee Member" },
+  { value: "admin", label: "Admin" },
+];
+
+export function committeeMemberTypeLabel(type: CommitteeMemberType) {
+  return COMMITTEE_MEMBER_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+
 /** Public /committee card — sourced from admin_users (committee management). */
 export type CommitteeMemberRow = {
   email: string;
   name: string;
   role: string;
   org: string;
+  type: CommitteeMemberType;
   added_at: string;
 };
 

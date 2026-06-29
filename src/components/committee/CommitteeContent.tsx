@@ -35,18 +35,18 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Static committee roster — source of truth for the organogram.
 const STATIC_COMMITTEE: CommitteeMemberRow[] = [
-  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          added_at: "" },
-  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             added_at: "" },
-  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            added_at: "" },
-  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    added_at: "" },
-  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              added_at: "" },
-  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               added_at: "" },
-  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      added_at: "" },
-  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          added_at: "" },
-  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   added_at: "" },
-  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", added_at: "" },
-  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            added_at: "" },
-  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", added_at: "" },
+  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          type: "chairman", added_at: "" },
+  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             type: "member", added_at: "" },
+  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            type: "member", added_at: "" },
+  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    type: "member", added_at: "" },
+  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              type: "member", added_at: "" },
+  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               type: "member", added_at: "" },
+  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      type: "member", added_at: "" },
+  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          type: "member", added_at: "" },
+  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   type: "member", added_at: "" },
+  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", type: "member", added_at: "" },
+  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            type: "member", added_at: "" },
+  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", type: "member", added_at: "" },
 ];
 
 const OBJECTIVES = [
@@ -149,9 +149,16 @@ export function CommitteeContent({
   members: CommitteeMemberRow[];
   activities: CommitteeActivityRow[];
 }) {
-  const roster = STATIC_COMMITTEE.length > 0 ? STATIC_COMMITTEE : members;
-  const chair = roster.length > 0 ? roster[0] : null;
-  const committeeMembers = roster.length > 1 ? roster.slice(1) : [];
+  // Prefer live committee-management data; fall back to the static roster only
+  // when no members have been added yet (e.g. fresh / empty database).
+  const source = members.length > 0 ? members : STATIC_COMMITTEE;
+  // Public page shows only Chairmen and Committee Members. 'admin' is an
+  // internal portal role and never appears on /committee.
+  const roster = source.filter((m) => m.type === "chairman" || m.type === "member");
+  // Chair(s) are explicit (member type). Multiple chairmen are allowed; the
+  // first is featured in the top tier, the rest fall into the grid.
+  const chairs = roster.filter((m) => m.type === "chairman");
+  const committeeMembers = roster.filter((m) => m.type !== "chairman");
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
@@ -361,50 +368,55 @@ export function CommitteeContent({
           </motion.div>
 
           {/* ── ORGANOGRAM ── */}
-          {chair ? (
+          {chairs.length > 0 ? (
             <div className="flex flex-col items-center">
 
-              {/* TIER 1: Chair */}
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, ease: EASE }}
-                whileHover={{ y: -4 }}
-                className="group w-[220px]"
-              >
-                <div className="flex flex-col rounded-2xl border border-pasha-red/25 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/40 transition-all duration-500 p-5">
+              {/* TIER 1: Chair(s) — one card per chairman */}
+              <div className="flex flex-wrap justify-center gap-5">
+                {chairs.map((chair, ci) => (
+                  <motion.div
+                    key={chair.email}
+                    initial={{ opacity: 0, y: 28 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.6, delay: ci * 0.08, ease: EASE }}
+                    whileHover={{ y: -4 }}
+                    className="group w-[220px]"
+                  >
+                    <div className="flex flex-col rounded-2xl border border-pasha-red/25 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/40 transition-all duration-500 p-5">
 
-                  {/* Chair badge */}
-                  <span className="self-start inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-3 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
-                    <Crown className="w-2.5 h-2.5" /> Chair
-                  </span>
+                      {/* Chair badge */}
+                      <span className="self-start inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-3 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
+                        <Crown className="w-2.5 h-2.5" /> Chair
+                      </span>
 
-                  {/* Avatar */}
-                  <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-sm text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
-                    {initials(chair.name)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="mt-3 flex flex-col gap-0.5">
-                    <h3 className="font-serif text-[15px] text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
-                      {chair.name}
-                    </h3>
-                    {chair.role && (
-                      <p className="text-[11px] font-semibold text-pasha-red/70">{chair.role}</p>
-                    )}
-                    {chair.org && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
-                        <p className="text-[11px] text-pasha-muted/70">{chair.org}</p>
+                      {/* Avatar */}
+                      <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-sm text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
+                        {initials(chair.name)}
                       </div>
-                    )}
-                    <p className="mt-2 text-[10px] text-pasha-muted/40 leading-relaxed">
-                      {COMMITTEE_CHAIR_TAG}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
+
+                      {/* Content */}
+                      <div className="mt-3 flex flex-col gap-0.5">
+                        <h3 className="font-serif text-[15px] text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
+                          {chair.name}
+                        </h3>
+                        {chair.role && (
+                          <p className="text-[11px] font-semibold text-pasha-red/70">{chair.role}</p>
+                        )}
+                        {chair.org && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
+                            <p className="text-[11px] text-pasha-muted/70">{chair.org}</p>
+                          </div>
+                        )}
+                        <p className="mt-2 text-[10px] text-pasha-muted/40 leading-relaxed">
+                          {COMMITTEE_CHAIR_TAG}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
               {/* Connector: vertical stem from chair */}
               {committeeMembers.length > 0 && (

@@ -3,12 +3,13 @@ import {
   committeeMemberName,
   type CommitteeActivityRow,
   type CommitteeMemberRow,
+  type CommitteeMemberType,
 } from "@/lib/committee";
 
 const ACTIVITY_COLS =
   "id,title,type,description,status,author_email,created_at";
 
-const MEMBER_COLS = "email,added_at,added_by,notes,org";
+const MEMBER_COLS = "email,added_at,added_by,notes,org,member_type,name";
 
 /** Only return empty for a genuinely missing table, not a missing column. */
 function isMissingTable(msg: string, table: string) {
@@ -17,11 +18,16 @@ function isMissingTable(msg: string, table: string) {
 
 function normalizeMember(row: Record<string, unknown>): CommitteeMemberRow {
   const email = String(row.email ?? "");
+  const rawType = String(row.member_type ?? "member");
+  const type: CommitteeMemberType =
+    rawType === "chairman" || rawType === "admin" ? rawType : "member";
+  const storedName = String(row.name ?? "").trim();
   return {
     email,
-    name: committeeMemberName(email),
+    name: storedName || committeeMemberName(email),
     role: String(row.notes ?? "").trim(),
     org: String(row.org ?? "").trim(),
+    type,
     added_at: String(row.added_at ?? ""),
   };
 }
