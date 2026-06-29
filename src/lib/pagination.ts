@@ -6,7 +6,7 @@
 //   - pageSize is clamped to [1, MAX_PAGE_SIZE] so a hostile client can't
 //     ask for the entire table.
 
-export const DEFAULT_PAGE_SIZE = 25;
+export const DEFAULT_PAGE_SIZE = 10;
 export const MAX_PAGE_SIZE = 200;
 
 export type Pagination = {

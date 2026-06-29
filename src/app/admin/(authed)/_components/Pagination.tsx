@@ -17,7 +17,7 @@ type Props = {
   isPending?: boolean;
 };
 
-const DEFAULT_OPTIONS = [25, 50, 100, 200];
+const DEFAULT_OPTIONS = [10, 25, 50, 100, 200];
 
 export function Pagination({
   total,
