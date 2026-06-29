@@ -377,8 +377,8 @@ export function CommitteeActivityClient({
                         {row.status}
                       </span>
                     </div>
-                    <h3 className="mt-2 text-base font-semibold text-pasha-ink">{row.title}</h3>
-                    <p className="mt-1 text-sm text-pasha-muted leading-relaxed">
+                    <h3 className="mt-2 text-base font-semibold text-pasha-ink line-clamp-1 break-words">{row.title}</h3>
+                    <p className="mt-1 text-sm text-pasha-muted leading-relaxed line-clamp-2 break-words">
                       {row.description}
                     </p>
                     <p className="mt-2 text-xs text-pasha-muted/80">

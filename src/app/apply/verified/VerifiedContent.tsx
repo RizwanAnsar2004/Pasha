@@ -115,36 +115,56 @@ export function VerifiedContent() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-4 py-1.5 mb-8">
-              <Sparkles className="w-3.5 h-3.5 text-pasha-red" />
-              <span className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/80">
-                Email verified
-              </span>
+            {/* Big, unmistakable success mark — concentric green rings with an
+                animated badge so "verified" reads at a glance. */}
+            <div className="relative mx-auto mb-8 w-28 h-28 sm:w-32 sm:h-32">
+              <motion.span
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="absolute inset-0 rounded-full bg-green-600/10"
+              />
+              <motion.span
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="absolute inset-3 rounded-full bg-green-600/15"
+              />
+              <motion.div
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.3, type: "spring", bounce: 0.5 }}
+                className="absolute inset-6 rounded-full bg-green-600 grid place-items-center shadow-lg shadow-green-600/30"
+              >
+                <BadgeCheck className="w-9 h-9 sm:w-11 sm:h-11 text-white" strokeWidth={2.5} />
+              </motion.div>
             </div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.15, type: "spring", bounce: 0.45 }}
-              className="mx-auto w-16 h-16 rounded-2xl bg-green-600/10 grid place-items-center mb-7"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.35 }}
+              className="inline-flex items-center gap-2 rounded-full border border-green-600/30 bg-green-600/10 px-4 py-1.5 mb-6"
             >
-              <BadgeCheck className="w-9 h-9 text-green-700" />
+              <Sparkles className="w-3.5 h-3.5 text-green-700" />
+              <span className="font-mono text-[11px] uppercase tracking-[2px] text-green-800">
+                Verification complete
+              </span>
             </motion.div>
 
-            <h1 className="font-serif text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
-              You&apos;re all set.
+            <h1 className="font-serif text-5xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
+              Email verified.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
-              Your email has been verified and your account is active. Pick up
-              right where you left off and complete your application whenever
-              you&apos;re ready.
+              Your account is now active. Pick up right where you left off and
+              complete your application whenever you&apos;re ready.
             </p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.45 }}
+            transition={{ duration: 0.5, delay: 0.55 }}
             className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
             <Link
