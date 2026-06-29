@@ -1,27 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const CIRCUMFERENCE = 2 * Math.PI * 44; // r = 44
 
-export function PageLoader() {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const minDelay = new Promise<void>((r) => setTimeout(r, 1800));
-    const pageReady = new Promise<void>((r) => {
-      if (document.readyState === "complete") r();
-      else window.addEventListener("load", () => r(), { once: true });
-    });
-    Promise.all([minDelay, pageReady]).then(() => setVisible(false));
-  }, []);
-
+// Presentational only — the load lifecycle (min delay + window load) now lives in
+// PageReadyProvider, which drives `show` and shares the "ready" signal with page
+// entrance animations so they play AFTER the loader fades (not behind it).
+export function PageLoader({ show }: { show: boolean }) {
   return (
     <AnimatePresence>
-      {visible && (
+      {show && (
         <motion.div
           key="page-loader"
           initial={{ opacity: 1 }}

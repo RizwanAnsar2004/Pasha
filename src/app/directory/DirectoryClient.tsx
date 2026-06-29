@@ -9,6 +9,7 @@ import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText, htmlToText } from "@/components/ui/RichText";
+import { usePageReady } from "@/components/PageReady";
 
 type Row = {
   id: string;
@@ -215,11 +216,12 @@ function Pagination({
 
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+  const ready = usePageReady();
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       transition={{ duration: 0.4 }}
       className="mt-12 flex flex-col items-center gap-4"
     >
@@ -442,10 +444,11 @@ function ListCard({
   customers,
   theme,
 }: ListCardProps) {
+  const ready = usePageReady();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
       transition={{
         duration: 0.35,
         delay: Math.min((index % PAGE_SIZE) * 0.015, 0.25),
@@ -659,6 +662,8 @@ export function DirectoryClient({
   const [hiringOnly, setHiringOnly] = useState(false);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
+  // Hold card/empty-state entrance animations until the intro loader fades.
+  const ready = usePageReady();
 
   // Build unique city list from data
   const cities = useMemo(() => {
@@ -983,7 +988,7 @@ export function DirectoryClient({
             <motion.div
               key={r.id}
               initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              animate={ready ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.5, delay: Math.min((i % PAGE_SIZE) * 0.025, 0.35), ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -8 }}
               className="group relative rounded-[20px] bg-white overflow-hidden transition-all duration-500 flex flex-col shadow-[0_4px_16px_-4px_rgba(14,14,16,0.06),0_2px_4px_-2px_rgba(14,14,16,0.04)] hover:shadow-[0_30px_70px_-15px_rgba(14,14,16,0.20),0_10px_20px_-8px_rgba(14,14,16,0.10)]"
@@ -1284,7 +1289,7 @@ export function DirectoryClient({
       {filtered.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.4 }}
           className="rounded-2xl border border-dashed border-pasha-line bg-pasha-stone/30 p-12 text-center"
         >

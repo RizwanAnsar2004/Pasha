@@ -21,6 +21,7 @@ import {
   Building2,
 } from "lucide-react";
 import { initials, cn } from "@/lib/utils";
+import { usePageReady } from "@/components/PageReady";
 import {
   COMMITTEE_ACTIVITY_TYPE_STYLES,
   COMMITTEE_CHAIR_TAG,
@@ -159,6 +160,9 @@ export function CommitteeContent({
   const blob1Y = useTransform(springY, [-1, 1], [-25, 25]);
   const blob2X = useTransform(springX, [-1, 1], [20, -20]);
   const blob2Y = useTransform(springY, [-1, 1], [20, -20]);
+  // Hold the above-the-fold hero entrance until the intro loader fades, so it
+  // plays in view rather than finishing behind the overlay.
+  const ready = usePageReady();
 
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -201,7 +205,7 @@ export function CommitteeContent({
         <div className="relative mx-auto max-w-4xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-16 lg:pb-20">
           <motion.div
             initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-10 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm border border-pasha-line shadow-sm px-3 py-1.5"
           >
@@ -214,7 +218,7 @@ export function CommitteeContent({
           <h1 className="mt-6 font-serif text-[40px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
             <motion.span
               initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              animate={ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 24, filter: "blur(8px)" }}
               transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
               className="block"
             >
@@ -222,7 +226,7 @@ export function CommitteeContent({
             </motion.span>
             <motion.span
               initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              animate={ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 24, filter: "blur(8px)" }}
               transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
               className="block bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift"
             >
@@ -232,7 +236,7 @@ export function CommitteeContent({
 
           <motion.p
             initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
             transition={{ duration: 0.6, delay: 0.65 }}
             className="mt-8 text-lg sm:text-xl text-pasha-muted leading-relaxed text-pretty max-w-2xl"
           >
@@ -244,7 +248,7 @@ export function CommitteeContent({
 
           <motion.div
             initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
             transition={{ duration: 0.6, delay: 0.85 }}
             className="mt-9 flex flex-col sm:flex-row gap-3"
           >

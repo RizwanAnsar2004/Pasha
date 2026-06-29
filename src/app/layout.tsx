@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
-import { PageLoader } from "@/components/PageLoader";
+import { PageReadyProvider } from "@/components/PageReady";
 
 const SITE_NAME = "P@SHA Startup Community";
 const SITE_DESCRIPTION =
@@ -98,9 +98,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <PageLoader />
-        {children}
-        <ChatWidget />
+        <PageReadyProvider>
+          {children}
+          <ChatWidget />
+        </PageReadyProvider>
       </body>
     </html>
   );

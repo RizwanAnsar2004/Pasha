@@ -7,6 +7,7 @@ import { initials, formatNumber } from "@/lib/utils";
 import { safeImageSrc } from "@/lib/safe-url";
 import { RichText } from "@/components/ui/RichText";
 import { useState, useRef, useCallback } from "react";
+import { usePageReady } from "@/components/PageReady";
 import type { WomenLedStartup } from "@/lib/women-led";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -226,6 +227,9 @@ export function WomenFounders({
   const [page, setPage] = useState(0);
   const dragX = useMotionValue(0);
   const trackRef = useRef<HTMLDivElement>(null);
+  // Hold the on-mount card reveal until the intro loader has faded, so it isn't
+  // played (and wasted) behind the overlay.
+  const ready = usePageReady();
 
   const goTo = useCallback((target: number) => {
     const clamped = Math.max(0, Math.min(totalPages - 1, target));
@@ -297,7 +301,7 @@ export function WomenFounders({
               key={page}
               variants={containerV}
               initial="hidden"
-              animate="show"
+              animate={ready ? "show" : "hidden"}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch"
             >
               {pageSlots.map((slot, i) =>
