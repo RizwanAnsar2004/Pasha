@@ -14,6 +14,7 @@ import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
 import { getFieldLabelMap } from "@/lib/form-config.server";
 import { isYes } from "@/lib/badges";
 import { requestOrigin } from "@/lib/site-url";
+import { notifyRagDatabank } from "@/lib/rag-sync";
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -158,6 +159,10 @@ export async function PATCH(req: Request) {
       resource_id: v.data.id,
       payload: { databank_id: databankId, verified: v.data.verified },
     });
+
+    // Re-ingest this startup so the badge change reflects in the RAG store.
+    notifyRagDatabank("UPDATE", databankId);
+
     return NextResponse.json({ ok: true, id: v.data.id, verified: v.data.verified });
   }
 
@@ -319,6 +324,15 @@ export async function PATCH(req: Request) {
       }
       if (dbErr) {
         console.error("databank publish failed:", dbErr.message);
+      } else {
+        // Published successfully — resolve the row id and (re-)ingest it into
+        // the RAG vector store (covers both the insert and update cases).
+        const publishedId = await resolveDatabankId(
+          supabase,
+          full.id,
+          full.startup_name
+        );
+        if (publishedId) notifyRagDatabank("UPDATE", publishedId);
       }
     }
   }

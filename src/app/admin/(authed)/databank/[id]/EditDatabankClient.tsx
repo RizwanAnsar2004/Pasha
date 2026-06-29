@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Save, Trash2, Loader2, X } from "lucide-react";
 import { Field } from "@/components/form/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { SelectMenu } from "@/components/ui/SelectMenu";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { FileUpload } from "@/components/form/FileUpload";
 import { YesNo, CheckboxGroup } from "@/components/ui/RadioCard";
 import {
@@ -117,6 +118,7 @@ export function EditDatabankClient({
   showStaticFields?: boolean;
 }) {
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirm();
   const [row, setRow] = useState<DatabankRow>(initial);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -183,13 +185,11 @@ export function EditDatabankClient({
   }
 
   async function remove() {
-    if (
-      !confirm(
-        `Delete "${row.startup_name}"? This permanently removes the row from the public directory. This cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete “${row.startup_name}”?`,
+      description: "This can’t be undone.",
+    });
+    if (!ok) return;
     setDeleting(true);
     setError(null);
     try {
@@ -783,6 +783,8 @@ export function EditDatabankClient({
           {saving ? "Saving…" : hasChanges ? "Save changes" : "Saved"}
         </button>
       </div>
+
+      {confirmDialog}
     </div>
   );
 }

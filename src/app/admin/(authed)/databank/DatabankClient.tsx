@@ -10,6 +10,7 @@ import {
   BadgeCheck,
   Loader2,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn, formatNumber, formatCurrency } from "@/lib/utils";
 import { SelectMenu } from "@/components/ui/SelectMenu";
@@ -17,6 +18,7 @@ import { htmlToText } from "@/lib/sanitize-html";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
 
 type Row = {
@@ -57,6 +59,8 @@ export function DatabankClient({
   const [q, setQ] = useState(initial.filters.q);
   const [rowsState, setRowsState] = useState<Row[]>(initial.rows);
   const [pending, setPending] = useState<Record<string, boolean>>({});
+  // Row queued for deletion — drives the confirm modal (null = closed).
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Whenever the server returns a fresh page (URL change), sync the local
   // row state. Without this, optimistic updates would survive page changes.
@@ -78,6 +82,36 @@ export function DatabankClient({
   const sector = initial.filters.sector;
   const outreach = initial.filters.outreach;
   const verifiedFilter = initial.filters.verified as "all" | "yes" | "no";
+
+  // Confirmation is handled by the ConfirmDeleteModal; this runs the delete.
+  async function deleteRow(id: string) {
+    setPending((p) => ({ ...p, [id]: true }));
+    // Optimistic removal; restore on failure.
+    const snapshot = rowsState;
+    setRowsState((rs) => rs.filter((r) => r.id !== id));
+    try {
+      const res = await fetch("/api/admin/databank", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        setRowsState(snapshot); // rollback
+        const j = await res.json().catch(() => ({}));
+        alert(`Failed to delete: ${j.error ?? res.statusText}`);
+      }
+    } catch (e) {
+      setRowsState(snapshot); // rollback
+      alert(`Network error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setPending((p) => {
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+      setConfirmDelete(null);
+    }
+  }
 
   async function toggleVerified(id: string, next: boolean) {
     setPending((p) => ({ ...p, [id]: true }));
@@ -323,6 +357,20 @@ export function DatabankClient({
                           <ExternalLink className="w-3 h-3" /> Site
                         </a>
                       ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete({ id: r.id, name: r.startup_name })}
+                        disabled={pending[r.id]}
+                        title="Delete this startup"
+                        className="inline-flex items-center gap-1 text-[11px] text-pasha-muted hover:text-pasha-red disabled:opacity-50 transition-colors"
+                      >
+                        {pending[r.id] ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                        Delete
+                      </button>
                     </div>
                   </Td>
                 </tr>
@@ -338,6 +386,16 @@ export function DatabankClient({
           isPending={isPending}
         />
       </div>
+
+      <ConfirmDeleteModal
+        open={confirmDelete !== null}
+        title={confirmDelete ? `Delete “${confirmDelete.name}”?` : ""}
+        description="This can’t be undone."
+        confirmLabel="Delete"
+        busy={confirmDelete ? !!pending[confirmDelete.id] : false}
+        onConfirm={() => confirmDelete && deleteRow(confirmDelete.id)}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

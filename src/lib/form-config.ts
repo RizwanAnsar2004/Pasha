@@ -448,6 +448,50 @@ function groupDefault(children: FormFieldConfig[]): Record<string, unknown> {
 // Generates plausible, schema-valid values for every field so the registration
 // form can be exercised end-to-end without manual typing. Intended strictly for
 // local testing — callers gate this behind `process.env.NODE_ENV === "development"`.
+// A recognizable Western sample company so a local debug submission is easy to
+// spot once it flows submission → approval → databank → the RAG store. Keys
+// match the seeded field_keys; any unknown/dynamic field falls back to a
+// generic dev value, and selects/multiselects still resolve to real options.
+const DEV_COMPANY: Record<string, unknown> = {
+  startup_name: "Lumen Robotics",
+  tagline: "Autonomous warehouse robots for mid-market logistics",
+  website: "https://lumenrobotics.io",
+  year_founded: "2021",
+  description:
+    "Lumen Robotics builds autonomous mobile robots that automate order " +
+    "picking and inventory counts for mid-market warehouses across North America.",
+  secondary_sector: "Robotics & Automation",
+  awards: "Forbes AI 50 (2024); TechCrunch Disrupt Battlefield finalist",
+  certifications: "ISO 9001, SOC 2 Type II",
+  closing_notes: "Created via local debug prefill.",
+  company_linkedin: "https://www.linkedin.com/company/lumen-robotics",
+  company_x: "https://x.com/lumenrobotics",
+  company_instagram: "https://www.instagram.com/lumenrobotics",
+  company_facebook: "https://www.facebook.com/lumenrobotics",
+  company_youtube: "https://www.youtube.com/@lumenrobotics",
+};
+
+// Western founders, schema-valid (primary needs name/role/email/mobile; US
+// phone passes isValidPhone — it only checks allowed chars + digit count).
+const DEV_FOUNDERS = [
+  {
+    name: "Daniel Carter",
+    role: "Co-founder & CEO",
+    email: "daniel@lumenrobotics.io",
+    mobile: "+1 (512) 555-0142",
+    linkedin: "https://www.linkedin.com/in/daniel-carter",
+    is_primary: true,
+  },
+  {
+    name: "Emily Nguyen",
+    role: "Co-founder & CTO",
+    email: "emily@lumenrobotics.io",
+    mobile: "+1 (512) 555-0188",
+    linkedin: "https://www.linkedin.com/in/emily-nguyen",
+    is_primary: false,
+  },
+];
+
 export function buildDevPrefill(
   config: FormConfig,
   registry?: Record<string, { value: string; label: string }[]>
@@ -457,10 +501,19 @@ export function buildDevPrefill(
     for (const field of section.fields) {
       if (field.input_type === InputType.HEADING) continue;
       if (field.input_type === InputType.CITY_COMPOSITE) {
-        out.outside_pakistan = false;
-        out.hq_city = "Karachi";
+        // Western HQ — outside Pakistan, so only hq_country is required.
+        out.outside_pakistan = true;
+        out.hq_city = "";
         out.hq_other = "";
-        out.hq_country = "";
+        out.hq_country = "United States";
+        continue;
+      }
+      if (field.input_type === InputType.GROUP && field.field_key === "founders") {
+        out.founders = DEV_FOUNDERS.map((f) => ({ ...f }));
+        continue;
+      }
+      if (Object.prototype.hasOwnProperty.call(DEV_COMPANY, field.field_key)) {
+        out[field.field_key] = DEV_COMPANY[field.field_key];
         continue;
       }
       out[field.field_key] = devValueForField(field, registry);

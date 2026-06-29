@@ -17,6 +17,7 @@ import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { parsePagination } from "@/lib/pagination";
 import { fetchAllRowsBatched } from "@/lib/csv";
+import { notifyRagDatabank } from "@/lib/rag-sync";
 
 // Whitelist of columns an admin can edit. Anything not on this list is
 // silently dropped from the payload so a malformed/attacker-shaped body
@@ -238,6 +239,9 @@ export async function PATCH(req: Request) {
   });
   if (auditErr) console.error("audit_log insert failed:", auditErr.message);
 
+  // Re-ingest this startup into the RAG vector store (best-effort).
+  notifyRagDatabank("UPDATE", id);
+
   return NextResponse.json({ ok: true, id });
 }
 
@@ -287,6 +291,9 @@ export async function DELETE(req: Request) {
     payload: { prior },
   });
   if (auditErr) console.error("audit_log insert failed:", auditErr.message);
+
+  // Drop this startup from the RAG vector store (best-effort).
+  notifyRagDatabank("DELETE", id);
 
   return NextResponse.json({ ok: true, id });
 }

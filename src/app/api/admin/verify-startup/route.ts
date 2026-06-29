@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/admin-allowlist";
+import { notifyRagDatabank } from "@/lib/rag-sync";
 
 const patchSchema = z.object({
   id: z.string().uuid(),
@@ -75,6 +76,9 @@ export async function PATCH(req: Request) {
   if (auditErr) {
     console.error("audit_log insert failed:", auditErr.message);
   }
+
+  // Re-ingest this startup so the verified badge reflects in the RAG store.
+  notifyRagDatabank("UPDATE", id);
 
   return NextResponse.json({ ok: true, id, verified });
 }

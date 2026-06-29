@@ -19,6 +19,7 @@ import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
+import { useConfirm } from "@/components/ui/useConfirm";
 
 type DatabankSummary = {
   id: string;
@@ -119,6 +120,7 @@ export function FeaturedStartupsClient({
   filters: { q: string; status: string };
 }) {
   const { isPending, setParams } = useListNav();
+  const { confirm, confirmDialog } = useConfirm();
   const [entries, setEntries] = useState<FeaturedEntry[]>(initialFeatured);
   const [prevInitial, setPrevInitial] = useState(initialFeatured);
   if (prevInitial !== initialFeatured) {
@@ -246,7 +248,11 @@ export function FeaturedStartupsClient({
   const removeEntry = (entry: FeaturedEntry) =>
     run(async () => {
       const db = databankOf(entry);
-      if (!confirm(`Remove ${db?.startup_name ?? "this startup"} from featured?`)) return;
+      const ok = await confirm({
+        title: `Remove ${db?.startup_name ?? "this startup"} from featured?`,
+        confirmLabel: "Remove",
+      });
+      if (!ok) return;
       await api("DELETE", { id: entry.id });
       await refresh();
     });
@@ -617,6 +623,7 @@ export function FeaturedStartupsClient({
           </>
         )}
       </AnimatePresence>
+      {confirmDialog}
     </div>
   );
 }
