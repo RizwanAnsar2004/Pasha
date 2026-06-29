@@ -10,6 +10,7 @@ import {
   BadgeCheck,
   Loader2,
   Pencil,
+  Eye,
   Trash2,
 } from "lucide-react";
 import { cn, formatNumber, formatCurrency } from "@/lib/utils";
@@ -333,6 +334,13 @@ export function DatabankClient({
                   </Td>
                   <Td>
                     <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/databank/${r.id}/view`}
+                        className="inline-flex items-center gap-1 text-[11px] text-pasha-muted hover:text-pasha-red transition-colors"
+                        title="View this startup (read-only)"
+                      >
+                        <Eye className="w-3 h-3" /> View
+                      </Link>
                       <Link
                         href={`/admin/databank/${r.id}`}
                         className="inline-flex items-center gap-1 text-[11px] text-pasha-ink hover:text-pasha-red transition-colors"

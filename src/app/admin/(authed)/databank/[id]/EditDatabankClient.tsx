@@ -106,6 +106,18 @@ function asNumber(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// A legacy column "has data" when it isn't null/undefined/blank. Used to hide
+// empty legacy field editors (a 0 or false still counts as data).
+function has(v: unknown): boolean {
+  return v !== null && v !== undefined && v !== "";
+}
+
+// Render a section's children only when at least one of the given column values
+// has data — so a fully-empty legacy section disappears entirely.
+function anyHas(...vals: unknown[]): boolean {
+  return vals.some(has);
+}
+
 export function EditDatabankClient({
   initial,
   dynamicFields = [],
@@ -299,7 +311,9 @@ export function EditDatabankClient({
 
       {showStaticFields && (
         <>
+      {anyHas(row.logo_url, row.startup_name, row.company_name, row.tagline, row.website, row.founded_date, row.pasha_verified) && (
       <Section title="Branding & identity">
+        {has(row.logo_url) && (
         <Field label="Logo" hint="PNG / JPG / SVG. Square works best.">
           <FileUpload
             bucket="logos"
@@ -325,27 +339,35 @@ export function EditDatabankClient({
             hint="Square aspect ratio works best."
           />
         </Field>
+        )}
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.startup_name) && (
           <Field label="Startup name">
             <Input
               value={row.startup_name ?? ""}
               onChange={(e) => update("startup_name", e.target.value)}
             />
           </Field>
+          )}
+          {has(row.company_name) && (
           <Field label="Legal / company name">
             <Input
               value={row.company_name ?? ""}
               onChange={(e) => update("company_name", e.target.value || null)}
             />
           </Field>
+          )}
         </div>
+        {has(row.tagline) && (
         <Field label="Tagline" hint="Rich text — shown publicly under the name.">
           <TaglineEditor
             value={row.tagline ?? ""}
             onChange={(html) => update("tagline", html || null)}
           />
         </Field>
+        )}
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.website) && (
           <Field label="Website">
             <Input
               type="url"
@@ -354,6 +376,8 @@ export function EditDatabankClient({
               placeholder="https://"
             />
           </Field>
+          )}
+          {has(row.founded_date) && (
           <Field label="Year founded" hint="4-digit year.">
             <Input
               type="number"
@@ -367,7 +391,9 @@ export function EditDatabankClient({
               placeholder="2022"
             />
           </Field>
+          )}
         </div>
+        {has(row.pasha_verified) && (
         <Field
           label="P@SHA verified"
           hint="Flip on to publish the badge + tooltip on the public profile."
@@ -377,10 +403,14 @@ export function EditDatabankClient({
             onChange={(v) => update("pasha_verified", v)}
           />
         </Field>
+        )}
       </Section>
+      )}
 
+      {anyHas(row.city, row.hq_country, row.primary_industry, row.secondary_industries, row.business_types, row.product_stage) && (
       <Section title="Location & category">
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.city) && (
           <Field label="HQ city (or 'Other' for write-in)">
             <SelectMenu
               className="w-full"
@@ -390,6 +420,8 @@ export function EditDatabankClient({
               options={[...HQ_CITIES]}
             />
           </Field>
+          )}
+          {has(row.hq_country) && (
           <Field label="Country (if outside Pakistan)">
             <SelectMenu
               className="w-full"
@@ -399,6 +431,8 @@ export function EditDatabankClient({
               options={[...COUNTRIES]}
             />
           </Field>
+          )}
+          {has(row.primary_industry) && (
           <Field label="Primary industry">
             <SelectMenu
               className="w-full"
@@ -408,6 +442,8 @@ export function EditDatabankClient({
               options={[...SECTORS]}
             />
           </Field>
+          )}
+          {has(row.secondary_industries) && (
           <Field label="Secondary industries">
             <Input
               value={row.secondary_industries ?? ""}
@@ -417,6 +453,8 @@ export function EditDatabankClient({
               placeholder="Free text"
             />
           </Field>
+          )}
+          {has(row.business_types) && (
           <Field label="Business model / type">
             <SelectMenu
               className="w-full"
@@ -426,17 +464,23 @@ export function EditDatabankClient({
               options={[...BUSINESS_MODELS]}
             />
           </Field>
+          )}
+          {has(row.product_stage) && (
           <Field label="Product stage">
             <Input
               value={row.product_stage ?? ""}
               onChange={(e) => update("product_stage", e.target.value || null)}
             />
           </Field>
+          )}
         </div>
       </Section>
+      )}
 
+      {anyHas(row.nic_name, row.incubation_stage, row.cohort, row.joining_date) && (
       <Section title="Incubation">
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.nic_name) && (
           <Field label="NIC / incubation center">
             <SelectMenu
               className="w-full"
@@ -446,6 +490,8 @@ export function EditDatabankClient({
               options={[...NIC_CENTERS]}
             />
           </Field>
+          )}
+          {has(row.incubation_stage) && (
           <Field label="Stage of incubation">
             <Input
               value={row.incubation_stage ?? ""}
@@ -454,12 +500,16 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.cohort) && (
           <Field label="Cohort">
             <Input
               value={row.cohort ?? ""}
               onChange={(e) => update("cohort", e.target.value || null)}
             />
           </Field>
+          )}
+          {has(row.joining_date) && (
           <Field label="Joining date" hint="YYYY-MM-DD">
             <Input
               type="date"
@@ -467,11 +517,15 @@ export function EditDatabankClient({
               onChange={(e) => update("joining_date", e.target.value || null)}
             />
           </Field>
+          )}
         </div>
       </Section>
+      )}
 
+      {anyHas(row.total_employees, row.female_employees, row.jobs_created, row.number_of_customers, row.current_revenue, row.investment_raised, row.investment_commitment, row.investment_raised_from) && (
       <Section title="Team & traction">
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.total_employees) && (
           <Field label="Total employees">
             <Input
               type="number"
@@ -480,6 +534,8 @@ export function EditDatabankClient({
               onChange={(e) => update("total_employees", asNumber(e.target.value))}
             />
           </Field>
+          )}
+          {has(row.female_employees) && (
           <Field label="Female employees">
             <Input
               type="number"
@@ -490,6 +546,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.jobs_created) && (
           <Field label="Jobs created">
             <Input
               type="number"
@@ -498,6 +556,8 @@ export function EditDatabankClient({
               onChange={(e) => update("jobs_created", asNumber(e.target.value))}
             />
           </Field>
+          )}
+          {has(row.number_of_customers) && (
           <Field label="Customers">
             <Input
               type="number"
@@ -508,6 +568,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.current_revenue) && (
           <Field label="Annual revenue (PKR)">
             <Input
               type="number"
@@ -519,6 +581,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.investment_raised) && (
           <Field label="Investment raised (PKR, lifetime)">
             <Input
               type="number"
@@ -530,6 +594,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.investment_commitment) && (
           <Field label="Investment commitments (PKR)">
             <Input
               value={row.investment_commitment ?? ""}
@@ -538,6 +604,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.investment_raised_from) && (
           <Field label="Source of capital">
             <Input
               value={row.investment_raised_from ?? ""}
@@ -547,10 +615,14 @@ export function EditDatabankClient({
               placeholder="VC, Angel, Bootstrapped…"
             />
           </Field>
+          )}
         </div>
       </Section>
+      )}
 
+      {anyHas(row.startup_idea, row.business_model, row.social_impact, row.sdgs, row.video_pitch) && (
       <Section title="About" subtitle="Long-form text shown on the public profile. HTML is sanitised on render.">
+        {has(row.startup_idea) && (
         <Field label="Tagline / startup idea (paragraph)">
           <Textarea
             value={stripTags(row.startup_idea ?? "")}
@@ -558,6 +630,8 @@ export function EditDatabankClient({
             rows={5}
           />
         </Field>
+        )}
+        {has(row.business_model) && (
         <Field label="Business model (paragraph)">
           <Textarea
             value={stripTags(row.business_model ?? "")}
@@ -565,6 +639,8 @@ export function EditDatabankClient({
             rows={4}
           />
         </Field>
+        )}
+        {has(row.social_impact) && (
         <Field label="Social impact">
           <Textarea
             value={row.social_impact ?? ""}
@@ -572,12 +648,16 @@ export function EditDatabankClient({
             rows={3}
           />
         </Field>
+        )}
+        {has(row.sdgs) && (
         <Field label="SDGs" hint="Pipe / semicolon / comma separated.">
           <Input
             value={row.sdgs ?? ""}
             onChange={(e) => update("sdgs", e.target.value || null)}
           />
         </Field>
+        )}
+        {has(row.video_pitch) && (
         <Field label="Pitch video URL">
           <Input
             type="url"
@@ -586,9 +666,13 @@ export function EditDatabankClient({
             placeholder="https://youtu.be/..."
           />
         </Field>
+        )}
       </Section>
+      )}
 
+      {anyHas(row.awards, row.certifications) && (
       <Section title="Recognition">
+        {has(row.awards) && (
         <Field label="Awards & recognition" hint="One per line.">
           <Textarea
             value={row.awards ?? ""}
@@ -596,6 +680,8 @@ export function EditDatabankClient({
             rows={4}
           />
         </Field>
+        )}
+        {has(row.certifications) && (
         <Field label="Certifications" hint="ISO, SOC 2, PCI-DSS, etc.">
           <Textarea
             value={row.certifications ?? ""}
@@ -603,10 +689,14 @@ export function EditDatabankClient({
             rows={3}
           />
         </Field>
+        )}
       </Section>
+      )}
 
+      {anyHas(row.contact_person, row.contact_email, row.outreach_status, row.outreach_notes) && (
       <Section title="Contact (private)" subtitle="Not shown on the public profile. Used by the secretariat for outreach.">
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.contact_person) && (
           <Field label="Primary contact">
             <Input
               value={row.contact_person ?? ""}
@@ -615,6 +705,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.contact_email) && (
           <Field label="Primary contact email">
             <Input
               type="email"
@@ -622,6 +714,8 @@ export function EditDatabankClient({
               onChange={(e) => update("contact_email", e.target.value || null)}
             />
           </Field>
+          )}
+          {has(row.outreach_status) && (
           <Field label="Outreach status">
             <SelectMenu
               className="w-full"
@@ -637,7 +731,9 @@ export function EditDatabankClient({
               ]}
             />
           </Field>
+          )}
         </div>
+        {has(row.outreach_notes) && (
         <Field label="Outreach notes">
           <Textarea
             value={row.outreach_notes ?? ""}
@@ -645,10 +741,14 @@ export function EditDatabankClient({
             rows={3}
           />
         </Field>
+        )}
       </Section>
+      )}
 
+      {anyHas(row.company_linkedin, row.company_x, row.company_instagram, row.company_facebook, row.company_youtube) && (
       <Section title="Company socials">
         <div className="grid sm:grid-cols-2 gap-5">
+          {has(row.company_linkedin) && (
           <Field label="LinkedIn">
             <Input
               type="url"
@@ -658,6 +758,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.company_x) && (
           <Field label="X / Twitter">
             <Input
               type="url"
@@ -665,6 +767,8 @@ export function EditDatabankClient({
               onChange={(e) => update("company_x", e.target.value || null)}
             />
           </Field>
+          )}
+          {has(row.company_instagram) && (
           <Field label="Instagram">
             <Input
               type="url"
@@ -674,6 +778,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.company_facebook) && (
           <Field label="Facebook">
             <Input
               type="url"
@@ -683,6 +789,8 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
+          {has(row.company_youtube) && (
           <Field label="YouTube">
             <Input
               type="url"
@@ -692,8 +800,10 @@ export function EditDatabankClient({
               }
             />
           </Field>
+          )}
         </div>
       </Section>
+      )}
         </>
       )}
 
@@ -743,17 +853,19 @@ export function EditDatabankClient({
         </Section>
       )}
 
-      {showStaticFields && (
-        <Section
-          title="Key persons"
-          subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
-        >
-          <KeyPersonsEditor
-            persons={row.key_persons ?? []}
-            onChange={(next) => update("key_persons", next)}
-          />
-        </Section>
-      )}
+      {/* Founders / key persons live in the key_persons column for both legacy
+          and new records (founders → key_persons on approval). The form's
+          founders GROUP field is skipped from the dynamic section, so this is
+          the only editor for them — show it for every record. */}
+      <Section
+        title="Key persons"
+        subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
+      >
+        <KeyPersonsEditor
+          persons={row.key_persons ?? []}
+          onChange={(next) => update("key_persons", next)}
+        />
+      </Section>
 
       <div className="pt-2 flex items-center justify-end gap-2">
         <button

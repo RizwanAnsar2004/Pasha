@@ -27,5 +27,16 @@ export default async function EditDatabankPage({
     getDatabankDynamicFields(),
   ]);
   if (!row) notFound();
-  return <EditDatabankClient initial={row} dynamicFields={dynamicFields} />;
+  // Legacy/imported records (startupconnect, ignite, etc.) carry a source_id
+  // linking back to their import source; new apply-form records don't set one.
+  // Legacy records expose their static column editors so imported data can be
+  // updated; new records are edited through the dynamic fields alone.
+  const isLegacy = !!(row as { source_id?: string | null }).source_id;
+  return (
+    <EditDatabankClient
+      initial={row}
+      dynamicFields={dynamicFields}
+      showStaticFields={isLegacy}
+    />
+  );
 }
