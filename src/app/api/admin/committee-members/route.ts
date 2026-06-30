@@ -5,6 +5,7 @@ import { isAdminEmail, bustAdminAllowlistCache } from "@/lib/admin-allowlist";
 import { parsePagination } from "@/lib/pagination";
 import { provisionSupabaseAuthUser, deleteSupabaseAuthUser } from "@/lib/admin-auth-provision";
 import { generatePassword, sendCommitteeInvite } from "@/lib/committee-invite";
+import { requestOrigin } from "@/lib/site-url";
 
 const memberTypeSchema = z.enum(["chairman", "member", "admin"]);
 
@@ -171,7 +172,13 @@ export async function POST(req: Request) {
   const password = parsed.data.password?.trim() || generatePassword();
   provisioned = await provisionSupabaseAuthUser(email, password);
   if (provisioned) {
-    const sendRes = await sendCommitteeInvite({ email, role: roles, password, createdBy: actor });
+    const sendRes = await sendCommitteeInvite({
+      email,
+      role: roles,
+      password,
+      createdBy: actor,
+      origin: requestOrigin(req),
+    });
     emailed = sendRes.ok;
     if (!sendRes.ok) {
       emailError = sendRes.error;
