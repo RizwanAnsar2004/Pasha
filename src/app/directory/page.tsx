@@ -31,7 +31,7 @@ export const PAGE_SIZE = 12;
 // Card column set, richest first. If a column is missing (pre-migration), we
 // retry with the smaller, always-present set so the page still renders.
 const SELECT_COLUMNS =
-  "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created";
+  "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created,answers";
 const SELECT_COLUMNS_FALLBACK =
   "id,startup_name,tagline,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,pasha_verified";
 

@@ -16,6 +16,14 @@ import { isYes } from "@/lib/badges";
 import { requestOrigin } from "@/lib/site-url";
 import { notifyRagDatabank } from "@/lib/rag-sync";
 
+// Coerce an answers-bag value to a finite number, else null. Used to fill the
+// numeric databank metric columns from the form's number fields.
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 const updateSchema = z.object({
   id: z.string().uuid(),
   // Spec §12 vocabulary; legacy 'pending'/'watchlist' tolerated for old rows.
@@ -264,6 +272,9 @@ export async function PATCH(req: Request) {
         contact_email: full.founder_email ?? null,
         total_employees: full.total_employees ?? null,
         female_employees: full.female_employees ?? null,
+        // Monthly active users is the only numeric metric in the form, so it
+        // fills the numeric customers/users column the directory tiles read.
+        number_of_customers: toNum(answers.monthly_active_users),
         logo_url: full.logo_url ?? null,
         startup_idea: full.description ?? null,
         key_persons: full.founders ?? [],

@@ -48,6 +48,30 @@ import { RichText as AutoRichText } from "@/components/ui/RichText";
 import { safeHref } from "@/lib/safe-url";
 import { initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
+import { REVENUE_BANDS, MONTHLY_REVENUE_RANGES, FUNDING_AMOUNT_RANGES } from "@/lib/options";
+
+// value→label maps for the form's range bands. New records store revenue /
+// funding as select bands (not numeric columns), so the profile falls back to
+// the readable range when the numeric column is empty.
+const REVENUE_BAND_LABEL: Record<string, string> = Object.fromEntries(
+  REVENUE_BANDS.map((o) => [o.value, o.label])
+);
+const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
+  FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
+);
+const MONTHLY_REV_LABEL: Record<string, string> = Object.fromEntries(
+  MONTHLY_REVENUE_RANGES.map((o) => [o.value, o.label])
+);
+function bandLabel(code: unknown, map: Record<string, string>): string | null {
+  if (typeof code !== "string" || !code || code === "na") return null;
+  const label = map[code];
+  if (!label) return null;
+  return label.replace(/\s*\/\s*(year|month)$/i, "").trim();
+}
+function monthlyRevLabel(code: unknown): string | null {
+  const base = bandLabel(code, MONTHLY_REV_LABEL);
+  return base ? `${base}/mo` : null;
+}
 
 export const dynamic = "force-dynamic";
 // Detail pages are ISR — first hit generates, then cached.
@@ -330,6 +354,18 @@ export default async function StartupDetailPage({
   const female = row.female_employees && row.female_employees > 0 ? row.female_employees : null;
   const revenue = formatPKR(row.current_revenue);
   const customers = row.number_of_customers && row.number_of_customers > 0 ? row.number_of_customers : null;
+  // Fall back to the form's range band when the numeric column is empty (new
+  // records store these as select bands in the answers bag).
+  const revenueDisplay =
+    revenue ??
+    bandLabel(answers.revenue_band, REVENUE_BAND_LABEL) ??
+    monthlyRevLabel(answers.monthly_revenue_range);
+  const raisedDisplay =
+    (row.investment_raised && row.investment_raised > 1
+      ? formatPKR(row.investment_raised)
+      : row.investment_raised === 1
+        ? "Disclosed"
+        : null) ?? bandLabel(answers.total_funding_raised, RAISED_BAND_LABEL);
 
   const secondaries = splitMulti(row.secondary_industries);
   const bizTypes = splitMulti(row.business_types);
@@ -338,7 +374,7 @@ export default async function StartupDetailPage({
   const logoOk = isSelfHostedImage(row.logo_url);
   const video = isVideoPitchLink(row.video_pitch) ? row.video_pitch : null;
 
-  const hasStats = !!(revenue || employees || female || customers);
+  const hasStats = !!(revenueDisplay || employees || female || customers);
 
   return (
     <>
@@ -518,8 +554,8 @@ export default async function StartupDetailPage({
             {/* Stats chips row */}
             {hasStats && (
               <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {revenue && (
-                  <HeroStat icon={<TrendingUp className="w-3.5 h-3.5" />} label="Annual Revenue" value={revenue} />
+                {revenueDisplay && (
+                  <HeroStat icon={<TrendingUp className="w-3.5 h-3.5" />} label="Annual Revenue" value={revenueDisplay} />
                 )}
                 {employees && (
                   <HeroStat icon={<Users className="w-3.5 h-3.5" />} label="Team Size" value={`${employees.toLocaleString("en-PK")} people`} />
@@ -641,20 +677,11 @@ export default async function StartupDetailPage({
                 </SideCard>
               )}
 
-              {(revenue || row.investment_raised || row.investment_commitment) && (
+              {(revenueDisplay || raisedDisplay || row.investment_commitment) && (
                 <SideCard title="Traction">
-                  <DetailRow label="Revenue" value={revenue} />
+                  <DetailRow label="Revenue" value={revenueDisplay} />
                   <DetailRow label="Customers" value={customers ? customers.toLocaleString("en-PK") : null} />
-                  <DetailRow
-                    label="Investment raised"
-                    value={
-                      row.investment_raised && row.investment_raised > 1
-                        ? formatPKR(row.investment_raised)
-                        : row.investment_raised === 1
-                          ? "Disclosed"
-                          : null
-                    }
-                  />
+                  <DetailRow label="Investment raised" value={raisedDisplay} />
                   <DetailRow
                     label="Commitments"
                     value={(() => {

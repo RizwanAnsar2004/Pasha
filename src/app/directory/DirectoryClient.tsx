@@ -11,6 +11,7 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
+import { REVENUE_BANDS, MONTHLY_REVENUE_RANGES, FUNDING_AMOUNT_RANGES, CUSTOMER_BANDS } from "@/lib/options";
 
 export type DirectoryRow = {
   id: string;
@@ -39,7 +40,45 @@ export type DirectoryRow = {
   founder_name?: string | null;
   founder_photo_url?: string | null;
   founder_role?: string | null;
+  // Dynamic form answers — used to fall back to range-band text for new
+  // records that store revenue / funding as select bands, not numeric columns.
+  answers?: Record<string, unknown> | null;
 };
+
+// value→label maps for the form's range bands, so a card can show a readable
+// range (e.g. "$250K – $1M") when the numeric column is empty.
+const REVENUE_BAND_LABEL: Record<string, string> = Object.fromEntries(
+  REVENUE_BANDS.map((o) => [o.value, o.label])
+);
+const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
+  FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
+);
+const MONTHLY_REV_LABEL: Record<string, string> = Object.fromEntries(
+  MONTHLY_REVENUE_RANGES.map((o) => [o.value, o.label])
+);
+const CUSTOMER_BAND_LABEL: Record<string, string> = Object.fromEntries(
+  CUSTOMER_BANDS.map((o) => [o.value, o.label])
+);
+
+// Resolve a stored band code to a short label (drops the "/ year" suffix and
+// skips non-informative values). Returns null when nothing useful to show.
+function bandLabel(code: unknown, map: Record<string, string>): string | null {
+  if (typeof code !== "string" || !code || code === "na") return null;
+  const label = map[code];
+  if (!label) return null;
+  return label.replace(/\s*\/\s*(year|month)$/i, "").trim();
+}
+
+// Monthly revenue keeps a "/mo" marker so it isn't confused with an annual figure.
+function monthlyRevLabel(code: unknown): string | null {
+  const base = bandLabel(code, MONTHLY_REV_LABEL);
+  return base ? `${base}/mo` : null;
+}
+
+// Revenue display: numeric column first, then annual band, then monthly band.
+function revenueBand(answers: Record<string, unknown>): string | null {
+  return bandLabel(answers.revenue_band, REVENUE_BAND_LABEL) ?? monthlyRevLabel(answers.monthly_revenue_range);
+}
 
 // Internal alias so the existing presentational components keep using `Row`.
 type Row = DirectoryRow;
@@ -440,6 +479,7 @@ type ListCardProps = {
   logoUrl: string | null;
   employees: number | null;
   revenue: string | null;
+  raised: string | null;
   customers: number | null;
   theme: SectorTheme;
 };
@@ -456,6 +496,7 @@ function ListCard({
   logoUrl,
   employees,
   revenue,
+  raised,
   customers,
   theme,
 }: ListCardProps) {
@@ -573,8 +614,13 @@ function ListCard({
           />
           <ListStat
             icon={TrendingUp}
-            value={revenue ? revenue.replace("Rs ", "") : null}
+            value={revenue}
             label="Rev"
+          />
+          <ListStat
+            icon={Coins}
+            value={raised}
+            label="Raised"
           />
           <ListStat
             icon={Building2}
@@ -986,6 +1032,34 @@ export function DirectoryClient({
           const jobsCreated = r.jobs_created && r.jobs_created > 0
             ? r.jobs_created : null;
 
+          // For new records revenue / raised come in as form select-bands (not
+          // numeric columns), so fall back to the readable range text.
+          const a = (r.answers ?? {}) as Record<string, unknown>;
+          const revenueDisplay = revenue
+            ? revenue.replace("Rs ", "")
+            : revenueBand(a);
+          const raisedDisplay = investment
+            ? investment.replace("Rs ", "")
+            : bandLabel(a.total_funding_raised, RAISED_BAND_LABEL);
+          // Users: numeric (MAU/customers) first, else the customer range band.
+          const usersDisplay = customers
+            ? compact(customers)
+            : bandLabel(a.num_customers, CUSTOMER_BAND_LABEL);
+          // Every quantitative/public fact the record has, in priority order.
+          // We render the first four so each card surfaces as many real stats as
+          // possible (no "—" placeholders).
+          const statItems = (
+            [
+              employees && { icon: Users, label: "Team", value: compact(employees) },
+              revenueDisplay && { icon: TrendingUp, label: "Revenue", value: revenueDisplay },
+              raisedDisplay && { icon: Coins, label: "Raised", value: raisedDisplay },
+              usersDisplay && { icon: Building2, label: "Users", value: usersDisplay },
+              femaleEmployees && { icon: Users, label: "Women", value: compact(femaleEmployees) },
+              jobsCreated && { icon: Layers, label: "Jobs", value: compact(jobsCreated) },
+              foundedYear && { icon: Calendar, label: "Founded", value: String(foundedYear) },
+            ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string; value: string }[]
+          ).slice(0, 4);
+
           // ─────────── LIST VIEW ───────────
           if (view === "list") {
             return (
@@ -1001,7 +1075,8 @@ export function DirectoryClient({
                 website={website}
                 logoUrl={logoUrl}
                 employees={employees}
-                revenue={revenue}
+                revenue={revenueDisplay}
+                raised={raisedDisplay}
                 customers={customers}
                 theme={theme}
               />
@@ -1224,42 +1299,38 @@ export function DirectoryClient({
               )}
 
               {/* ───────────────────────────────────────────────
-                  STATS — 2×2 grid: Team | Revenue / Investment | Users
+                  STATS — up to four tiles filled with whatever real numeric
+                  facts the record has (no "—" placeholders). Hidden only when
+                  the record has zero quantitative data.
                   ─────────────────────────────────────────────── */}
+              {statItems.length > 0 && (
               <div className="relative z-20 pointer-events-none px-5 pb-4">
                   <div className="rounded-xl bg-white/80 backdrop-blur-sm border border-pasha-line/60 group-hover:border-pasha-ink/15 group-hover:shadow-sm p-3 transition-all">
-                    <div className="grid grid-cols-2 gap-px">
-                      <div className="grid grid-cols-2 col-span-2 divide-x divide-pasha-line/50 border-b border-pasha-line/50 pb-2 mb-2">
-                        <FancyStat
-                          icon={Users}
-                          value={employees ? compact(employees) : null}
-                          label="Team"
-                          accent={theme.logoText}
-                        />
-                        <FancyStat
-                          icon={TrendingUp}
-                          value={revenue ? revenue.replace("Rs ", "") : null}
-                          label="Revenue"
-                          accent={theme.logoText}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 col-span-2 divide-x divide-pasha-line/50">
-                        <FancyStat
-                          icon={Coins}
-                          value={investment ? investment.replace("Rs ", "") : null}
-                          label="Raised"
-                          accent={theme.logoText}
-                        />
-                        <FancyStat
-                          icon={customers ? Building2 : femaleEmployees ? Users : jobsCreated ? Users : Building2}
-                          value={customers ? compact(customers) : femaleEmployees ? compact(femaleEmployees) : jobsCreated ? compact(jobsCreated) : null}
-                          label={customers ? "Users" : femaleEmployees ? "Women" : jobsCreated ? "Jobs" : "Users"}
-                          accent={theme.logoText}
-                        />
-                      </div>
+                    <div
+                      className={cn(
+                        "grid gap-x-2 gap-y-2",
+                        statItems.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                      )}
+                    >
+                      {statItems.map((s, i) => (
+                        <div
+                          key={i}
+                          // With an odd third tile, span it across both columns
+                          // and centre it so the row isn't lopsided.
+                          className={cn(statItems.length === 3 && i === 2 && "col-span-2")}
+                        >
+                          <FancyStat
+                            icon={s.icon}
+                            value={s.value}
+                            label={s.label}
+                            accent={theme.logoText}
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
+              )}
 
               {/* ───────────────────────────────────────────────
                   FOOTER — website + view CTA
