@@ -3,7 +3,6 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
 import { PageReadyProvider } from "@/components/PageReady";
-import { PageTransition } from "@/components/PageTransition";
 
 // Google Analytics 4 measurement ID (G-XXXXXXXXXX). When unset, GA is skipped
 // entirely — keeps local dev and previews out of the production property.
@@ -105,7 +104,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <PageReadyProvider>
-          <PageTransition>{children}</PageTransition>
+          {/* Per-navigation enter animation lives in app/template.tsx, which Next
+              nests between this layout and the page. */}
+          {children}
           <ChatWidget />
         </PageReadyProvider>
       </body>
