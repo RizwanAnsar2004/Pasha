@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
 import { PageReadyProvider } from "@/components/PageReady";
 import { PageTransition } from "@/components/PageTransition";
+
+// Google Analytics 4 measurement ID (G-XXXXXXXXXX). When unset, GA is skipped
+// entirely — keeps local dev and previews out of the production property.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const SITE_NAME = "P@SHA Startup Community";
 const SITE_DESCRIPTION =
@@ -104,6 +109,7 @@ export default function RootLayout({
           <ChatWidget />
         </PageReadyProvider>
       </body>
+      {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
   );
 }

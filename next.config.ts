@@ -8,13 +8,16 @@ const csp = [
   `default-src 'self'`,
   // Next inlines hydration scripts. 'unsafe-inline' is required for the
   // bootstrap; consider nonce-based CSP later if we need stricter.
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com`,
+  // Google Analytics (gtag.js) loads from googletagmanager.com.
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src 'self' data: https://fonts.gstatic.com`,
-  // All images are self-hosted (Supabase Storage for databank logos,
-  // /public for site assets). No third-party image hosts allowed.
-  `img-src 'self' data: blob: https://${SUPABASE_HOST}`,
-  `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST}`,
+  // Self-hosted assets (Supabase Storage logos, /public) plus GA's tracking
+  // pixel beacons (google-analytics.com / googletagmanager.com).
+  `img-src 'self' data: blob: https://${SUPABASE_HOST} https://*.google-analytics.com https://*.googletagmanager.com`,
+  // Supabase REST/Realtime plus GA4's data-collection endpoints (it POSTs hits
+  // to region-specific *.google-analytics.com / *.analytics.google.com hosts).
+  `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com`,
   `frame-ancestors 'none'`,
   `object-src 'none'`,
   `base-uri 'self'`,

@@ -18,6 +18,7 @@ import {
 } from "@/lib/form-config";
 import { DynamicField } from "./DynamicField";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
+import { funnel } from "@/lib/analytics";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -108,6 +109,12 @@ export function DynamicForm({
     return out;
   }, [submitCheck, labelMap]);
 
+  // Fire the funnel "started" event once when the form mounts.
+  useEffect(() => {
+    funnel.started();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Hydrate draft once (localStorage only). In server-persist mode the draft is
   // seeded into `defaults` from the DB, so there's nothing to restore here.
   useEffect(() => {
@@ -197,6 +204,7 @@ export function DynamicForm({
     // starts clean — the user should only see errors after touching a field
     // or attempting Next again.
     form.clearErrors();
+    funnel.stepCompleted(stepIdx, titles[stepIdx]?.title);
     setStepIdx(stepIdx + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -218,6 +226,7 @@ export function DynamicForm({
     if (stepIdx >= totalSteps - 1) return;
     setError(null);
     form.clearErrors();
+    funnel.stepCompleted(stepIdx, titles[stepIdx]?.title, true);
     setStepIdx(stepIdx + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

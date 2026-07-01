@@ -2,12 +2,26 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { funnel } from "@/lib/analytics";
 
 export function SuccessContent() {
+  const searchParams = useSearchParams();
+
+  // Landing here means the submission succeeded — fire the funnel end event
+  // once, with the server-assigned tier/score carried in the URL.
+  useEffect(() => {
+    const tier = searchParams.get("tier") ?? undefined;
+    const scoreRaw = searchParams.get("score");
+    const score = scoreRaw != null ? Number(scoreRaw) : undefined;
+    funnel.submitted({ tier, score: Number.isFinite(score) ? score : undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let raf = 0;
