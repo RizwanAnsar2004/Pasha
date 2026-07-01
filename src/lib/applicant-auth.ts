@@ -31,14 +31,53 @@ export const getApplicantContext = cache(
     | { status: "applicant"; user: User }
   > => {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { status: "anon", user: null };
-    if (await isAdminEmail(user.email)) return { status: "admin", user };
-    return { status: "applicant", user };
+    // A stale/rotated refresh token makes getUser() surface an AuthApiError
+    // ("Invalid Refresh Token: Refresh Token Not Found"). If we let that throw,
+    // it bubbles out of the force-dynamic portal layout and the client-side
+    // (RSC) navigation to /apply silently aborts — the link "does nothing"
+    // until a full reload. Treat ANY auth failure (returned error or thrown)
+    // as anonymous so the layout cleanly redirects to /apply/login instead.
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        // Auth failure with a session cookie present means the refresh token is
+        // dead — drop it so the browser stops replaying a session that can only
+        // keep erroring. See clearStaleSession for the persistence caveat.
+        await clearStaleSession(supabase);
+        return { status: "anon", user: null };
+      }
+      if (!user) return { status: "anon", user: null };
+      if (await isAdminEmail(user.email)) return { status: "admin", user };
+      return { status: "applicant", user };
+    } catch {
+      // getUser threw (e.g. the refresh call rejected) — same remedy.
+      await clearStaleSession(supabase);
+      return { status: "anon", user: null };
+    }
   }
 );
+
+/**
+ * Best-effort removal of the stale Supabase auth cookie after an auth error.
+ * `scope: "local"` clears the cookies without a network round-trip (a server
+ * sign-out would just fail again on an already-invalid session).
+ *
+ * Persistence caveat: cookie writes only stick where Next allows them — Route
+ * Handlers and middleware. When this runs inside a Server Component render
+ * (the force-dynamic portal layout) the write is swallowed by design
+ * (see supabase/server.ts `setAll`), so the cookie is actually dropped by the
+ * middleware on the next request rather than during the errored render.
+ */
+async function clearStaleSession(supabase: SupabaseClient): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Clearing is best-effort — never let it mask the original result.
+  }
+}
 
 /**
  * Current applicant from the request cookies, or null if not signed in OR the

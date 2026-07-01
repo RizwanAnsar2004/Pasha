@@ -19,6 +19,18 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Applicant portal: keep the Supabase session cookie healthy. The /apply
+  // pages read the session during a Server Component render, where Next forbids
+  // cookie writes — so a rotated/expired refresh token can never be refreshed
+  // or cleared there and just keeps erroring (silently breaking client-side
+  // navigation until a full reload). Middleware CAN write cookies, so here we
+  // touch the session: Supabase refreshes it (writing fresh cookies) or, on
+  // failure, we drop the dead cookie. We do NOT redirect — the portal layout
+  // still owns auth gating.
+  if (pathname === "/apply" || pathname.startsWith("/apply/")) {
+    return refreshApplicantSession(request);
+  }
+
   // Skip auth for admin public routes (login / callback / logout)
   const isAdminGated =
     pathname.startsWith("/admin") &&
@@ -87,6 +99,55 @@ export async function proxy(request: NextRequest) {
         redirect: pathname,
         error: "unauthorized_email",
       });
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Refresh (or clear) the applicant's Supabase session at the edge, where cookie
+ * writes actually persist to the browser. On a valid session Supabase rotates
+ * the token and `setAll` writes the fresh cookies onto the response; on a dead
+ * refresh token `getUser()` errors and `signOut({ scope: "local" })` writes the
+ * cleared cookies — the one place that removal sticks (a Server Component render
+ * can't). Never redirects and never throws: the /apply layout still gates auth.
+ */
+async function refreshApplicantSession(request: NextRequest): Promise<NextResponse> {
+  let response = NextResponse.next({ request });
+
+  // Nothing to maintain when Supabase isn't really configured (local-dev
+  // placeholder URL) — mirrors the admin branch's dev guard.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (supabaseUrl.includes("placeholder") || supabaseUrl === "") return response;
+
+  const supabase = createServerClient(
+    supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  try {
+    const { error } = await supabase.auth.getUser();
+    if (error) await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Clearing is best-effort — never break the request over it.
     }
   }
 
