@@ -15,6 +15,7 @@ import { getFieldLabelMap } from "@/lib/form-config.server";
 import { isYes } from "@/lib/badges";
 import { requestOrigin } from "@/lib/site-url";
 import { notifyRagDatabank } from "@/lib/rag-sync";
+import { syncAwardsFromText } from "@/lib/awards-sync.server";
 
 // Coerce an answers-bag value to a finite number, else null. Used to fill the
 // numeric databank metric columns from the form's number fields.
@@ -343,7 +344,13 @@ export async function PATCH(req: Request) {
           full.id,
           full.startup_name
         );
-        if (publishedId) notifyRagDatabank("UPDATE", publishedId);
+        if (publishedId) {
+          notifyRagDatabank("UPDATE", publishedId);
+          // Mirror the applicant's awards text into structured startup_awards
+          // rows (source='submission') so approved awards surface on the
+          // homepage. Best-effort; never blocks the publish.
+          await syncAwardsFromText(supabase, publishedId, full.awards);
+        }
       }
     }
   }

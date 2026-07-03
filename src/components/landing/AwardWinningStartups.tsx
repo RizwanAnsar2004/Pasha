@@ -59,30 +59,6 @@ export type AwardWinningStartup = {
   pasha_verified?: boolean | null;
 };
 
-const DEMO_WINNERS: AwardWinningStartup[] = [
-  {
-    id: "demo-1",
-    startup_name: "Rozgar.pk",
-    primary_industry: "HRTech",
-    city: "Lahore",
-    awards: "Winner",
-  },
-  {
-    id: "demo-2",
-    startup_name: "Maktab",
-    primary_industry: "EdTech",
-    city: "Karachi",
-    awards: "People's Choice Award Winner",
-  },
-  {
-    id: "demo-3",
-    startup_name: "CropSense",
-    primary_industry: "AgriTech",
-    city: "Islamabad",
-    awards: "First Runner Up",
-  },
-];
-
 const JUNK_PATTERNS = [
   /^https?:\/\//i,
   /^no formal/i,
@@ -91,26 +67,23 @@ const JUNK_PATTERNS = [
   /^-+$/,
 ];
 
-function firstAwardLine(awards?: string | null): string {
-  if (!awards) return "";
-  const line = awards
+// All meaningful award lines for a startup (a startup can win several).
+function awardLines(awards?: string | null): string[] {
+  if (!awards) return [];
+  return awards
     .split("\n")
     .map((l) => l.trim())
-    .find((l) => l.length > 0 && !JUNK_PATTERNS.some((p) => p.test(l)));
-  return line ?? "";
+    .filter((l) => l.length > 0 && !JUNK_PATTERNS.some((p) => p.test(l)));
 }
 
 export function AwardWinningStartups({ startups }: { startups: AwardWinningStartup[] }) {
-  const realWinners = startups
-    .map((s) => ({ ...s, awardTitle: firstAwardLine(s.awards) }))
-    .filter((s) => s.awardTitle.length > 0);
-
-  // Pad with demo entries so all three award tiers are always visible
-  const demoEntries = DEMO_WINNERS
-    .map((s) => ({ ...s, awardTitle: firstAwardLine(s.awards) }))
-    .filter((d) => !realWinners.some((r) => r.id === d.id));
-
-  const winners = [...realWinners, ...demoEntries].slice(0, 5);
+  // Awards are admin-curated (Admin → Award Winners). Only ever show real
+  // entries — no demo padding — so the homepage reflects exactly what's set.
+  // One row per startup; all of its awards render as separate chips.
+  const winners = startups
+    .map((s) => ({ ...s, titles: awardLines(s.awards) }))
+    .filter((s) => s.titles.length > 0)
+    .slice(0, 5);
 
   if (winners.length === 0) return null;
 
@@ -164,8 +137,6 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
         >
           {winners.map((winner, i) => {
             const meta = [winner.primary_industry, winner.city].filter(Boolean).join(" · ");
-            const tier = classifyAward(winner.awardTitle);
-            const badge = AWARD_BADGE[tier];
             return (
               <motion.li key={winner.id} variants={rowV}>
                 <Link
@@ -195,17 +166,24 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
                         </span>
                       )}
                     </span>
-                    <span className="mt-2 flex items-center gap-2 flex-wrap">
-                      {/* Tier badge chip */}
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1.5px] ${badge.cls}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
-                        {badge.label}
-                      </span>
-                      {/* Award name */}
-                      <span className="flex items-center gap-1 text-sm text-white/45">
-                        <Trophy className="w-3 h-3 shrink-0 text-amber-400/60" />
-                        <span className="truncate">{winner.awardTitle}</span>
-                      </span>
+                    <span className="mt-2 flex flex-col gap-1.5">
+                      {winner.titles.map((t, ti) => {
+                        const badge = AWARD_BADGE[classifyAward(t)];
+                        return (
+                          <span key={ti} className="flex items-center gap-2 flex-wrap">
+                            {/* Tier badge chip */}
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1.5px] ${badge.cls}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+                              {badge.label}
+                            </span>
+                            {/* Award name */}
+                            <span className="flex items-center gap-1 text-sm text-white/45">
+                              <Trophy className="w-3 h-3 shrink-0 text-amber-400/60" />
+                              <span className="truncate">{t}</span>
+                            </span>
+                          </span>
+                        );
+                      })}
                     </span>
                   </span>
 

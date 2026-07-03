@@ -4,14 +4,14 @@ import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, Filter, Globe, Users, TrendingUp, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, BadgeCheck, Coins, Calendar, Layers } from "lucide-react";
+import { Search, Filter, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, BadgeCheck, Coins, Calendar, Layers } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
-import { REVENUE_BANDS, MONTHLY_REVENUE_RANGES, FUNDING_AMOUNT_RANGES, CUSTOMER_BANDS } from "@/lib/options";
+import { FUNDING_AMOUNT_RANGES, CUSTOMER_BANDS } from "@/lib/options";
 
 export type DirectoryRow = {
   id: string;
@@ -47,14 +47,8 @@ export type DirectoryRow = {
 
 // value→label maps for the form's range bands, so a card can show a readable
 // range (e.g. "$250K – $1M") when the numeric column is empty.
-const REVENUE_BAND_LABEL: Record<string, string> = Object.fromEntries(
-  REVENUE_BANDS.map((o) => [o.value, o.label])
-);
 const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
   FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
-);
-const MONTHLY_REV_LABEL: Record<string, string> = Object.fromEntries(
-  MONTHLY_REVENUE_RANGES.map((o) => [o.value, o.label])
 );
 const CUSTOMER_BAND_LABEL: Record<string, string> = Object.fromEntries(
   CUSTOMER_BANDS.map((o) => [o.value, o.label])
@@ -67,17 +61,6 @@ function bandLabel(code: unknown, map: Record<string, string>): string | null {
   const label = map[code];
   if (!label) return null;
   return label.replace(/\s*\/\s*(year|month)$/i, "").trim();
-}
-
-// Monthly revenue keeps a "/mo" marker so it isn't confused with an annual figure.
-function monthlyRevLabel(code: unknown): string | null {
-  const base = bandLabel(code, MONTHLY_REV_LABEL);
-  return base ? `${base}/mo` : null;
-}
-
-// Revenue display: numeric column first, then annual band, then monthly band.
-function revenueBand(answers: Record<string, unknown>): string | null {
-  return bandLabel(answers.revenue_band, REVENUE_BAND_LABEL) ?? monthlyRevLabel(answers.monthly_revenue_range);
 }
 
 // Internal alias so the existing presentational components keep using `Row`.
@@ -478,7 +461,6 @@ type ListCardProps = {
   website: string | null;
   logoUrl: string | null;
   employees: number | null;
-  revenue: string | null;
   raised: string | null;
   customers: number | null;
   theme: SectorTheme;
@@ -495,7 +477,6 @@ function ListCard({
   website,
   logoUrl,
   employees,
-  revenue,
   raised,
   customers,
   theme,
@@ -611,11 +592,6 @@ function ListCard({
             icon={Users}
             value={employees ? compact(employees) : null}
             label="Team"
-          />
-          <ListStat
-            icon={TrendingUp}
-            value={revenue}
-            label="Rev"
           />
           <ListStat
             icon={Coins}
@@ -1011,8 +987,6 @@ export function DirectoryClient({
           const city = clean(r.city);
           const website = isSafeUrl(r.website) ? r.website : null;
           const employees = r.total_employees && r.total_employees > 0 ? r.total_employees : null;
-          const revenue = r.current_revenue && r.current_revenue >= 100_000
-            ? formatPKR(r.current_revenue) : null;
           const logoUrl = safeLogoUrl(r.logo_url);
 
           const detailHref = `/directory/${startupSlug(r.startup_name, r.id)}`;
@@ -1035,9 +1009,6 @@ export function DirectoryClient({
           // For new records revenue / raised come in as form select-bands (not
           // numeric columns), so fall back to the readable range text.
           const a = (r.answers ?? {}) as Record<string, unknown>;
-          const revenueDisplay = revenue
-            ? revenue.replace("Rs ", "")
-            : revenueBand(a);
           const raisedDisplay = investment
             ? investment.replace("Rs ", "")
             : bandLabel(a.total_funding_raised, RAISED_BAND_LABEL);
@@ -1051,7 +1022,6 @@ export function DirectoryClient({
           const statItems = (
             [
               employees && { icon: Users, label: "Team", value: compact(employees) },
-              revenueDisplay && { icon: TrendingUp, label: "Revenue", value: revenueDisplay },
               raisedDisplay && { icon: Coins, label: "Raised", value: raisedDisplay },
               usersDisplay && { icon: Building2, label: "Users", value: usersDisplay },
               femaleEmployees && { icon: Users, label: "Women", value: compact(femaleEmployees) },
@@ -1075,7 +1045,6 @@ export function DirectoryClient({
                 website={website}
                 logoUrl={logoUrl}
                 employees={employees}
-                revenue={revenueDisplay}
                 raised={raisedDisplay}
                 customers={customers}
                 theme={theme}

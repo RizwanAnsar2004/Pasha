@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, CheckCircle2 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getDatabankDynamicFields } from "@/lib/form-config.server";
+import { getAwardTitlesForDatabank } from "@/lib/awards.server";
 import { InputType } from "@/lib/form-enums";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { formatNumber, formatCurrency } from "@/lib/utils";
@@ -230,6 +231,11 @@ export default async function ViewDatabankPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const [row, dynamicFields] = await Promise.all([load(id), getDatabankDynamicFields()]);
   if (!row) notFound();
+
+  // Awards are curated in Admin → Award Winners (startup_awards). Show those in
+  // place of the legacy databank.awards text; fall back to the text if none.
+  const curatedAwards = await getAwardTitlesForDatabank(id);
+  if (curatedAwards.length > 0) row.awards = curatedAwards.join("\n");
 
   const answers = (row.answers ?? {}) as Row;
   const keyPersons = Array.isArray(row.key_persons) ? (row.key_persons as Row[]) : [];

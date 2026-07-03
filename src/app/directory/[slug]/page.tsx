@@ -7,7 +7,6 @@ import {
   MapPin,
   Calendar,
   Users,
-  TrendingUp,
   Coins,
   Building2,
   Sparkles,
@@ -19,6 +18,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { earnedBadges } from "@/lib/badges";
 import { getFormConfig } from "@/lib/form-config.server";
+import { getAwardTitlesForDatabank } from "@/lib/awards.server";
 import { fieldLabelMap } from "@/lib/profile-completion";
 
 // Dynamic-form fields that are SAFE to show on the public profile. Excludes
@@ -48,29 +48,19 @@ import { RichText as AutoRichText } from "@/components/ui/RichText";
 import { safeHref } from "@/lib/safe-url";
 import { initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
-import { REVENUE_BANDS, MONTHLY_REVENUE_RANGES, FUNDING_AMOUNT_RANGES } from "@/lib/options";
+import { FUNDING_AMOUNT_RANGES } from "@/lib/options";
 
 // value→label maps for the form's range bands. New records store revenue /
 // funding as select bands (not numeric columns), so the profile falls back to
 // the readable range when the numeric column is empty.
-const REVENUE_BAND_LABEL: Record<string, string> = Object.fromEntries(
-  REVENUE_BANDS.map((o) => [o.value, o.label])
-);
 const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
   FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
-);
-const MONTHLY_REV_LABEL: Record<string, string> = Object.fromEntries(
-  MONTHLY_REVENUE_RANGES.map((o) => [o.value, o.label])
 );
 function bandLabel(code: unknown, map: Record<string, string>): string | null {
   if (typeof code !== "string" || !code || code === "na") return null;
   const label = map[code];
   if (!label) return null;
   return label.replace(/\s*\/\s*(year|month)$/i, "").trim();
-}
-function monthlyRevLabel(code: unknown): string | null {
-  const base = bandLabel(code, MONTHLY_REV_LABEL);
-  return base ? `${base}/mo` : null;
 }
 
 export const dynamic = "force-dynamic";
@@ -321,6 +311,11 @@ export default async function StartupDetailPage({
   const row = await getStartup(slug);
   if (!row) notFound();
 
+  // Awards are curated in Admin → Award Winners (startup_awards). Prefer those;
+  // fall back to the legacy databank.awards text if none are curated.
+  const curatedAwards = await getAwardTitlesForDatabank(row.id);
+  const awardsText = curatedAwards.length > 0 ? curatedAwards.join("\n") : cleanText(row.awards);
+
   const tagline = cleanText(row.tagline);
   const sector = cleanText(row.primary_industry);
   const cityRaw = cleanText(row.city);
@@ -352,14 +347,9 @@ export default async function StartupDetailPage({
 
   const employees = row.total_employees && row.total_employees > 0 ? row.total_employees : null;
   const female = row.female_employees && row.female_employees > 0 ? row.female_employees : null;
-  const revenue = formatPKR(row.current_revenue);
   const customers = row.number_of_customers && row.number_of_customers > 0 ? row.number_of_customers : null;
   // Fall back to the form's range band when the numeric column is empty (new
   // records store these as select bands in the answers bag).
-  const revenueDisplay =
-    revenue ??
-    bandLabel(answers.revenue_band, REVENUE_BAND_LABEL) ??
-    monthlyRevLabel(answers.monthly_revenue_range);
   const raisedDisplay =
     (row.investment_raised && row.investment_raised > 1
       ? formatPKR(row.investment_raised)
@@ -374,7 +364,7 @@ export default async function StartupDetailPage({
   const logoOk = isSelfHostedImage(row.logo_url);
   const video = isVideoPitchLink(row.video_pitch) ? row.video_pitch : null;
 
-  const hasStats = !!(revenueDisplay || employees || female || customers);
+  const hasStats = !!(employees || female || customers);
 
   return (
     <>
@@ -554,9 +544,6 @@ export default async function StartupDetailPage({
             {/* Stats chips row */}
             {hasStats && (
               <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {revenueDisplay && (
-                  <HeroStat icon={<TrendingUp className="w-3.5 h-3.5" />} label="Annual Revenue" value={revenueDisplay} />
-                )}
                 {employees && (
                   <HeroStat icon={<Users className="w-3.5 h-3.5" />} label="Team Size" value={`${employees.toLocaleString("en-PK")} people`} />
                 )}
@@ -617,10 +604,10 @@ export default async function StartupDetailPage({
                 </ContentCard>
               )}
               <KeyPersons persons={row.key_persons} />
-              {cleanText(row.awards) && (
+              {awardsText && (
                 <ContentCard title="Awards & Recognition">
                   <p className="text-[15px] text-pasha-ink/85 leading-relaxed whitespace-pre-line">
-                    {cleanText(row.awards)}
+                    {awardsText}
                   </p>
                 </ContentCard>
               )}
@@ -677,9 +664,8 @@ export default async function StartupDetailPage({
                 </SideCard>
               )}
 
-              {(revenueDisplay || raisedDisplay || row.investment_commitment) && (
+              {(raisedDisplay || customers || row.investment_commitment) && (
                 <SideCard title="Traction">
-                  <DetailRow label="Revenue" value={revenueDisplay} />
                   <DetailRow label="Customers" value={customers ? customers.toLocaleString("en-PK") : null} />
                   <DetailRow label="Investment raised" value={raisedDisplay} />
                   <DetailRow

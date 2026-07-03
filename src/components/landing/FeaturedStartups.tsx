@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, BadgeCheck, TrendingUp, Users, Globe } from "lucide-react";
-import { initials, formatNumber, formatCurrency } from "@/lib/utils";
+import { ArrowUpRight, BadgeCheck, Users, Globe } from "lucide-react";
+import { initials, formatNumber } from "@/lib/utils";
 import { RichText } from "@/components/ui/RichText";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -97,9 +97,6 @@ function BentoCard({
   const customersLabel = startup.number_of_customers
     ? formatNumber(startup.number_of_customers)
     : null;
-  const revenueLabel = startup.current_revenue
-    ? formatCurrency(startup.current_revenue, "PKR")
-    : null;
 
   return (
     <motion.div
@@ -169,12 +166,6 @@ function BentoCard({
             <span className="inline-flex items-center gap-1">
               <Users className="w-3 h-3" />
               <span className="font-medium text-pasha-ink/70">{employeeLabel}</span>
-            </span>
-          )}
-          {revenueLabel && (
-            <span className="inline-flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              <span className="font-medium text-pasha-ink/70">{revenueLabel}</span>
             </span>
           )}
           {customersLabel && (

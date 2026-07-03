@@ -65,7 +65,9 @@ const EDITABLE_COLUMNS = new Set([
   "video_pitch",
 
   // recognition / audit
-  "awards",
+  // NOTE: `awards` is intentionally NOT editable here — awards are managed
+  // exclusively in Admin → Award Winners (startup_awards table). The applicant's
+  // submitted awards text is synced in on approval; edits happen in that tab.
   "certifications",
   "pasha_verified",
 

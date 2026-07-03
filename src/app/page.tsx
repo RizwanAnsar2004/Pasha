@@ -13,6 +13,7 @@ import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { getUpcomingPublishedEvents } from "@/lib/events.server";
 import { getHomepageFeaturedWatchlist } from "@/lib/featured-startups.server";
 import { getWomenLedStartups } from "@/lib/women-led.server";
+import { getHomepageAwardWinners } from "@/lib/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -34,24 +35,33 @@ async function loadHomeData(): Promise<{
 }> {
   try {
     const supabase = createServiceClient();
-    const [countRes, watchlist, awardsRes, womenLed] = await Promise.all([
+    const [countRes, watchlist, curatedAwards, womenLed] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
       // Admin-curated featured startups (time-boxed) for the homepage carousel.
       getHomepageFeaturedWatchlist(),
-      supabase
+      // Admin-curated awards (startup_awards table).
+      getHomepageAwardWinners(HOME_CAROUSEL_LIMIT),
+      getWomenLedStartups(HOME_CAROUSEL_LIMIT),
+    ]);
+
+    // Prefer the curated awards table; fall back to the legacy databank.awards
+    // text column when nothing has been curated yet (or pre-migration).
+    let awardWinners = curatedAwards;
+    if (awardWinners.length === 0) {
+      const { data } = await supabase
         .from("databank")
         .select("id,startup_name,primary_industry,city,awards,pasha_verified")
         .not("awards", "is", null)
         .order("pasha_verified", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false, nullsFirst: false })
-        .limit(HOME_CAROUSEL_LIMIT),
-      getWomenLedStartups(HOME_CAROUSEL_LIMIT),
-    ]);
+        .limit(HOME_CAROUSEL_LIMIT);
+      awardWinners = (data ?? []) as AwardWinningStartup[];
+    }
 
     return {
       databankCount: countRes.count ?? 0,
       watchlist,
-      awardWinners: (awardsRes.data ?? []) as AwardWinningStartup[],
+      awardWinners,
       womenLed,
     };
   } catch {

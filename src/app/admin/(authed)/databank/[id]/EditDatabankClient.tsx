@@ -670,18 +670,9 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.awards, row.certifications) && (
+      {has(row.certifications) && (
       <Section title="Recognition">
-        {has(row.awards) && (
-        <Field label="Awards & recognition" hint="One per line.">
-          <Textarea
-            value={row.awards ?? ""}
-            onChange={(e) => update("awards", e.target.value || null)}
-            rows={4}
-          />
-        </Field>
-        )}
-        {has(row.certifications) && (
+        {/* Awards are managed in Admin → Award Winners (not here). */}
         <Field label="Certifications" hint="ISO, SOC 2, PCI-DSS, etc.">
           <Textarea
             value={row.certifications ?? ""}
@@ -689,7 +680,6 @@ export function EditDatabankClient({
             rows={3}
           />
         </Field>
-        )}
       </Section>
       )}
 
