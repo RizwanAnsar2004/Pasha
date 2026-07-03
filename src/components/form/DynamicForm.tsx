@@ -335,7 +335,17 @@ export function DynamicForm({
 
       {/* Progress bar + step pills (supports any number of steps) */}
       <div className="mb-6">
-        <div className="relative flex items-center justify-between mb-2">
+        {/* Mobile: single compact caption — the full spread label row collides
+            with many dynamic steps on narrow screens. */}
+        <div className="sm:hidden mb-2 flex items-baseline justify-between gap-2">
+          <span className="text-xs font-medium text-pasha-red truncate">
+            {titles[stepIdx]?.title}
+          </span>
+          <span className="text-[11px] font-mono text-pasha-muted shrink-0 tabular-nums">
+            Step {stepIdx + 1} / {titles.length}
+          </span>
+        </div>
+        <div className="relative hidden sm:flex items-center justify-between mb-2">
           {titles.map((t, i) => (
             <button
               key={t.num}
@@ -364,7 +374,12 @@ export function DynamicForm({
           <motion.div
             className="absolute top-0 left-0 h-full bg-pasha-red rounded-full"
             initial={false}
-            animate={{ width: progressWidth }}
+            animate={{
+              width:
+                progressWidth > 0
+                  ? progressWidth
+                  : `${((stepIdx + 1) / titles.length) * 100}%`,
+            }}
             transition={{ duration: 0.3 }}
           />
         </div>

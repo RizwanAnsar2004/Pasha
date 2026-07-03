@@ -34,9 +34,11 @@ const devEmail = () => "dev-test-pasha@yopmail.com";
 function AuthInner({
   registrationConfig,
   optionLists,
+  terms,
 }: {
   registrationConfig: FormConfig | null;
   optionLists: OptionRegistry;
+  terms?: { title: string; body: string };
 }) {
   const sp = useSearchParams();
   const router = useRouter();
@@ -574,7 +576,12 @@ function AuthInner({
                   </div>
                 ))
               )}
-              <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
+              <TermsModal
+                open={termsOpen}
+                onClose={() => setTermsOpen(false)}
+                title={terms?.title}
+                body={terms?.body}
+              />
               <div className="sm:col-span-2 space-y-4">
                 {errorBlock}
                 <button
@@ -690,13 +697,19 @@ function AuthInner({
 export function ApplyAuthForm({
   registrationConfig = null,
   optionLists = {},
+  terms,
 }: {
   registrationConfig?: FormConfig | null;
   optionLists?: OptionRegistry;
+  terms?: { title: string; body: string };
 }) {
   return (
     <Suspense fallback={null}>
-      <AuthInner registrationConfig={registrationConfig} optionLists={optionLists} />
+      <AuthInner
+        registrationConfig={registrationConfig}
+        optionLists={optionLists}
+        terms={terms}
+      />
     </Suspense>
   );
 }

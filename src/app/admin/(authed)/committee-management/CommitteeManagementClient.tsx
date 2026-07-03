@@ -292,7 +292,7 @@ export function CommitteeManagementClient({
 
       <section className="rounded-2xl border border-pasha-line bg-white overflow-hidden relative">
         <ShimmerOverlay active={isPending} />
-        <div className="px-6 py-4 border-b border-pasha-line flex items-center gap-3">
+        <div className="px-4 sm:px-6 py-4 border-b border-pasha-line flex flex-wrap items-center gap-3">
           <Users className="w-4 h-4 text-pasha-red shrink-0" />
           <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-red shrink-0">
             Current members ({total})
@@ -320,7 +320,8 @@ export function CommitteeManagementClient({
             />
           </div>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-pasha-stone/40 border-b border-pasha-line">
             <tr className="text-left">
               <Th>Name</Th>
@@ -479,6 +480,7 @@ export function CommitteeManagementClient({
             )}
           </tbody>
         </table>
+        </div>
         <Pagination
           total={total}
           page={page}

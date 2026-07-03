@@ -94,7 +94,7 @@ export function DynamicField({
     case InputType.TEXTAREA:
       return (
         <Field label={label} hint={hint} required={required} error={error}>
-          <Textarea placeholder={field.placeholder ?? undefined} {...form.register(path)} />
+          <Textarea placeholder={field.placeholder ?? undefined} maxLength={field.validation?.maxLength} {...form.register(path)} />
         </Field>
       );
 
@@ -190,6 +190,7 @@ export function DynamicField({
         <Field label={label} hint={hint} required={required} error={error}>
           <Input
             placeholder={field.placeholder ?? undefined}
+            maxLength={field.validation?.maxLength}
             {...(field.input_type === InputType.PHONE
               ? phoneRegisterProps(reg)
               : { type: htmlInputType(field.input_type), ...reg })}

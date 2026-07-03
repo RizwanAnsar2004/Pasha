@@ -225,16 +225,16 @@ function ListCard({
 
   return (
     <div className="rounded-xl border border-pasha-line bg-white p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-semibold text-pasha-ink">{meta.name}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="font-mono text-sm font-semibold text-pasha-ink break-all">{meta.name}</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
             {badge.label}
           </span>
           <span className="text-[11px] text-pasha-muted">{meta.items.length} options</span>
         </div>
         {meta.source === "code" && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-pasha-muted">
+          <span className="inline-flex items-center gap-1 text-[11px] text-pasha-muted shrink-0">
             <Lock className="w-3 h-3" /> Editing creates an override
           </span>
         )}

@@ -403,19 +403,19 @@ function SectionCard({
 
   return (
     <div id={`step-${section.id}`} className="rounded-xl border border-pasha-line bg-white p-5 space-y-4 scroll-mt-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="flex items-center gap-2 text-left group"
+          className="flex min-w-0 items-center gap-2 text-left group"
           title={collapsed ? "Expand step" : "Collapse step"}
         >
           {collapsed ? (
-            <ChevronRight className="w-4 h-4 text-pasha-muted group-hover:text-pasha-red" />
+            <ChevronRight className="w-4 h-4 shrink-0 text-pasha-muted group-hover:text-pasha-red" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-pasha-muted group-hover:text-pasha-red" />
+            <ChevronDown className="w-4 h-4 shrink-0 text-pasha-muted group-hover:text-pasha-red" />
           )}
-          <h2 className="font-mono text-xs uppercase tracking-[2px] text-pasha-red font-semibold">
+          <h2 className="font-mono text-xs uppercase tracking-[2px] text-pasha-red font-semibold truncate">
             Step {stepNumber} — {section.title}
           </h2>
           {collapsed && (
@@ -425,7 +425,7 @@ function SectionCard({
             </span>
           )}
         </button>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             disabled={busy || isFirst}
@@ -796,9 +796,9 @@ function FieldNode({
       )}
 
       {field.column_map && (
-        <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
-          <AlertTriangle className="w-3.5 h-3.5" />
-          Mapped to <span className="font-mono">submissions.{field.column_map}</span> — used by vetting / the public directory.
+        <p className="text-[11px] text-amber-600">
+          <AlertTriangle className="inline w-3.5 h-3.5 mr-1 -mt-0.5 shrink-0" />
+          Mapped to <span className="font-mono break-all">submissions.{field.column_map}</span> — used by vetting / the public directory.
         </p>
       )}
 

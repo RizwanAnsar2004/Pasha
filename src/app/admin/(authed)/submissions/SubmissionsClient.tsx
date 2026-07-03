@@ -597,7 +597,7 @@ function SubmissionDrawer({
         transition={{ type: "spring", stiffness: 360, damping: 30 }}
         className="pointer-events-auto flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-pasha-line px-8 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-pasha-line px-4 sm:px-8 py-4">
           <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
             Submission
           </span>
@@ -613,7 +613,7 @@ function SubmissionDrawer({
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8 py-6">
             <div className="flex items-start gap-4 mb-6">
               {row.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -904,7 +904,7 @@ function SubmissionDrawer({
             ) : null}
           </div>
         )}
-        <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-8 py-4 space-y-3">
+        <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-4 sm:px-8 py-4 space-y-3">
           {!isApproved && row ? (
             <textarea
               value={notes}
@@ -914,7 +914,7 @@ function SubmissionDrawer({
               className="w-full rounded-lg border border-pasha-line bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
           ) : null}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isApproved && row ? (
               <>
                 <button
@@ -958,7 +958,7 @@ function SubmissionDrawer({
                 Edit listing
               </Link>
             ) : null}
-            <div className="flex-1" />
+            <div className="hidden sm:block flex-1" />
             {!isApproved && row ? (
               <button
                 type="button"
@@ -1324,7 +1324,7 @@ function FounderCard({ founder }: { founder: Record<string, unknown> }) {
         {(email || mobile || gender) && (
           <div className="mt-2 space-y-0.5 text-pasha-muted">
             {email ? (
-              <div>
+              <div className="break-all">
                 <a
                   href={`mailto:${email}`}
                   className="text-pasha-red hover:underline"
@@ -1333,7 +1333,7 @@ function FounderCard({ founder }: { founder: Record<string, unknown> }) {
                 </a>
               </div>
             ) : null}
-            {mobile ? <div>{mobile}</div> : null}
+            {mobile ? <div className="break-all">{mobile}</div> : null}
             {gender ? <div className="capitalize">{gender}</div> : null}
           </div>
         )}

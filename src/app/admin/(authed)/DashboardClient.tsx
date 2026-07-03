@@ -227,13 +227,13 @@ function StatTile({
       transition={{ duration: 0.3 }}
       className="rounded-2xl border border-pasha-line bg-white p-5"
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted truncate min-w-0">
           {label}
         </span>
         <span
           className={cn(
-            "w-7 h-7 rounded-md grid place-items-center",
+            "w-7 h-7 rounded-md grid place-items-center shrink-0",
             accent === "red" && "bg-pasha-red/10 text-pasha-red",
             accent === "orange" && "bg-tier-watchlist/10 text-tier-watchlist",
             accent === "green" && "bg-tier-featured/10 text-tier-featured",

@@ -286,12 +286,14 @@ export default async function ApplicantOverviewPage() {
                 b.earned ? BADGE_BORDER_CLASS[b.tone] : "border-dashed border-pasha-line bg-pasha-stone/20"
               }`}
             >
-              <span
-                className={`mt-0.5 shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                  b.earned ? BADGE_TONE_CLASS[b.tone] : "bg-pasha-stone text-pasha-muted"
-                }`}
-              >
-                {b.short}
+              <span className="mt-0.5 shrink-0 w-20">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                    b.earned ? BADGE_TONE_CLASS[b.tone] : "bg-pasha-stone text-pasha-muted"
+                  }`}
+                >
+                  {b.short}
+                </span>
               </span>
               <div className="min-w-0">
                 <p className="text-sm text-pasha-ink">{b.description}</p>

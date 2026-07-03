@@ -50,13 +50,17 @@ export function SelectMenu({
   "aria-invalid": ariaInvalid,
 }: SelectMenuProps) {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const opts = useMemo(() => normalize(options), [options]);
   const showSearch = searchable ?? opts.length > 8;
 
   const filtered = useMemo(() => {
-    if (!query) return opts;
-    const q = query.toLowerCase();
-    return opts.filter((o) => o.label.toLowerCase().includes(q));
+    const q = query.trim().toLowerCase();
+    if (!q) return opts;
+    // Match on label OR value so codes and display names both resolve.
+    return opts.filter(
+      (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
+    );
   }, [opts, query]);
 
   return (
@@ -64,8 +68,10 @@ export function SelectMenu({
       value={value}
       onValueChange={onValueChange}
       disabled={disabled}
-      onOpenChange={(open) => {
-        if (!open) {
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
           setQuery("");
           onBlur?.();
         }
@@ -104,7 +110,18 @@ export function SelectMenu({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 // Stop Radix's built-in typeahead from hijacking keystrokes.
-                onKeyDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  // Enter selects the first (top) match, so keyboard users
+                  // don't have to reach for the mouse.
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (filtered.length > 0) {
+                      onValueChange(filtered[0].value);
+                      setOpen(false);
+                    }
+                  }
+                }}
                 placeholder="Search…"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-pasha-muted"
               />
