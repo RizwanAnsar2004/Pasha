@@ -29,6 +29,9 @@ const PUBLIC_ANSWER_KEYS = [
   "problem_statement",
   "solution_statement",
   "usp",
+  // TAM (Total Addressable Market) — made public per the directory review
+  // meeting. SAM / SOM / market_notes remain investor-only (backend).
+  "tam_amount",
   "product_features",
   "product_maturity",
   "target_customers",
@@ -39,6 +42,11 @@ const PUBLIC_ANSWER_KEYS = [
   "play_store_url",
 ] as const;
 const ANSWER_URL_KEYS = new Set(["demo_video_url", "app_store_url", "play_store_url"]);
+// Preferred public labels for answer keys whose form-config label may be missing
+// or unfriendly. Ensures e.g. TAM always renders with a clean label.
+const PUBLIC_ANSWER_LABEL_OVERRIDES: Record<string, string> = {
+  tam_amount: "Total Addressable Market (TAM)",
+};
 import { KeyPersons, type KeyPerson } from "@/components/KeyPersons";
 import { CompanySocials } from "@/components/CompanySocials";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -321,7 +329,8 @@ export default async function StartupDetailPage({
   const cityRaw = cleanText(row.city);
   const country = cleanText(row.hq_country);
   const city = cityRaw ?? country;
-  const nic = cleanText(row.nic_name);
+  // NIC attribution no longer surfaced publicly (see commented Incubation card).
+  // const nic = cleanText(row.nic_name);
   const founded = formatDate(row.founded_date);
   const websiteHref = row.website ? safeHref(row.website) : "#";
   const websiteShown = row.website
@@ -337,7 +346,7 @@ export default async function StartupDetailPage({
   const answers = (row.answers && typeof row.answers === "object" ? row.answers : {}) as Record<string, unknown>;
   const businessItems = PUBLIC_ANSWER_KEYS.map((key) => {
     const value = answers[key];
-    return { key, label: answerLabels[key] ?? key.replace(/_/g, " "), value };
+    return { key, label: PUBLIC_ANSWER_LABEL_OVERRIDES[key] ?? answerLabels[key] ?? key.replace(/_/g, " "), value };
   }).filter(
     (it) =>
       it.value != null &&
@@ -345,8 +354,11 @@ export default async function StartupDetailPage({
       !(Array.isArray(it.value) && it.value.length === 0)
   );
 
-  const employees = row.total_employees && row.total_employees > 0 ? row.total_employees : null;
-  const female = row.female_employees && row.female_employees > 0 ? row.female_employees : null;
+  // Headcount / team-size (total & female employees) is now BACKEND-ONLY per the
+  // directory review meeting — kept in the DB/admin but no longer shown publicly.
+  // Vars retained (commented) so the hero-stat block is easy to restore.
+  // const employees = row.total_employees && row.total_employees > 0 ? row.total_employees : null;
+  // const female = row.female_employees && row.female_employees > 0 ? row.female_employees : null;
   const customers = row.number_of_customers && row.number_of_customers > 0 ? row.number_of_customers : null;
   // Fall back to the form's range band when the numeric column is empty (new
   // records store these as select bands in the answers bag).
@@ -364,7 +376,7 @@ export default async function StartupDetailPage({
   const logoOk = isSelfHostedImage(row.logo_url);
   const video = isVideoPitchLink(row.video_pitch) ? row.video_pitch : null;
 
-  const hasStats = !!(employees || female || customers);
+  const hasStats = !!customers; // headcount removed from public view — only customers remains
 
   return (
     <>
@@ -544,12 +556,14 @@ export default async function StartupDetailPage({
             {/* Stats chips row */}
             {hasStats && (
               <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Headcount / Team Size removed from public view (backend-only). Restore if needed:
                 {employees && (
                   <HeroStat icon={<Users className="w-3.5 h-3.5" />} label="Team Size" value={`${employees.toLocaleString("en-PK")} people`} />
                 )}
                 {female && (
                   <HeroStat icon={<Sparkles className="w-3.5 h-3.5" />} label="Female Team" value={`${female.toLocaleString("en-PK")} people`} />
                 )}
+                */}
                 {customers && (
                   <HeroStat icon={<Coins className="w-3.5 h-3.5" />} label="Customers" value={customers.toLocaleString("en-PK")} />
                 )}
@@ -655,6 +669,9 @@ export default async function StartupDetailPage({
                 <DetailRow label="HQ" value={city} />
               </SideCard>
 
+              {/* NIC / incubation attribution (source label) removed from public
+                  view per the directory review meeting — this data stays in the
+                  backend/admin only. Restore this block to bring it back:
               {(nic || row.incubation_stage || row.cohort) && (
                 <SideCard title="Incubation">
                   <DetailRow label="Network" value={nic} icon={<Building2 className="w-3 h-3" aria-hidden />} />
@@ -663,6 +680,7 @@ export default async function StartupDetailPage({
                   <DetailRow label="Joined" value={formatDate(row.joining_date)} />
                 </SideCard>
               )}
+              */}
 
               {(raisedDisplay || customers || row.investment_commitment) && (
                 <SideCard title="Traction">

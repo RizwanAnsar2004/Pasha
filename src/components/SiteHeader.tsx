@@ -11,7 +11,8 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/directory", label: "Directory" },
   { href: "/committee", label: "Committee" },
-  { href: "/events", label: "Events" },
+  // Events nav item hidden for now — un-comment to restore.
+  // { href: "/events", label: "Events" },
   { href: "/about", label: "About" },
 ];
 

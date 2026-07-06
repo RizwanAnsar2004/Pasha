@@ -571,12 +571,14 @@ function ListCard({
                 {city}
               </span>
             )}
+            {/* NIC attribution hidden from public directory (backend-only):
             {nic && (
               <span className="inline-flex items-center gap-1">
                 <Building2 className="w-3 h-3" />
                 {nic}
               </span>
             )}
+            */}
             {r.founder_name && (
               <span className="inline-flex items-center gap-1">
                 <Users className="w-3 h-3" />
@@ -588,11 +590,13 @@ function ListCard({
 
         {/* Stats — visible on lg+ */}
         <div className="hidden lg:flex items-center gap-5 shrink-0 pointer-events-none">
+          {/* Team Size / headcount removed from public view (backend-only):
           <ListStat
             icon={Users}
             value={employees ? compact(employees) : null}
             label="Team"
           />
+          */}
           <ListStat
             icon={Coins}
             value={raised}
@@ -1016,16 +1020,29 @@ export function DirectoryClient({
           const usersDisplay = customers
             ? compact(customers)
             : bandLabel(a.num_customers, CUSTOMER_BAND_LABEL);
+          // TAM (Total Addressable Market) — public per the directory review
+          // meeting. Numeric → compact; a stored band/string → shown as-is.
+          const tamRaw = a.tam_amount;
+          const tamDisplay =
+            typeof tamRaw === "number" && tamRaw > 0
+              ? compact(tamRaw)
+              : typeof tamRaw === "string" && tamRaw.trim() && tamRaw.trim().toLowerCase() !== "na"
+                ? tamRaw.trim()
+                : null;
           // Every quantitative/public fact the record has, in priority order.
           // We render the first four so each card surfaces as many real stats as
           // possible (no "—" placeholders).
           const statItems = (
             [
-              employees && { icon: Users, label: "Team", value: compact(employees) },
+              // Headcount / Team Size (Team, Women, Jobs) removed from public view
+              // per the directory review meeting — kept backend-only. Restore by
+              // un-commenting the lines below.
+              // employees && { icon: Users, label: "Team", value: compact(employees) },
               raisedDisplay && { icon: Coins, label: "Raised", value: raisedDisplay },
               usersDisplay && { icon: Building2, label: "Users", value: usersDisplay },
-              femaleEmployees && { icon: Users, label: "Women", value: compact(femaleEmployees) },
-              jobsCreated && { icon: Layers, label: "Jobs", value: compact(jobsCreated) },
+              tamDisplay && { icon: Layers, label: "TAM", value: tamDisplay },
+              // femaleEmployees && { icon: Users, label: "Women", value: compact(femaleEmployees) },
+              // jobsCreated && { icon: Layers, label: "Jobs", value: compact(jobsCreated) },
               foundedYear && { icon: Calendar, label: "Founded", value: String(foundedYear) },
             ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string; value: string }[]
           ).slice(0, 4);
@@ -1170,8 +1187,9 @@ export function DirectoryClient({
                     {/* §13 directory badges */}
                     <DirectoryBadges r={r} className="mt-2" />
 
-                    {/* Location + meta row */}
-                    {(city || nic || foundedYear) && (
+                    {/* Location + meta row — NIC attribution removed from public
+                        view per the directory review meeting (backend-only). */}
+                    {(city || foundedYear) && (
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-pasha-muted">
                         {city && (
                           <span className="inline-flex items-center gap-1">
@@ -1179,6 +1197,7 @@ export function DirectoryClient({
                             {city}
                           </span>
                         )}
+                        {/* NIC (source label) hidden from public directory:
                         {city && nic && <span className="opacity-30">·</span>}
                         {nic && (
                           <span className="inline-flex items-center gap-1">
@@ -1186,9 +1205,10 @@ export function DirectoryClient({
                             {nic}
                           </span>
                         )}
+                        */}
                         {foundedYear && (
                           <>
-                            <span className="opacity-30">·</span>
+                            {city && <span className="opacity-30">·</span>}
                             <span className="inline-flex items-center gap-1">
                               <Calendar aria-hidden className="w-3 h-3" />
                               Est. {foundedYear}

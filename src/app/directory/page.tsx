@@ -37,6 +37,27 @@ const SELECT_COLUMNS_FALLBACK =
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
+// The listing card only ever reads these two answer keys (range-band fallbacks
+// for funding / customers). We MUST NOT ship the rest of the `answers` bag to
+// the browser: it holds private document signed-URLs (founder CNIC/passport,
+// business-profile PDF, registration cert, authorization letter) and other
+// backend-only data. Since rows are passed into a client component, whatever is
+// on them is serialized into the public payload — so strip answers here.
+// tam_amount is public (shown as a card stat); the funding/customers bands are
+// used for range-label fallbacks. Everything else in `answers` stays server-side.
+const PUBLIC_ANSWER_KEYS_FOR_CARD = ["total_funding_raised", "num_customers", "tam_amount"] as const;
+function stripAnswers(rows: DirectoryRow[]): DirectoryRow[] {
+  return rows.map((r) => {
+    const a = r.answers && typeof r.answers === "object" ? (r.answers as Record<string, unknown>) : null;
+    if (!a) return r;
+    const safe: Record<string, unknown> = {};
+    for (const k of PUBLIC_ANSWER_KEYS_FOR_CARD) {
+      if (a[k] != null) safe[k] = a[k];
+    }
+    return { ...r, answers: safe };
+  });
+}
+
 function isMissing(v?: string | null): boolean {
   if (!v) return true;
   const s = String(v).trim();
@@ -109,7 +130,7 @@ async function loadPage(
       if (columns === SELECT_COLUMNS) continue;
       return null;
     }
-    return { rows: (data ?? []) as unknown as DirectoryRow[], total: count ?? 0 };
+    return { rows: stripAnswers((data ?? []) as unknown as DirectoryRow[]), total: count ?? 0 };
   }
   return null;
 }

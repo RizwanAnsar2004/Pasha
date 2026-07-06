@@ -93,7 +93,9 @@ function BentoCard({
   large?: boolean;
 }) {
   const abbr = initials(startup.startup_name);
-  const employeeLabel = startup.total_employees ? formatNumber(startup.total_employees) : null;
+  // Headcount / Team Size removed from public view per the directory review
+  // meeting (backend-only). Restore to bring the team-size stat back.
+  // const employeeLabel = startup.total_employees ? formatNumber(startup.total_employees) : null;
   const customersLabel = startup.number_of_customers
     ? formatNumber(startup.number_of_customers)
     : null;
@@ -162,12 +164,14 @@ function BentoCard({
 
         {/* Stats footer */}
         <div className="mt-auto pt-4 flex items-center gap-4 text-[11px] text-pasha-muted">
+          {/* Team Size / headcount removed from public view (backend-only):
           {employeeLabel && (
             <span className="inline-flex items-center gap-1">
               <Users className="w-3 h-3" />
               <span className="font-medium text-pasha-ink/70">{employeeLabel}</span>
             </span>
           )}
+          */}
           {customersLabel && (
             <span className="inline-flex items-center gap-1">
               <Globe className="w-3 h-3" />
