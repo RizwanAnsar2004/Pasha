@@ -10,9 +10,10 @@ import { PillButton } from "./landing/shared/PillButton";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/directory", label: "Directory" },
-  { href: "/committee", label: "Committee" },
+  { href: "/", label: "Home" },
   { href: "/about", label: "About" },
+  { href: "/directory", label: "Directory" },
+  { href: "mailto:startups@pasha.org.pk", label: "Contact" },
 ];
 
 export function SiteHeader({ variant = "default" }: { variant?: "default" | "transparent" }) {
@@ -57,40 +58,45 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
       >
         <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
           <div className="flex items-center justify-between h-20">
-            <PashaLogo width={140} priority />
+            <PashaLogo width={96} priority />
 
-            <nav className="hidden lg:flex items-center gap-9">
-              {NAV_LINKS.map((link) => {
-                const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "relative text-[15px] font-medium transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
-                      active ? "text-pasha-red" : "text-pasha-ink/80 hover:text-pasha-ink"
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div className="hidden lg:flex items-center gap-9">
+              <nav className="flex items-center gap-9">
+                {NAV_LINKS.map((link) => {
+                  const active =
+                    link.href === "/"
+                      ? pathname === "/"
+                      : pathname === link.href || pathname?.startsWith(`${link.href}/`);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "relative text-[14px] font-medium transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
+                        active ? "text-pasha-red" : "text-pasha-ink/80 hover:text-pasha-ink"
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </nav>
 
-            <div className="hidden lg:flex items-center gap-3">
-              <PillButton
-                href="/directory"
-                variant="outline"
-                dot={false}
-                arrow={false}
-                className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-sm font-medium shadow-sm"
-              >
-                <Search className="h-4 w-4" />
-                Search directory
-              </PillButton>
-              <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-sm font-medium">
-                List your startup
-              </PillButton>
+              <div className="flex items-center gap-3">
+                <PillButton
+                  href="/directory"
+                  variant="outline"
+                  dot={false}
+                  arrow={false}
+                  className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-sm font-medium shadow-sm"
+                >
+                  <Search className="h-4 w-4" />
+                  Search directory
+                </PillButton>
+                <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-sm font-medium">
+                  List your startup
+                </PillButton>
+              </div>
             </div>
 
             <button

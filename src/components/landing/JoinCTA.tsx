@@ -28,7 +28,7 @@ export function JoinCTA() {
               <h2 className="mt-4 font-serif text-5xl sm:text-6xl font-extrabold tracking-tight text-white text-balance">
                 Put your startup where the right people can find it.
               </h2>
-              <p className="mt-5 text-white/55 text-xl sm:text-2xl leading-relaxed max-w-md text-pretty">
+              <p className="mt-5 text-white/55 text-lg sm:text-2xl leading-relaxed max-w-md text-pretty">
                 No fee, no equity — just a real committee review and a public profile built to convert.
               </p>
 
@@ -52,10 +52,10 @@ export function JoinCTA() {
             <div className="flex flex-col gap-5 rounded-[24px] bg-white/[0.04] border border-white/10 p-7 sm:p-8">
               {STEPS.map((s) => (
                 <div key={s.n} className="flex gap-4">
-                  <span className="font-mono text-sm text-pasha-red-light font-bold shrink-0 pt-1">{s.n}</span>
+                  <span className="font-mono text-xl text-pasha-red-light font-bold shrink-0 pt-1">{s.n}</span>
                   <div>
-                    <h3 className="font-serif text-xl font-bold text-white">{s.title}</h3>
-                    <p className="mt-1.5 text-base text-white/50 leading-relaxed">{s.body}</p>
+                    <h3 className="font-serif text-3xl font-bold text-white">{s.title}</h3>
+                    <p className="mt-1.5 text-base text-white/50 leading-relaxed text-xl">{s.body}</p>
                   </div>
                 </div>
               ))}

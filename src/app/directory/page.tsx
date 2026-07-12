@@ -303,14 +303,14 @@ export default async function DirectoryPage({
                 <Kicker tone="light" className="text-pasha-red-light">
                   Not listed yet?
                 </Kicker>
-                <h2 className="mt-4 max-w-xl font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
+                <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
                   Make your startup easier to find, understand and trust.
                 </h2>
                 <p className="mt-4 max-w-md text-white/55 text-base leading-relaxed">
                   Create a verified profile for buyers, investors, partners and ecosystem opportunities.
                 </p>
               </div>
-              <PillButton href="/apply" variant="light" dot={false} className="relative shrink-0">
+              <PillButton href="/apply" variant="solid" dot={false} className="relative shrink-0">
                 Start your application
               </PillButton>
             </Reveal>

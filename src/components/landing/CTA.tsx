@@ -27,7 +27,7 @@ export function CTA() {
                 Takes about 8 minutes. Review by the committee within two weeks. Featured tier
                 startups get priority introductions and showcases.
               </p>
-              <PillButton href="/apply" variant="light" dot={false} className="mt-6">
+              <PillButton href="/apply" variant="solid" dot={false} className="mt-6">
                 Start your application
               </PillButton>
             </div>

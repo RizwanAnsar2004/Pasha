@@ -60,7 +60,7 @@ export function Manifesto() {
           <Reveal delay={0.1} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {PILLARS.map((p) => (
               <div key={p.n}>
-                <span className="font-mono text-xs text-pasha-red font-semibold">{p.n}</span>
+                <span className="font-mono text-lg text-pasha-red font-semibold">{p.n}</span>
                 <h3 className="mt-2 font-serif text-xl font-bold text-pasha-ink">{p.title}</h3>
                 <p className="mt-2 text-base text-pasha-muted leading-relaxed">{p.body}</p>
               </div>

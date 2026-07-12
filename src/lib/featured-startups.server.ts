@@ -176,6 +176,29 @@ export async function getHomepageVerifiedWatchlist(limit = 20): Promise<Watchlis
   }
 }
 
+/**
+ * Last-resort top-up for the homepage bento: any real, presentable startup
+ * (has a logo or tagline so the card doesn't look bare), most recent first.
+ * Used only when curated + verified startups together don't fill the grid —
+ * never fabricated, just a wider real pool than "featured" or "verified".
+ */
+export async function getHomepageRecentWatchlist(limit = 20): Promise<WatchlistStartup[]> {
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from("databank")
+      .select(DATABANK_COLS)
+      .not("primary_industry", "is", null)
+      .or("logo_url.not.is.null,tagline.not.is.null")
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error) return [];
+    return (data as DatabankFeatured[] | null ?? []).map(toWatchlistStartup);
+  } catch {
+    return [];
+  }
+}
+
 export function isWomenLed(
   femaleEmployees: number | null | undefined,
   totalEmployees: number | null | undefined

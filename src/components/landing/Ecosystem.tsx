@@ -25,7 +25,7 @@ export function Ecosystem() {
           {CARDS.map((c) => (
             <div
               key={c.letter}
-              className={`group relative overflow-hidden rounded-[24px] border p-7 min-h-[200px] flex flex-col justify-between ${c.span} ${
+              className={`group relative overflow-hidden rounded-[24px] border p-7 min-h-[250px] flex flex-col justify-between ${c.span} ${
                 c.dark ? "border-white/10" : c.tint
               } ${c.dark ? c.tint : ""}`}
             >

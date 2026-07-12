@@ -12,7 +12,7 @@ import { Ecosystem } from "@/components/landing/Ecosystem";
 import { NewsCarousel } from "@/components/landing/NewsCarousel";
 import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { getUpcomingPublishedEvents } from "@/lib/events.server";
-import { getHomepageFeaturedWatchlist, getHomepageVerifiedWatchlist } from "@/lib/featured-startups.server";
+import { getHomepageFeaturedWatchlist, getHomepageVerifiedWatchlist, getHomepageRecentWatchlist } from "@/lib/featured-startups.server";
 import { getWomenLedStartups } from "@/lib/women-led.server";
 import { getHomepageAwardWinners } from "@/lib/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
@@ -54,6 +54,13 @@ async function loadHomeData(): Promise<{
       const verified = await getHomepageVerifiedWatchlist(HOME_CAROUSEL_LIMIT);
       const seen = new Set(watchlist.map((s) => s.id));
       watchlist = [...watchlist, ...verified.filter((s) => !seen.has(s.id))];
+    }
+    // Still short (curated + verified pool is small)? Fill remaining slots
+    // with real, presentable startups rather than leaving the grid sparse.
+    if (watchlist.length < BENTO_MIN) {
+      const recent = await getHomepageRecentWatchlist(HOME_CAROUSEL_LIMIT);
+      const seen = new Set(watchlist.map((s) => s.id));
+      watchlist = [...watchlist, ...recent.filter((s) => !seen.has(s.id))];
     }
 
     // Prefer the curated awards table; fall back to the legacy databank.awards
