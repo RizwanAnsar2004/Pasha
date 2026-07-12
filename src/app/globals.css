@@ -2,20 +2,28 @@
 @import "tw-animate-css";
 
 :root {
-  --font-inter: "Inter", sans-serif;
   --font-jetbrains: "JetBrains Mono", monospace;
-  --font-serif: "Source Serif 4", serif;
 }
 
 @theme {
   /* P@SHA brand */
-  --color-pasha-red: #E6160F;
-  --color-pasha-red-dark: #B5100B;
-  --color-pasha-red-light: #FF3329;
-  --color-pasha-ink: #0E0E10;
-  --color-pasha-stone: #F6F6F4;
-  --color-pasha-line: #E5E5E2;
-  --color-pasha-muted: #6B6B6B;
+  --color-pasha-red: #E92127;
+  --color-pasha-red-dark: #C01319;
+  --color-pasha-red-light: #FF4B51;
+  --color-pasha-ink: #171717;
+  --color-pasha-stone: #F8F7F4;
+  --color-pasha-line: rgba(23, 23, 23, 0.13);
+  --color-pasha-muted: #6B6B67;
+  --color-pasha-soft: #EFEDE8;
+
+  /* Reference-design accent palette — pastel card/section tints */
+  --color-accent-charcoal: #3E3932;
+  --color-accent-silver: #CCCCCB;
+  --color-accent-teal: #33B2B5;
+  --color-accent-green: #31B57B;
+  --color-accent-yellow: #FBCC42;
+  --color-accent-purple: #8168AD;
+  --color-accent-coral: #E67368;
 
   /* Tier accents */
   --color-tier-featured: #15803D;
@@ -30,14 +38,14 @@
   --color-border: var(--color-pasha-line);
   --color-muted: var(--color-pasha-muted);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --font-serif: "Source Serif Pro", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: var(--font-poppins), ui-sans-serif, Georgia, "Times New Roman", serif;
 
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
 }
 
 @layer base {
@@ -112,6 +120,14 @@
 
   .animate-pulse-red {
     animation: pulse-red 2s ease-in-out infinite;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 
   .mono {

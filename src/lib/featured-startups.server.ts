@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
-import type { WatchlistStartup } from "@/components/landing/VerifiedStartupsToWatch";
+import type { WatchlistStartup } from "@/components/landing/DirectoryBento";
 
 export type FeaturedSettings = {
   auto_rotate: boolean;

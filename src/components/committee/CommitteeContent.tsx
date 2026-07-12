@@ -1,14 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { motion } from "framer-motion";
 import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import {
-  ArrowRight,
   Mail,
   Handshake,
   CheckCircle2,
@@ -21,7 +14,9 @@ import {
   Building2,
 } from "lucide-react";
 import { initials, cn } from "@/lib/utils";
-import { usePageReady } from "@/components/PageReady";
+import { Kicker } from "@/components/landing/shared/Kicker";
+import { PillButton } from "@/components/landing/shared/PillButton";
+import { Reveal } from "@/components/landing/shared/Reveal";
 import {
   COMMITTEE_ACTIVITY_TYPE_STYLES,
   COMMITTEE_CHAIR_TAG,
@@ -159,121 +154,50 @@ export function CommitteeContent({
   // first is featured in the top tier, the rest fall into the grid.
   const chairs = roster.filter((m) => m.type === "chairman");
   const committeeMembers = roster.filter((m) => m.type !== "chairman");
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 18 });
-  const blob1X = useTransform(springX, [-1, 1], [-25, 25]);
-  const blob1Y = useTransform(springY, [-1, 1], [-25, 25]);
-  const blob2X = useTransform(springX, [-1, 1], [20, -20]);
-  const blob2Y = useTransform(springY, [-1, 1], [20, -20]);
-  // Hold the above-the-fold hero entrance until the intro loader fades, so it
-  // plays in view rather than finishing behind the overlay.
-  const ready = usePageReady();
-
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    mouseX.set(((e.clientX - left) / width) * 2 - 1);
-    mouseY.set(((e.clientY - top) / height) * 2 - 1);
-  }
 
   return (
     <>
       {/* ───────────────────────────────────────────────────────
-          HERO
+          HERO — dark, matches Hero.tsx / DirectoryHero.tsx
           ─────────────────────────────────────────────────────── */}
-      <section
-        onMouseMove={onMouseMove}
-        className="relative overflow-hidden"
-        style={{
-          background: "linear-gradient(180deg, #FAF8F4 0%, #FFFFFF 100%)",
-        }}
-      >
-        <motion.div
-          style={{ x: blob1X, y: blob1Y }}
-          aria-hidden
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slow bg-gradient-to-br from-orange-200/50 via-rose-200/40 to-amber-100/30"
-        />
-        <motion.div
-          style={{ x: blob2X, y: blob2Y }}
-          aria-hidden
-          className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slower bg-gradient-to-br from-pasha-red/15 via-rose-200/40 to-orange-200/30"
-        />
+      <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(14, 14, 16, 0.06) 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-          }}
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
         />
+        <div aria-hidden className="pointer-events-none absolute -right-56 -top-72 h-[720px] w-[720px] rounded-full bg-pasha-red/[0.32] blur-[80px]" />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-56 -right-16 select-none font-serif font-black leading-none text-white/[0.02]"
+          style={{ fontSize: "clamp(20rem,34vw,36rem)" }}
+        >
+          @
+        </span>
 
-        <div className="relative mx-auto max-w-4xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-16 lg:pb-20">
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-10 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm border border-pasha-line shadow-sm px-3 py-1.5"
-          >
-            <Handshake className="w-3 h-3 text-pasha-red" />
-            <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-ink/80">
-              P@SHA Startups &amp; Entrepreneurship Committee
-            </span>
-          </motion.div>
+        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+          <Reveal>
+            <Kicker tone="light">P@SHA Startups &amp; Entrepreneurship Committee</Kicker>
+            <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+              Building Pakistan&apos;s <span className="text-pasha-red-light">startup ecosystem.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
+              The P@SHA Startups &amp; Entrepreneurship Committee brings
+              together Pakistan&apos;s top founders, investors, corporates, and
+              government leaders to actively grow, connect, and support the
+              national startup ecosystem.
+            </p>
 
-          <h1 className="mt-6 font-serif text-[40px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
-            <motion.span
-              initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 24, filter: "blur(8px)" }}
-              transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
-              className="block"
-            >
-              Building Pakistan&apos;s
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 24, filter: "blur(8px)" }}
-              transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
-              className="block bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift"
-            >
-              Startup Ecosystem
-            </motion.span>
-          </h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-            transition={{ duration: 0.6, delay: 0.65 }}
-            className="mt-8 text-lg sm:text-xl text-pasha-muted leading-relaxed text-pretty max-w-2xl"
-          >
-            The P@SHA Startups &amp; Entrepreneurship Committee brings
-            together Pakistan&apos;s top founders, investors, corporates, and
-            government leaders to actively grow, connect, and support the
-            national startup ecosystem.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-            transition={{ duration: 0.6, delay: 0.85 }}
-            className="mt-9 flex flex-col sm:flex-row gap-3"
-          >
-            <a
-              href="mailto:startups@pasha.org.pk"
-              className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-7 py-3.5 text-base font-medium text-white shadow-xl shadow-pasha-red/20 hover:bg-pasha-red-dark transition-all hover:-translate-y-0.5"
-            >
-              <Mail className="w-4 h-4" />
-              Contact Committee
-            </a>
-            <Link
-              href="/apply"
-              className="group inline-flex items-center justify-center gap-2 rounded-full border border-pasha-ink/15 bg-white/60 backdrop-blur-sm px-7 py-3.5 text-base font-medium text-pasha-ink hover:bg-white hover:border-pasha-ink/30 transition-all"
-            >
-              <Handshake className="w-4 h-4 opacity-60" />
-              Propose Collaboration
-            </Link>
-          </motion.div>
+            <div className="mt-9 flex flex-col sm:flex-row gap-3">
+              <PillButton href="mailto:startups@pasha.org.pk" variant="solid" dot={false} arrow={false}>
+                <Mail className="w-4 h-4" />
+                Contact Committee
+              </PillButton>
+              <PillButton href="/apply" variant="outline-light" dot={false} arrow={false}>
+                <Handshake className="w-4 h-4 opacity-60" />
+                Propose Collaboration
+              </PillButton>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -281,7 +205,7 @@ export function CommitteeContent({
           MISSION & OBJECTIVES
           ─────────────────────────────────────────────────────── */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-16">
             {/* Left: heading + body */}
             <motion.div
@@ -290,10 +214,8 @@ export function CommitteeContent({
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6, ease: EASE }}
             >
-              <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
-                Mission
-              </span>
-              <h2 className="mt-4 font-serif text-3xl sm:text-4xl tracking-tight text-pasha-ink text-balance">
+              <Kicker>Mission</Kicker>
+              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
                 Our Mission &amp; Objectives
               </h2>
               <p className="mt-5 text-pasha-muted leading-relaxed text-pretty">
@@ -324,7 +246,7 @@ export function CommitteeContent({
                   <div className="w-10 h-10 rounded-xl bg-pasha-red/[0.08] border border-pasha-red/10 grid place-items-center">
                     <obj.icon className="w-5 h-5 text-pasha-red/70" strokeWidth={1.75} />
                   </div>
-                  <h3 className="mt-4 font-serif text-lg text-pasha-ink leading-tight">
+                  <h3 className="mt-4 font-serif font-semibold text-lg text-pasha-ink leading-tight">
                     {obj.title}
                   </h3>
                   <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
@@ -343,9 +265,9 @@ export function CommitteeContent({
       <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28 overflow-hidden">
         <div
           aria-hidden
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-orange-200/[0.08] to-pasha-red/[0.06] blur-3xl"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-accent-coral/[0.08] to-pasha-red/[0.06] blur-3xl"
         />
-        <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
 
           {/* Section header */}
           <motion.div
@@ -355,10 +277,10 @@ export function CommitteeContent({
             transition={{ duration: 0.6, ease: EASE }}
             className="text-center max-w-2xl mx-auto mb-14"
           >
-            <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
-              Committee Members
-            </span>
-            <h2 className="mt-4 font-serif text-3xl sm:text-4xl tracking-tight text-pasha-ink text-balance">
+            <div className="flex justify-center">
+              <Kicker>Committee Members</Kicker>
+            </div>
+            <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
               Meet the Committee
             </h2>
             <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
@@ -473,7 +395,7 @@ export function CommitteeContent({
           ─────────────────────────────────────────────────────── */}
       {activities.length > 0 ? (
         <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -481,10 +403,8 @@ export function CommitteeContent({
               transition={{ duration: 0.6, ease: EASE }}
               className="max-w-2xl mb-12"
             >
-              <span className="inline-flex items-center rounded-full bg-pasha-red/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
-                Updates
-              </span>
-              <h2 className="mt-4 font-serif text-3xl sm:text-4xl tracking-tight text-pasha-ink text-balance">
+              <Kicker>Updates</Kicker>
+              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
                 Committee Activity
               </h2>
               <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
@@ -539,24 +459,32 @@ export function CommitteeContent({
       {/* ───────────────────────────────────────────────────────
           CTA
           ─────────────────────────────────────────────────────── */}
-      <section className="relative bg-white border-t border-pasha-line py-16 sm:py-20">
-        <div className="mx-auto max-w-4xl px-5 sm:px-8 text-center">
-          <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink text-balance">
-            Want to collaborate with the committee?
-          </h2>
-          <p className="mt-3 text-pasha-muted leading-relaxed text-pretty max-w-xl mx-auto">
-            Whether you&apos;re a founder, investor, or partner organisation,
-            we&apos;d love to hear from you.
-          </p>
-          <div className="mt-7 flex flex-col sm:flex-row justify-center gap-3">
-            <a
-              href="mailto:startups@pasha.org.pk"
-              className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-pasha-ink px-7 py-3.5 text-base font-medium text-white shadow-xl shadow-pasha-ink/20 hover:bg-pasha-red transition-all hover:-translate-y-0.5"
+      <section className="bg-pasha-stone py-14 sm:py-20">
+        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-4 -top-24 select-none font-serif font-black leading-none text-white/[0.04]"
+              style={{ fontSize: "19rem" }}
             >
+              @
+            </span>
+            <div className="relative">
+              <Kicker tone="light" className="text-pasha-red-light">
+                Get involved
+              </Kicker>
+              <h2 className="mt-4 max-w-xl font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
+                Want to collaborate with the committee?
+              </h2>
+              <p className="mt-4 max-w-md text-white/55 text-base leading-relaxed">
+                Whether you&apos;re a founder, investor, or partner
+                organisation, we&apos;d love to hear from you.
+              </p>
+            </div>
+            <PillButton href="mailto:startups@pasha.org.pk" variant="light" dot={false} className="relative shrink-0">
               Contact Committee
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </a>
-          </div>
+            </PillButton>
+          </Reveal>
         </div>
       </section>
     </>

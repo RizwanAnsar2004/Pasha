@@ -4,14 +4,14 @@ import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, Filter, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, BadgeCheck, Coins, Calendar, Layers } from "lucide-react";
+import { Search, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, Coins, Calendar } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
-import { FUNDING_AMOUNT_RANGES, CUSTOMER_BANDS } from "@/lib/options";
+import { FUNDING_AMOUNT_RANGES } from "@/lib/options";
 
 export type DirectoryRow = {
   id: string;
@@ -40,6 +40,7 @@ export type DirectoryRow = {
   founder_name?: string | null;
   founder_photo_url?: string | null;
   founder_role?: string | null;
+  company_linkedin?: string | null;
   // Dynamic form answers — used to fall back to range-band text for new
   // records that store revenue / funding as select bands, not numeric columns.
   answers?: Record<string, unknown> | null;
@@ -49,9 +50,6 @@ export type DirectoryRow = {
 // range (e.g. "$250K – $1M") when the numeric column is empty.
 const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
   FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
-);
-const CUSTOMER_BAND_LABEL: Record<string, string> = Object.fromEntries(
-  CUSTOMER_BANDS.map((o) => [o.value, o.label])
 );
 
 // Resolve a stored band code to a short label (drops the "/ year" suffix and
@@ -72,17 +70,21 @@ export type DirectoryFilters = {
   q: string;
   sector: string; // "all" or a sector value
   city: string; // "all" or a city value
+  stage: string; // "all" or a product_stage value
   verified: boolean;
   womenLed: boolean;
   hiring: boolean;
+  fundraising: boolean;
+  sort: string; // "featured" | "az" | "newest" | "oldest"
 };
 
 // Small directory badge pills (women-led / hiring / fundraising). Verified
 // keeps its own dedicated <VerifiedBadge>. All use pasha theme tokens.
+const NEUTRAL_BADGE_CLS = "bg-pasha-ink/[0.05] text-pasha-ink/65 border-pasha-ink/10";
 const DIR_BADGE: Record<"women_led" | "hiring" | "fundraising", { label: string; cls: string }> = {
-  women_led: { label: "Women-led", cls: "bg-pasha-red/[0.07] text-pasha-red border-pasha-red/10" },
-  hiring: { label: "Hiring", cls: "bg-pasha-ink/[0.06] text-pasha-ink/70 border-pasha-ink/10" },
-  fundraising: { label: "Fundraising", cls: "bg-pasha-red/[0.05] text-pasha-red/70 border-pasha-red/[0.08]" },
+  women_led: { label: "Women-led", cls: NEUTRAL_BADGE_CLS },
+  hiring: { label: "Hiring", cls: NEUTRAL_BADGE_CLS },
+  fundraising: { label: "Fundraising", cls: NEUTRAL_BADGE_CLS },
 };
 
 function DirectoryBadges({ r, className }: { r: Row; className?: string }) {
@@ -109,6 +111,26 @@ function clean(s?: string | null): string | null {
   const v = String(s).trim();
   if (!v || v.toUpperCase() === "NULL" || v === "—") return null;
   return v;
+}
+
+// business_types is a "|"/";"/","-delimited multi-select string (e.g.
+// "B2B|B2C") — same parsing convention as the detail page's splitMulti().
+function splitMulti(v?: string | null): string[] {
+  if (!v) return [];
+  return String(v)
+    .split(/[|;,]+/)
+    .map((s) => s.trim())
+    .filter((s) => s && s.toUpperCase() !== "NULL");
+}
+
+// Inline brand glyph — lucide 1.x dropped brand icons, so LinkedIn is kept as
+// a local SVG (same pattern as the detail page's LinkedInGlyph).
+function LinkedInGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M20.45 20.45h-3.55v-5.56c0-1.32-.03-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.65H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.61 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 110-4.13 2.06 2.06 0 010 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+    </svg>
+  );
 }
 
 function isSafeUrl(u?: string | null): u is string {
@@ -165,8 +187,19 @@ const DEFAULT_THEME: SectorTheme = {
   gradient: "from-pasha-stone/30",
 };
 
-function themeFor(_label: string | null): SectorTheme {
-  return DEFAULT_THEME;
+// Cycling pastel identities (mirrors the accent palette used across the site's
+// bento cards) so cards in a page of results read as visually distinct.
+const ACCENT_THEMES: SectorTheme[] = [
+  { stripe: "bg-gradient-to-r from-accent-coral to-accent-coral", badge: "bg-accent-coral/[0.12] text-[#a64043] border-accent-coral/20", logoBg: "bg-accent-coral/[0.18]", logoText: "text-[#a64043]", gradient: "from-accent-coral/[0.08]" },
+  { stripe: "bg-gradient-to-r from-accent-yellow to-accent-yellow", badge: "bg-accent-yellow/[0.18] text-[#8a6200] border-accent-yellow/25", logoBg: "bg-accent-yellow/[0.22]", logoText: "text-[#8a6200]", gradient: "from-accent-yellow/[0.10]" },
+  { stripe: "bg-gradient-to-r from-accent-green to-accent-green", badge: "bg-accent-green/[0.14] text-[#267c5a] border-accent-green/20", logoBg: "bg-accent-green/[0.18]", logoText: "text-[#267c5a]", gradient: "from-accent-green/[0.08]" },
+  { stripe: "bg-gradient-to-r from-accent-purple to-accent-purple", badge: "bg-accent-purple/[0.13] text-[#654d88] border-accent-purple/20", logoBg: "bg-accent-purple/[0.18]", logoText: "text-[#654d88]", gradient: "from-accent-purple/[0.08]" },
+  { stripe: "bg-gradient-to-r from-accent-teal to-accent-teal", badge: "bg-accent-teal/[0.14] text-[#146c6f] border-accent-teal/20", logoBg: "bg-accent-teal/[0.18]", logoText: "text-[#146c6f]", gradient: "from-accent-teal/[0.08]" },
+  { stripe: "bg-gradient-to-r from-pasha-ink to-pasha-ink", badge: "bg-pasha-ink/[0.06] text-pasha-ink/70 border-pasha-ink/15", logoBg: "bg-pasha-ink/10", logoText: "text-pasha-ink", gradient: "from-pasha-ink/[0.04]" },
+];
+
+function themeFor(index: number): SectorTheme {
+  return ACCENT_THEMES[index % ACCENT_THEMES.length] ?? DEFAULT_THEME;
 }
 
 // Compact number formatter for the stats grid (1,200,000 → "1.2M").
@@ -371,14 +404,12 @@ function PaginationBtn({
   );
 }
 
-function FilterDropdown({
-  icon: Icon,
+function PillFilter({
   label,
   value,
   onChange,
   options,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -386,63 +417,65 @@ function FilterDropdown({
 }) {
   const isActive = value !== "all";
   return (
-    <div className="relative">
-      <Icon
-        className={cn(
-          "absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors",
-          isActive ? "text-pasha-red" : "text-pasha-muted"
-        )}
-      />
+    <label
+      className={cn(
+        "flex min-h-[46px] flex-col justify-center rounded-[14px] border px-3.5 py-1.5 transition-colors",
+        isActive ? "border-pasha-red/35 bg-pasha-red/[0.04]" : "border-pasha-ink/10 bg-white"
+      )}
+    >
+      <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-muted">
+        {label}
+      </span>
       <SelectMenu
         value={value}
         onValueChange={onChange}
         aria-label={`Filter by ${label.toLowerCase()}`}
         className={cn(
-          "h-9 pl-8 text-[12.5px] font-medium transition-all",
-          isActive
-            ? "border-pasha-red/40 text-pasha-red bg-pasha-red/[0.04]"
-            : "text-pasha-ink/70 hover:border-pasha-ink/15 hover:text-pasha-ink"
+          "h-auto w-full border-0 bg-transparent p-0 text-sm font-bold",
+          isActive ? "text-pasha-red" : "text-pasha-ink"
         )}
-        options={options.map((o) => ({
-          value: o.value,
-          label: o.value === "all" ? o.label : `${label}: ${o.label}`,
-        }))}
+        options={options}
       />
-    </div>
+    </label>
   );
 }
 
-// ---------------------------------------------------------------------------
-// FancyStat — premium stat block with icon-on-color + big serif number.
-// ---------------------------------------------------------------------------
-function FancyStat({
-  icon: Icon,
-  value,
-  label,
-  accent,
+function QuickChip({
+  active,
+  onClick,
+  children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  value: string | null;
-  label: string;
-  accent: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "flex flex-col items-center justify-center py-0.5 transition-opacity duration-300",
-        !value && "opacity-40"
+        "inline-flex min-h-[34px] items-center rounded-full border px-3.5 text-xs font-semibold transition-colors",
+        active
+          ? "border-pasha-red bg-pasha-red text-white"
+          : "border-pasha-ink/10 bg-white text-pasha-ink/65 hover:border-pasha-red/30 hover:text-pasha-ink"
       )}
     >
-      <div className="flex items-center gap-1 mb-1">
-        <Icon className={cn("w-2.5 h-2.5", accent)} />
-        <span className="text-[8px] font-mono uppercase tracking-[1.2px] text-pasha-muted/80 font-semibold">
-          {label}
-        </span>
-      </div>
-      <div className="font-serif text-base font-bold text-pasha-ink leading-none tabular-nums">
-        {value ?? "—"}
-      </div>
-    </div>
+      {children}
+    </button>
+  );
+}
+
+function ActiveChip({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group inline-flex min-h-[34px] items-center gap-2 rounded-full bg-pasha-ink px-3.5 text-xs font-semibold text-white hover:bg-pasha-red transition-colors max-w-xs"
+    >
+      <span className="truncate">{children}</span>
+      <X className="h-3 w-3 shrink-0 opacity-70 group-hover:opacity-100" />
+    </button>
   );
 }
 
@@ -457,10 +490,8 @@ type ListCardProps = {
   tagline: string | null;
   sectorLabel: string | null;
   city: string | null;
-  nic: string | null;
   website: string | null;
   logoUrl: string | null;
-  employees: number | null;
   raised: string | null;
   customers: number | null;
   theme: SectorTheme;
@@ -473,10 +504,8 @@ function ListCard({
   tagline,
   sectorLabel,
   city,
-  nic,
   website,
   logoUrl,
-  employees,
   raised,
   customers,
   theme,
@@ -492,7 +521,7 @@ function ListCard({
         ease: [0.22, 1, 0.36, 1],
       }}
       whileHover={{ x: 2 }}
-      className="group relative rounded-2xl bg-white border border-pasha-line/70 hover:border-pasha-ink/15 hover:shadow-[0_8px_24px_-8px_rgba(14,14,16,0.12)] transition-all duration-300 overflow-hidden"
+      className="group relative rounded-[22px] bg-[#f8f6f2] border border-pasha-ink/10 hover:border-pasha-ink/20 hover:shadow-[0_18px_40px_rgba(23,23,23,0.09)] transition-all duration-300 overflow-hidden"
     >
       {/* Left accent line — appears on hover */}
       <span
@@ -506,7 +535,7 @@ function ListCard({
       <Link
         href={detailHref}
         aria-label={`View ${r.startup_name} details`}
-        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
+        className="absolute inset-0 z-10 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
       />
 
       <div className="relative z-20 pointer-events-none p-4 sm:p-5 flex items-center gap-4 sm:gap-5">
@@ -571,14 +600,6 @@ function ListCard({
                 {city}
               </span>
             )}
-            {/* NIC attribution hidden from public directory (backend-only):
-            {nic && (
-              <span className="inline-flex items-center gap-1">
-                <Building2 className="w-3 h-3" />
-                {nic}
-              </span>
-            )}
-            */}
             {r.founder_name && (
               <span className="inline-flex items-center gap-1">
                 <Users className="w-3 h-3" />
@@ -590,13 +611,7 @@ function ListCard({
 
         {/* Stats — visible on lg+ */}
         <div className="hidden lg:flex items-center gap-5 shrink-0 pointer-events-none">
-          {/* Team Size / headcount removed from public view (backend-only):
-          <ListStat
-            icon={Users}
-            value={employees ? compact(employees) : null}
-            label="Team"
-          />
-          */}
+          {/* Team Size / headcount removed from public view (backend-only). */}
           <ListStat
             icon={Coins}
             value={raised}
@@ -659,33 +674,6 @@ function ListStat({
   );
 }
 
-// ---------------------------------------------------------------------------
-// FounderAvatar — 40px circle with state-driven initial fallback.
-// ---------------------------------------------------------------------------
-function FounderAvatar({ src, name }: { src?: string | null; name: string }) {
-  const [errored, setErrored] = useState(false);
-  const showImage = src && !errored;
-
-  return (
-    <div className="shrink-0 w-10 h-10 rounded-full overflow-hidden ring-2 ring-white shadow-sm bg-pasha-stone grid place-items-center text-[11px] font-semibold text-pasha-muted">
-      {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-          onError={() => setErrored(true)}
-        />
-      ) : (
-        <span aria-hidden>{initials(name)}</span>
-      )}
-    </div>
-  );
-}
-
 const PAGE_SIZE = 12;
 
 export function DirectoryClient({
@@ -694,6 +682,7 @@ export function DirectoryClient({
   totalAll,
   sectors,
   cities,
+  stages,
   filters,
   page,
   pageSize = PAGE_SIZE,
@@ -705,6 +694,7 @@ export function DirectoryClient({
   totalAll: number;
   sectors: string[];
   cities: string[];
+  stages: string[];
   filters: DirectoryFilters;
   page: number;
   pageSize?: number;
@@ -764,9 +754,11 @@ export function DirectoryClient({
     !!filters.q ||
     filters.sector !== "all" ||
     filters.city !== "all" ||
+    filters.stage !== "all" ||
     filters.verified ||
     filters.womenLed ||
-    filters.hiring;
+    filters.hiring ||
+    filters.fundraising;
 
   // Scroll to top of listing when the page changes.
   const gridRef = useRef<HTMLDivElement>(null);
@@ -785,48 +777,125 @@ export function DirectoryClient({
   return (
     <>
       {/* ───────────────────────────────────────────────────────
-          CONTROL PANEL — search + filters + view toggle (sticky)
+          SEARCH + FILTER PANEL — sticky white rounded card
           ─────────────────────────────────────────────────────── */}
-      <div className="sticky top-16 z-30 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 mb-8 bg-white/90 backdrop-blur-md border-y border-pasha-line/70">
-        {/* Row 1: search + view toggle */}
-        <div className="flex items-stretch gap-2">
-          {/* Search */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pasha-muted pointer-events-none" />
-            <input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name, industry, or incubator…"
-              aria-label="Search startups"
-              className="h-12 w-full box-border rounded-xl border border-pasha-line bg-white pl-11 pr-10 text-sm placeholder:text-pasha-muted/70 focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15 transition-colors"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => setSearchInput("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md grid place-items-center text-pasha-muted hover:text-pasha-ink hover:bg-pasha-stone transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+      <div className="sticky top-[112px] z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
+        {/* Search */}
+        <div className="relative flex h-11 items-center gap-2.5 rounded-[14px] border border-pasha-ink/10 bg-pasha-stone px-3.5">
+          <Search className="h-4 w-4 shrink-0 text-pasha-ink/45" />
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by startup, founder, sector or keyword…"
+            aria-label="Search startups"
+            className="h-full w-full min-w-0 bg-transparent text-sm placeholder:text-pasha-ink/40 focus-visible:outline-none"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => setSearchInput("")}
+              aria-label="Clear search"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-pasha-ink/10 text-pasha-ink/60 hover:bg-pasha-ink hover:text-white transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
 
-          {/* View toggle — grid / list */}
-          <div className="hidden sm:flex items-center rounded-xl border border-pasha-line bg-white p-1 shrink-0">
+        {/* Dropdown filter row */}
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1fr_auto] gap-2">
+          <PillFilter
+            label="Sector"
+            value={filters.sector}
+            onChange={(v) => updateParams({ sector: v === "all" ? null : v, page: null })}
+            options={[{ value: "all", label: "All sectors" }, ...sectors.map((s) => ({ value: s, label: s }))]}
+          />
+          <PillFilter
+            label="Location"
+            value={filters.city}
+            onChange={(v) => updateParams({ city: v === "all" ? null : v, page: null })}
+            options={[{ value: "all", label: "All cities" }, ...cities.map((c) => ({ value: c, label: c }))]}
+          />
+          <PillFilter
+            label="Stage"
+            value={filters.stage}
+            onChange={(v) => updateParams({ stage: v === "all" ? null : v, page: null })}
+            options={[{ value: "all", label: "All stages" }, ...stages.map((s) => ({ value: s, label: s }))]}
+          />
+          <button
+            type="button"
+            onClick={resetFilters}
+            disabled={!hasFilters}
+            className={cn(
+              "min-h-[46px] rounded-[14px] border px-4 text-sm font-bold transition-colors",
+              hasFilters
+                ? "border-pasha-ink bg-pasha-ink text-white hover:bg-pasha-red hover:border-pasha-red"
+                : "border-pasha-ink/10 bg-white text-pasha-ink/30 cursor-not-allowed"
+            )}
+          >
+            Clear filters
+          </button>
+        </div>
+
+        {/* Quick filter chips */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-2.5 px-0.5">
+          <span className="text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-muted">Quick filters</span>
+          <div className="flex flex-wrap gap-1.5">
+            <QuickChip active={filters.verified} onClick={() => updateParams({ verified: filters.verified ? null : "1", page: null })}>
+              Verified
+            </QuickChip>
+            <QuickChip active={filters.womenLed} onClick={() => updateParams({ women_led: filters.womenLed ? null : "1", page: null })}>
+              Women-led
+            </QuickChip>
+            <QuickChip active={filters.hiring} onClick={() => updateParams({ hiring: filters.hiring ? null : "1", page: null })}>
+              Hiring
+            </QuickChip>
+            <QuickChip active={filters.fundraising} onClick={() => updateParams({ fundraising: filters.fundraising ? null : "1", page: null })}>
+              Fundraising
+            </QuickChip>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Results toolbar — count + sort + view toggle ──── */}
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div className="flex items-baseline gap-2.5">
+          <strong className="font-serif text-2xl font-bold text-pasha-ink leading-none tabular-nums">
+            {total.toLocaleString()}
+          </strong>
+          <span className="text-sm text-pasha-muted">
+            {total === 1 ? "startup" : "startups"}
+            {total !== totalAll && <> shown from {totalAll.toLocaleString()} indexed profiles</>}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <SelectMenu
+              value={filters.sort}
+              onValueChange={(v) => updateParams({ sort: v === "featured" ? null : v, page: null })}
+              aria-label="Sort startups"
+              className="h-11 min-w-[150px] rounded-[14px] border-pasha-ink/10 bg-white text-sm font-semibold text-pasha-ink"
+              options={[
+                { value: "featured", label: "Sort: Featured" },
+                { value: "az", label: "Sort: Name A–Z" },
+                { value: "newest", label: "Sort: Newest founded" },
+                { value: "oldest", label: "Sort: Oldest founded" },
+              ]}
+            />
+          </div>
+          <div className="flex items-center gap-1 rounded-2xl bg-pasha-ink/[0.06] p-1">
             <button
               type="button"
               onClick={() => setView("grid")}
               aria-label="Grid view"
               aria-pressed={view === "grid"}
               className={cn(
-                "h-9 w-9 grid place-items-center rounded-lg transition-all",
-                view === "grid"
-                  ? "bg-pasha-ink text-white shadow-sm"
-                  : "text-pasha-muted hover:text-pasha-ink hover:bg-pasha-stone"
+                "h-9 w-9 grid place-items-center rounded-[13px] transition-all",
+                view === "grid" ? "bg-pasha-ink text-white shadow-sm" : "text-pasha-ink/50 hover:text-pasha-ink"
               )}
             >
-              <LayoutGrid className="w-4 h-4" strokeWidth={1.75} />
+              <LayoutGrid className="w-4 h-4" strokeWidth={1.8} />
             </button>
             <button
               type="button"
@@ -834,144 +903,40 @@ export function DirectoryClient({
               aria-label="List view"
               aria-pressed={view === "list"}
               className={cn(
-                "h-9 w-9 grid place-items-center rounded-lg transition-all",
-                view === "list"
-                  ? "bg-pasha-ink text-white shadow-sm"
-                  : "text-pasha-muted hover:text-pasha-ink hover:bg-pasha-stone"
+                "h-9 w-9 grid place-items-center rounded-[13px] transition-all",
+                view === "list" ? "bg-pasha-ink text-white shadow-sm" : "text-pasha-ink/50 hover:text-pasha-ink"
               )}
             >
-              <Rows3 className="w-4 h-4" strokeWidth={1.75} />
+              <Rows3 className="w-4 h-4" strokeWidth={1.8} />
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Row 2: filter pills */}
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {/* Sector filter */}
-          <FilterDropdown
-            icon={Filter}
-            label="Sector"
-            value={filters.sector}
-            onChange={(v) => updateParams({ sector: v === "all" ? null : v, page: null })}
-            options={[{ value: "all", label: "All sectors" }, ...sectors.map((s) => ({ value: s, label: s }))]}
-          />
-
-          {/* City filter */}
-          <FilterDropdown
-            icon={MapPin}
-            label="City"
-            value={filters.city}
-            onChange={(v) => updateParams({ city: v === "all" ? null : v, page: null })}
-            options={[{ value: "all", label: "All cities" }, ...cities.map((c) => ({ value: c, label: c }))]}
-          />
-
-          {/* Verified-only toggle */}
-          <button
-            type="button"
-            onClick={() => updateParams({ verified: filters.verified ? null : "1", page: null })}
-            aria-pressed={filters.verified}
-            className={cn(
-              "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              filters.verified
-                ? "border-pasha-red bg-pasha-red text-white shadow-sm"
-                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/30 hover:text-pasha-ink"
-            )}
-          >
-            <BadgeCheck className="w-3.5 h-3.5" />
-            P@SHA Verified
-          </button>
-
-          {/* Women-led toggle */}
-          <button
-            type="button"
-            onClick={() => updateParams({ women_led: filters.womenLed ? null : "1", page: null })}
-            aria-pressed={filters.womenLed}
-            className={cn(
-              "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              filters.womenLed
-                ? "border-pasha-red bg-pasha-red text-white shadow-sm"
-                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-red/30 hover:text-pasha-ink"
-            )}
-          >
-            Women-led
-          </button>
-
-          {/* Hiring toggle */}
-          <button
-            type="button"
-            onClick={() => updateParams({ hiring: filters.hiring ? null : "1", page: null })}
-            aria-pressed={filters.hiring}
-            className={cn(
-              "inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-[12.5px] font-medium transition-all",
-              filters.hiring
-                ? "border-pasha-ink bg-pasha-ink text-white shadow-sm"
-                : "border-pasha-line bg-white text-pasha-ink/70 hover:border-pasha-ink/30 hover:text-pasha-ink"
-            )}
-          >
-            Hiring
-          </button>
-
-          {/* Clear all */}
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 text-[12.5px] font-medium text-pasha-muted hover:text-pasha-red transition-colors"
+      {/* Active filter chips */}
+      {hasFilters && (
+        <div className="flex items-center gap-2 flex-wrap -mt-3 mb-6">
+          {filters.sector !== "all" && (
+            <ActiveChip onClick={() => updateParams({ sector: null, page: null })}>Sector: {filters.sector}</ActiveChip>
+          )}
+          {filters.city !== "all" && (
+            <ActiveChip onClick={() => updateParams({ city: null, page: null })}>Location: {filters.city}</ActiveChip>
+          )}
+          {filters.stage !== "all" && (
+            <ActiveChip onClick={() => updateParams({ stage: null, page: null })}>Stage: {filters.stage}</ActiveChip>
+          )}
+          {filters.q && (
+            <ActiveChip
+              onClick={() => {
+                setSearchInput("");
+                updateParams({ q: null, page: null });
+              }}
             >
-              <X className="w-3.5 h-3.5" />
-              Reset filters
-            </button>
+              &ldquo;{filters.q}&rdquo;
+            </ActiveChip>
           )}
         </div>
-      </div>
-
-      {/* ─── Meta bar — results count + active-filter chips ──── */}
-      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-        <div className="flex items-baseline gap-2">
-          <span className="font-serif text-2xl font-semibold text-pasha-ink leading-none tabular-nums">
-            {total.toLocaleString()}
-          </span>
-          <span className="font-mono text-[11px] uppercase tracking-[1.5px] text-pasha-muted">
-            {total === 1 ? "result" : "results"}
-            {total !== totalAll && <> of {totalAll.toLocaleString()}</>}
-          </span>
-        </div>
-
-        {/* Active filter chips */}
-        {hasFilters && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {filters.sector !== "all" && (
-              <button
-                type="button"
-                onClick={() => updateParams({ sector: null, page: null })}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/15 text-pasha-red px-3 py-1 text-[11px] font-medium hover:bg-pasha-red/[0.12] transition-colors"
-              >
-                <span className="font-mono text-[9px] uppercase tracking-[1.5px] opacity-70">
-                  sector:
-                </span>
-                {filters.sector}
-                <X className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </button>
-            )}
-            {filters.q && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchInput("");
-                  updateParams({ q: null, page: null });
-                }}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-pasha-ink/5 border border-pasha-ink/10 text-pasha-ink px-3 py-1 text-[11px] font-medium hover:bg-pasha-ink/10 transition-colors max-w-xs"
-              >
-                <span className="font-mono text-[9px] uppercase tracking-[1.5px] opacity-60">
-                  search:
-                </span>
-                <span className="truncate">&ldquo;{filters.q}&rdquo;</span>
-                <X className="w-3 h-3 opacity-60 group-hover:opacity-100 shrink-0" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ── Cards container — grid OR list view ── */}
       <div
@@ -987,28 +952,20 @@ export function DirectoryClient({
         {rows.map((r, i) => {
           const tagline = clean(r.tagline);
           const sectorLabel = clean(r.primary_industry);
-          const nic = clean(r.nic_name);
           const city = clean(r.city);
           const website = isSafeUrl(r.website) ? r.website : null;
-          const employees = r.total_employees && r.total_employees > 0 ? r.total_employees : null;
           const logoUrl = safeLogoUrl(r.logo_url);
 
           const detailHref = `/directory/${startupSlug(r.startup_name, r.id)}`;
-          const theme = themeFor(sectorLabel);
+          const theme = themeFor(i);
+          const sequence = String((page - 1) * pageSize + i + 1).padStart(2, "0");
           const customers = r.number_of_customers && r.number_of_customers > 0
             ? r.number_of_customers : null;
           const investment = r.investment_raised && r.investment_raised >= 100_000
             ? formatPKR(r.investment_raised) : null;
           const foundedYear = r.founded_date
             ? new Date(r.founded_date).getFullYear() : null;
-          const productStage = clean(r.product_stage);
-          const businessType = clean(r.business_types);
-          const incubationStage = clean(r.incubation_stage);
           const displayTagline = clean(r.tagline) ?? clean(r.startup_idea);
-          const femaleEmployees = r.female_employees && r.female_employees > 0
-            ? r.female_employees : null;
-          const jobsCreated = r.jobs_created && r.jobs_created > 0
-            ? r.jobs_created : null;
 
           // For new records revenue / raised come in as form select-bands (not
           // numeric columns), so fall back to the readable range text.
@@ -1016,36 +973,18 @@ export function DirectoryClient({
           const raisedDisplay = investment
             ? investment.replace("Rs ", "")
             : bandLabel(a.total_funding_raised, RAISED_BAND_LABEL);
-          // Users: numeric (MAU/customers) first, else the customer range band.
-          const usersDisplay = customers
-            ? compact(customers)
-            : bandLabel(a.num_customers, CUSTOMER_BAND_LABEL);
-          // TAM (Total Addressable Market) — public per the directory review
-          // meeting. Numeric → compact; a stored band/string → shown as-is.
-          const tamRaw = a.tam_amount;
-          const tamDisplay =
-            typeof tamRaw === "number" && tamRaw > 0
-              ? compact(tamRaw)
-              : typeof tamRaw === "string" && tamRaw.trim() && tamRaw.trim().toLowerCase() !== "na"
-                ? tamRaw.trim()
-                : null;
-          // Every quantitative/public fact the record has, in priority order.
-          // We render the first four so each card surfaces as many real stats as
-          // possible (no "—" placeholders).
+          const productStage = clean(r.product_stage);
+          const teamSize = r.total_employees && r.total_employees > 0 ? compact(r.total_employees) : null;
+          const businessModel = splitMulti(r.business_types).join(" · ") || null;
+          const linkedin = isSafeUrl(r.company_linkedin) ? r.company_linkedin : null;
+          // Card facts row — Stage / Team size / Business model, in that order.
           const statItems = (
             [
-              // Headcount / Team Size (Team, Women, Jobs) removed from public view
-              // per the directory review meeting — kept backend-only. Restore by
-              // un-commenting the lines below.
-              // employees && { icon: Users, label: "Team", value: compact(employees) },
-              raisedDisplay && { icon: Coins, label: "Raised", value: raisedDisplay },
-              usersDisplay && { icon: Building2, label: "Users", value: usersDisplay },
-              tamDisplay && { icon: Layers, label: "TAM", value: tamDisplay },
-              // femaleEmployees && { icon: Users, label: "Women", value: compact(femaleEmployees) },
-              // jobsCreated && { icon: Layers, label: "Jobs", value: compact(jobsCreated) },
-              foundedYear && { icon: Calendar, label: "Founded", value: String(foundedYear) },
-            ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string; value: string }[]
-          ).slice(0, 4);
+              productStage && { label: "Stage", value: productStage },
+              teamSize && { label: "Team size", value: teamSize },
+              businessModel && { label: "Business model", value: businessModel },
+            ].filter(Boolean) as { label: string; value: string }[]
+          ).slice(0, 3);
 
           // ─────────── LIST VIEW ───────────
           if (view === "list") {
@@ -1058,10 +997,8 @@ export function DirectoryClient({
                 tagline={tagline}
                 sectorLabel={sectorLabel}
                 city={city}
-                nic={nic}
                 website={website}
                 logoUrl={logoUrl}
-                employees={employees}
                 raised={raisedDisplay}
                 customers={customers}
                 theme={theme}
@@ -1071,290 +1008,155 @@ export function DirectoryClient({
 
           // ─────────── GRID VIEW ───────────
           return (
-            <motion.div
+            <motion.article
               key={r.id}
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={ready ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.97 }}
-              transition={{ duration: 0.5, delay: Math.min((i % PAGE_SIZE) * 0.025, 0.35), ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ y: -8 }}
-              className="group relative rounded-[20px] bg-white overflow-hidden transition-all duration-500 flex flex-col shadow-[0_4px_16px_-4px_rgba(14,14,16,0.06),0_2px_4px_-2px_rgba(14,14,16,0.04)] hover:shadow-[0_30px_70px_-15px_rgba(14,14,16,0.20),0_10px_20px_-8px_rgba(14,14,16,0.10)]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.45, delay: Math.min((i % PAGE_SIZE) * 0.025, 0.3), ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -6 }}
+              className="group relative flex min-h-[300px] flex-col overflow-hidden rounded-[22px] border border-pasha-ink/10 bg-white p-5 transition-shadow duration-300 hover:shadow-[0_26px_58px_rgba(23,23,23,0.09)]"
             >
-              {/* Soft gradient backdrop — always slightly visible, intensifies on hover */}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute inset-0 rounded-[20px] opacity-30 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none",
-                  "bg-gradient-to-br to-transparent",
-                  theme.gradient
-                )}
-              />
+              {/* Top accent stripe */}
+              <span aria-hidden className={cn("absolute inset-x-0 top-0 h-[4px]", theme.stripe)} />
+              <span className="absolute top-4 right-5 font-mono text-[11px] font-bold tracking-[1.5px] text-pasha-ink/35">
+                {sequence}
+              </span>
 
-              {/* Border (inside the gradient layer) */}
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-[20px] border border-pasha-line/70 group-hover:border-pasha-ink/15 transition-colors duration-300 pointer-events-none"
-              />
-
-              {/* Decorative corner accent — sector-coloured blob in top-right */}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none",
-                  theme.stripe.replace("bg-gradient-to-r", "bg-gradient-to-br")
-                )}
-              />
-
-              {/* Whole-card click target */}
               <Link
                 href={detailHref}
                 aria-label={`View ${r.startup_name} details`}
-                className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
+                className="absolute inset-0 z-10 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
               />
 
-              {/* Top accent line — clipped by the card's overflow-hidden */}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-0 left-0 right-0 h-[3px] w-0 group-hover:w-full transition-all duration-700 ease-out pointer-events-none z-[1]",
-                  theme.stripe
-                )}
-              />
-
-              {/* ───────────────────────────────────────────────
-                  HEAD — Logo + name + sector + verified
-                  ─────────────────────────────────────────────── */}
-              <div className="relative z-20 pointer-events-none px-5 pt-5 pb-4">
-                <div className="flex items-start gap-3.5">
-                  {/* Logo with sector-tinted glow halo behind */}
-                  <div className="shrink-0 relative">
-                    {/* Soft glow */}
+              {/* Head — logo + title + category */}
+              <div className="relative z-20 pointer-events-none flex items-start gap-3">
+                <div
+                  className={cn(
+                    "grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[15px] text-sm font-bold",
+                    logoUrl ? "bg-white" : `${theme.logoBg} ${theme.logoText}`
+                  )}
+                >
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                  ) : (
+                    <span aria-hidden>{initials(r.startup_name)}</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="min-w-0 truncate font-serif text-[1.1rem] font-bold leading-tight tracking-tight text-pasha-ink">
+                      {r.startup_name}
+                    </h3>
+                    {r.pasha_verified && (
+                      <span className="pointer-events-auto shrink-0">
+                        <VerifiedBadge size="sm" />
+                      </span>
+                    )}
+                  </div>
+                  {sectorLabel && (
                     <span
-                      aria-hidden
                       className={cn(
-                        "absolute -inset-2 rounded-3xl blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-500",
-                        theme.stripe.replace("bg-gradient-to-r", "bg-gradient-to-br")
-                      )}
-                    />
-                    <motion.div
-                      whileHover={{ rotate: -5, scale: 1.08 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                      className="relative"
-                    >
-                      <LogoTile
-                        src={logoUrl}
-                        name={r.startup_name}
-                        themeBg={theme.logoBg}
-                        themeText={theme.logoText}
-                      />
-                    </motion.div>
-                  </div>
-
-                  {/* Name + meta column */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start gap-1.5">
-                      <h3 className="flex-1 font-serif text-[20px] leading-tight text-pasha-ink group-hover:text-pasha-red transition-colors duration-300 tracking-tight truncate">
-                        {r.startup_name}
-                      </h3>
-                      {r.pasha_verified && (
-                        <span className="pointer-events-auto shrink-0 mt-0.5">
-                          <VerifiedBadge size="sm" />
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Sector + business type pills */}
-                    {(sectorLabel || businessType) && (
-                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        {sectorLabel && (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-mono font-semibold uppercase tracking-[1.5px] border",
-                              theme.badge
-                            )}
-                          >
-                            <span className={cn("w-1 h-1 rounded-full", theme.stripe.replace("bg-gradient-to-r", "bg-gradient-to-br"))} />
-                            {sectorLabel}
-                          </span>
-                        )}
-                        {businessType && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-mono font-semibold uppercase tracking-[1.5px] border border-pasha-ink/15 text-pasha-ink/50 bg-pasha-ink/[0.03]">
-                            {businessType}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* §13 directory badges */}
-                    <DirectoryBadges r={r} className="mt-2" />
-
-                    {/* Location + meta row — NIC attribution removed from public
-                        view per the directory review meeting (backend-only). */}
-                    {(city || foundedYear) && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-pasha-muted">
-                        {city && (
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin aria-hidden className="w-3 h-3" />
-                            {city}
-                          </span>
-                        )}
-                        {/* NIC (source label) hidden from public directory:
-                        {city && nic && <span className="opacity-30">·</span>}
-                        {nic && (
-                          <span className="inline-flex items-center gap-1">
-                            <Building2 aria-hidden className="w-3 h-3" />
-                            {nic}
-                          </span>
-                        )}
-                        */}
-                        {foundedYear && (
-                          <>
-                            {city && <span className="opacity-30">·</span>}
-                            <span className="inline-flex items-center gap-1">
-                              <Calendar aria-hidden className="w-3 h-3" />
-                              Est. {foundedYear}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {/* Stage + incubation row */}
-                    {(productStage || incubationStage) && (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-pasha-muted">
-                        {productStage && (
-                          <span className="inline-flex items-center gap-1">
-                            <Layers aria-hidden className="w-3 h-3" />
-                            {productStage}
-                          </span>
-                        )}
-                        {productStage && incubationStage && <span className="opacity-30">·</span>}
-                        {incubationStage && (
-                          <span className="truncate max-w-[180px]" title={incubationStage}>
-                            {incubationStage}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ───────────────────────────────────────────────
-                  TAGLINE — italic serif accent
-                  ─────────────────────────────────────────────── */}
-              <div className="relative z-20 pointer-events-none px-5 pb-4 flex-1">
-                {displayTagline ? (
-                  <RichText
-                    inline
-                    value={displayTagline}
-                    className="text-[14px] leading-relaxed line-clamp-3 text-pasha-ink/75"
-                  />
-                ) : (
-                  <p className="text-[14px] leading-relaxed line-clamp-3 text-pasha-ink/75">
-                    <span className="italic text-pasha-muted/50">No description available</span>
-                  </p>
-                )}
-              </div>
-
-              {/* ───────────────────────────────────────────────
-                  FOUNDER — premium card-within-card
-                  ─────────────────────────────────────────────── */}
-              {r.founder_name && (
-                <div className="relative z-20 pointer-events-none px-5 pb-4">
-                  <motion.div
-                    whileHover={{ x: 3 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="flex items-center gap-3 rounded-xl bg-white/80 backdrop-blur-sm border border-pasha-line/70 group-hover:border-pasha-ink/15 group-hover:shadow-sm px-3 py-2.5 transition-all"
-                  >
-                    <div className="relative">
-                      <FounderAvatar src={r.founder_photo_url} name={r.founder_name} />
-                      {/* Status dot — indicates active founder */}
-                      <span
-                        aria-hidden
-                        className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-pasha-red border-2 border-white"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-semibold text-pasha-ink truncate leading-tight">
-                        {r.founder_name}
-                      </div>
-                      {r.founder_role && (
-                        <div className="text-[10.5px] text-pasha-muted truncate leading-tight mt-0.5">
-                          {r.founder_role}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-
-              {/* ───────────────────────────────────────────────
-                  STATS — up to four tiles filled with whatever real numeric
-                  facts the record has (no "—" placeholders). Hidden only when
-                  the record has zero quantitative data.
-                  ─────────────────────────────────────────────── */}
-              {statItems.length > 0 && (
-              <div className="relative z-20 pointer-events-none px-5 pb-4">
-                  <div className="rounded-xl bg-white/80 backdrop-blur-sm border border-pasha-line/60 group-hover:border-pasha-ink/15 group-hover:shadow-sm p-3 transition-all">
-                    <div
-                      className={cn(
-                        "grid gap-x-2 gap-y-2",
-                        statItems.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                        "mt-1.5 inline-flex max-w-full items-center truncate rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1px]",
+                        theme.badge
                       )}
                     >
-                      {statItems.map((s, i) => (
-                        <div
-                          key={i}
-                          // With an odd third tile, span it across both columns
-                          // and centre it so the row isn't lopsided.
-                          className={cn(statItems.length === 3 && i === 2 && "col-span-2")}
-                        >
-                          <FancyStat
-                            icon={s.icon}
-                            value={s.value}
-                            label={s.label}
-                            accent={theme.logoText}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ───────────────────────────────────────────────
-                  FOOTER — website + view CTA
-                  ─────────────────────────────────────────────── */}
-              <div className="relative z-20 pointer-events-none mt-auto px-5 py-3.5 flex items-center justify-between gap-2 border-t border-pasha-line/50 rounded-b-[20px]">
-                {website ? (
-                  <a
-                    href={website.startsWith("http") ? website : `https://${website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative z-30 pointer-events-auto inline-flex items-center gap-1.5 text-[11.5px] text-pasha-muted hover:text-pasha-red transition-colors min-w-0 group/web"
-                  >
-                    <Globe
-                      aria-hidden
-                      className="w-3.5 h-3.5 shrink-0 group-hover/web:rotate-[20deg] transition-transform duration-300"
-                    />
-                    <span className="truncate group-hover/web:underline underline-offset-2">
-                      {website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                      {sectorLabel}
                     </span>
-                  </a>
-                ) : (
-                  <span className="text-[11.5px] text-pasha-muted/50">No website</span>
-                )}
-
-                {/* View profile pill */}
-                <span className="pointer-events-none inline-flex items-center gap-1.5 rounded-full bg-pasha-ink text-white group-hover:bg-pasha-red px-3 py-1.5 text-[11px] font-medium transition-all duration-300 shrink-0 shadow-sm group-hover:shadow-md group-hover:shadow-pasha-red/25">
-                  View profile
-                  <ArrowUpRight
-                    aria-hidden
-                    className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                  />
-                </span>
+                  )}
+                </div>
               </div>
-            </motion.div>
+
+              {/* Hairline divider */}
+              <div className="relative z-20 mt-3 border-t border-pasha-ink/[0.07]" />
+
+              {/* Meta row */}
+              {(city || foundedYear) && (
+                <div className="relative z-20 pointer-events-none mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-pasha-ink/50">
+                  {city && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin aria-hidden className="h-3 w-3 text-pasha-red" />
+                      {city}
+                    </span>
+                  )}
+                  {foundedYear && (
+                    <span className="inline-flex items-center gap-1">
+                      <Calendar aria-hidden className="h-3 w-3 text-pasha-red" />
+                      Founded {foundedYear}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* About */}
+              <div className="relative z-20 pointer-events-none mt-2.5">
+                {displayTagline ? (
+                  <RichText inline value={displayTagline} className="text-[13px] leading-relaxed text-pasha-ink/60 line-clamp-2" />
+                ) : (
+                  <p className="text-[13px] leading-relaxed text-pasha-ink/40 italic">No description available</p>
+                )}
+              </div>
+
+              {/* §13 directory badges */}
+              <DirectoryBadges r={r} className="relative z-20 pointer-events-none mt-2.5" />
+
+              {/* Facts row — Stage / Team size / Business model */}
+              {statItems.length > 0 && (
+                <div
+                  className={cn(
+                    "relative z-20 pointer-events-none mt-auto grid divide-x divide-pasha-ink/[0.07] rounded-[12px] bg-pasha-stone/60 py-2.5",
+                    statItems.length >= 3 ? "grid-cols-3" : statItems.length === 2 ? "grid-cols-2" : "grid-cols-1"
+                  )}
+                >
+                  {statItems.map((s, si) => (
+                    <div key={si} className="px-3">
+                      <small className="block text-[9px] font-bold uppercase tracking-[1px] text-pasha-muted mb-0.5">{s.label}</small>
+                      <strong className="block truncate text-[13px] text-pasha-ink">{s.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Footer icon actions */}
+              <div className={cn("relative z-20 flex items-center justify-between gap-2", statItems.length === 0 ? "mt-auto pt-3 border-t border-pasha-ink/10" : "mt-2.5")}>
+                <div className="flex items-center gap-2">
+                  {website ? (
+                    <a
+                      href={website.startsWith("http") ? website : `https://${website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Visit ${r.startup_name} website`}
+                      title="Website"
+                      className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-pasha-red hover:text-white hover:border-pasha-red"
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                  {linkedin ? (
+                    <a
+                      href={linkedin.startsWith("http") ? linkedin : `https://${linkedin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`${r.startup_name} on LinkedIn`}
+                      title="LinkedIn"
+                      className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[#0A66C2] text-white transition-colors hover:bg-[#0A66C2]/85"
+                    >
+                      <LinkedInGlyph className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+                <Link
+                  href={detailHref}
+                  aria-label={`Open ${r.startup_name} profile`}
+                  title="Open profile"
+                  className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-pasha-ink text-white transition-colors hover:bg-pasha-red"
+                >
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </motion.article>
           );
         })}
       </div>
@@ -1376,15 +1178,22 @@ export function DirectoryClient({
           initial={{ opacity: 0, y: 16 }}
           animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.4 }}
-          className="rounded-2xl border border-dashed border-pasha-line bg-pasha-stone/30 p-12 text-center"
+          className="relative overflow-hidden rounded-[26px] border border-pasha-ink/10 bg-[#f8f6f2] p-12 text-center"
         >
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-white border border-pasha-line grid place-items-center mb-4">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -bottom-10 -right-6 select-none font-serif font-black leading-none text-pasha-ink/[0.03]"
+            style={{ fontSize: "clamp(8rem,16vw,14rem)" }}
+          >
+            @
+          </span>
+          <div className="relative mx-auto w-14 h-14 rounded-2xl bg-white border border-pasha-ink/10 grid place-items-center mb-4">
             <Search className="w-6 h-6 text-pasha-muted" strokeWidth={1.5} />
           </div>
-          <h3 className="font-serif text-xl text-pasha-ink">
+          <h3 className="relative font-serif text-xl text-pasha-ink">
             No startups match those filters
           </h3>
-          <p className="mt-2 text-sm text-pasha-muted max-w-sm mx-auto leading-relaxed">
+          <p className="relative mt-2 text-sm text-pasha-muted max-w-sm mx-auto leading-relaxed">
             Try a different sector or clear your search to see all{" "}
             {totalAll.toLocaleString()} indexed startups.
           </p>
@@ -1392,7 +1201,7 @@ export function DirectoryClient({
             <button
               type="button"
               onClick={resetFilters}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-pasha-ink px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red transition-colors"
+              className="relative mt-5 inline-flex items-center gap-2 rounded-full bg-pasha-ink px-5 py-2 text-sm font-medium text-white hover:bg-pasha-red transition-colors"
             >
               Reset filters
             </button>

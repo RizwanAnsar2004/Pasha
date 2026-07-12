@@ -6,7 +6,7 @@ export function PashaLogo({
   className,
   href = "/",
   alt = "P@SHA",
-  width = 140,
+  width = 50,
   priority = false,
 }: {
   className?: string;
@@ -20,7 +20,7 @@ export function PashaLogo({
       src="/pasha-logo.png"
       alt={alt}
       width={width}
-      height={Math.round((width / 908) * 288)}
+      height={Math.round((width / 908) * 108)}
       priority={priority}
       className={cn("h-auto w-auto object-contain", className)}
     />

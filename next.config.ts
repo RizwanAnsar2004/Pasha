@@ -10,6 +10,10 @@ const csp = [
   // bootstrap; consider nonce-based CSP later if we need stricter.
   // Google Analytics (gtag.js) loads from googletagmanager.com.
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com`,
+  // canvas-confetti renders via a blob: Web Worker when available (falls back
+  // to the main thread otherwise) — without this, worker-src falls back to
+  // script-src, which doesn't allow blob:, so the browser blocks it.
+  `worker-src 'self' blob:`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src 'self' data: https://fonts.gstatic.com`,
   // Self-hosted assets (Supabase Storage logos, /public) plus GA's tracking

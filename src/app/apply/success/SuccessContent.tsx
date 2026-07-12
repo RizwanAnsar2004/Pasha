@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sparkles, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, Mail, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { PillButton } from "@/components/landing/shared/PillButton";
 import { funnel } from "@/lib/analytics";
 
 export function SuccessContent() {
@@ -78,7 +78,7 @@ export function SuccessContent() {
                 Application submitted
               </span>
             </div>
-            <h1 className="font-serif text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
+            <h1 className="font-serif font-extrabold text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
               Thank you for applying.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
@@ -139,20 +139,13 @@ export function SuccessContent() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <Link
-              href="/directory"
-              className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-            >
+            <PillButton href="/directory" variant="solid" dot={false}>
               Browse the directory
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <a
-              href="mailto:startups@pasha.org.pk"
-              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-6 py-3 text-sm text-pasha-ink hover:bg-pasha-stone/60 transition-colors"
-            >
+            </PillButton>
+            <PillButton href="mailto:startups@pasha.org.pk" variant="outline" dot={false} arrow={false}>
               <Mail className="w-4 h-4" />
               startups@pasha.org.pk
-            </a>
+            </PillButton>
           </motion.div>
         </div>
       </main>

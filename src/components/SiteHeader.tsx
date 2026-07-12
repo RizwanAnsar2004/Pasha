@@ -1,71 +1,107 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Menu, X, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PashaLogo } from "./PashaLogo";
+import { PillButton } from "./landing/shared/PillButton";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
   { href: "/directory", label: "Directory" },
   { href: "/committee", label: "Committee" },
-  // Events nav item hidden for now — un-comment to restore.
-  // { href: "/events", label: "Events" },
   { href: "/about", label: "About" },
 ];
 
 export function SiteHeader({ variant = "default" }: { variant?: "default" | "transparent" }) {
+  void variant; // kept for call-site compatibility — header is sticky/opaque everywhere
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 w-full transition-colors",
-        variant === "transparent"
-          ? "bg-white/70 backdrop-blur-md border-b border-pasha-line/60"
-          : "bg-white border-b border-pasha-line"
-      )}
-    >
-      <div className="mx-auto max-w-7xl px-5 sm:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <PashaLogo width={120} priority />
-            <span className="hidden md:block h-5 w-px bg-pasha-line" aria-hidden />
-            <span className="hidden md:block text-[11px] font-mono uppercase tracking-[2px] text-pasha-muted">
-              Startup Community
+    <header className="sticky top-0 z-50 w-full">
+      {/* Announcement bar */}
+      <div className="hidden sm:block bg-pasha-ink text-white/70">
+        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="flex items-center justify-between h-9 text-xs">
+            <span className="font-mono uppercase tracking-[1.5px]">
+              The vetted home of Pakistani product startups
             </span>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm text-pasha-ink hover:text-pasha-red transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="/apply"
-              className="inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors"
-            >
-              Apply to join
-              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8h10m0 0l-4-4m4 4l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <Link href="/apply" className="inline-flex items-center gap-1.5 text-white hover:text-pasha-red-light transition-colors">
+              Applications are open
+              <span aria-hidden>&rarr;</span>
             </Link>
-          </nav>
+          </div>
+        </div>
+      </div>
 
-          <button
-            type="button"
-            className="md:hidden rounded p-2 -mr-2 text-pasha-ink"
-            onClick={() => setOpen(!open)}
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+      {/* Main nav */}
+      <div
+        className={cn(
+          "w-full transition-shadow duration-300",
+          scrolled ? "shadow-[0_1px_0_rgba(23,23,23,0.06)]" : ""
+        )}
+        style={{
+          background: "linear-gradient(90deg, #EFEDE9 0%, #F3E6E1 55%, #F5DBD5 100%)",
+        }}
+      >
+        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="flex items-center justify-between h-20">
+            <PashaLogo width={140} priority />
+
+            <nav className="hidden lg:flex items-center gap-9">
+              {NAV_LINKS.map((link) => {
+                const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "relative text-[15px] font-medium transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
+                      active ? "text-pasha-red" : "text-pasha-ink/80 hover:text-pasha-ink"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="hidden lg:flex items-center gap-3">
+              <PillButton
+                href="/directory"
+                variant="outline"
+                dot={false}
+                arrow={false}
+                className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-sm font-medium shadow-sm"
+              >
+                <Search className="h-4 w-4" />
+                Search directory
+              </PillButton>
+              <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-sm font-medium">
+                List your startup
+              </PillButton>
+            </div>
+
+            <button
+              type="button"
+              className="lg:hidden rounded-full p-2 -mr-2 text-pasha-ink"
+              onClick={() => setOpen((v) => !v)}
+              aria-label="Toggle menu"
+            >
+              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -74,27 +110,23 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden overflow-hidden"
+              transition={{ duration: 0.25 }}
+              className="lg:hidden overflow-hidden border-t border-pasha-line"
             >
-              <div className="flex flex-col gap-4 py-4 border-t border-pasha-line">
+              <div className="flex flex-col gap-4 px-5 sm:px-8 py-6">
                 {NAV_LINKS.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="text-base text-pasha-ink"
+                    className="text-lg font-semibold text-pasha-ink"
                   >
                     {link.label}
                   </Link>
                 ))}
-                <Link
-                  href="/apply"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex w-fit items-center gap-2 rounded-full bg-pasha-red px-5 py-2 text-sm font-medium text-white"
-                >
-                  Apply to join
-                </Link>
+                <PillButton href="/apply" variant="solid" dot={false} className="w-fit py-3 px-6 text-base font-semibold">
+                  List your startup
+                </PillButton>
               </div>
             </motion.div>
           )}

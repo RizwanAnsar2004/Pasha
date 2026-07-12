@@ -23,7 +23,7 @@ export default async function EventsPage() {
       <SiteHeader />
       <main className="flex-1">
         <EventsHero totalEvents={events.length} />
-        <section className="mx-auto max-w-7xl px-5 sm:px-8 py-14 sm:py-20">
+        <section id="events" className="mx-auto max-w-[1480px] px-5 sm:px-8 py-14 sm:py-20">
           <EventsList events={events} />
         </section>
       </main>

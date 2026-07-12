@@ -1,178 +1,99 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { Calendar, MapPin, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-const FLOATING_TAGS = [
-  { label: "Webinar", delay: 0 },
-  { label: "Seminar", delay: 0.08 },
-  { label: "Summit", delay: 0.16 },
-  { label: "Workshop", delay: 0.24 },
-  { label: "Networking", delay: 0.32 },
-];
+import { ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Kicker } from "@/components/landing/shared/Kicker";
+import { Reveal } from "@/components/landing/shared/Reveal";
 
 export function EventsHero({ totalEvents }: { totalEvents: number }) {
   return (
-    <section className="relative bg-pasha-stone border-b border-pasha-line overflow-hidden">
-      {/* Ambient */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-dots opacity-50" />
-        <div className="absolute -top-32 left-1/4 w-[560px] h-[560px] rounded-full bg-pasha-red/[0.05] blur-[150px] animate-float-slow" />
-        <div className="absolute -bottom-20 right-1/4 w-[480px] h-[480px] rounded-full bg-pasha-red/[0.04] blur-[130px] animate-float-slower" />
-      </div>
+    <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
+      />
+      <div aria-hidden className="pointer-events-none absolute -right-56 -top-72 h-[720px] w-[720px] rounded-full bg-pasha-red/[0.32] blur-[80px]" />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-56 -right-16 select-none font-serif font-black leading-none text-white/[0.02]"
+        style={{ fontSize: "clamp(20rem,34vw,36rem)" }}
+      >
+        @
+      </span>
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 py-18 sm:py-24">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-
-          {/* Left */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: EASE }}
-            >
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-pasha-red/10 ring-1 ring-inset ring-pasha-red/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-pasha-red">
-                <Sparkles className="w-3 h-3" />
-                Community Events
-              </span>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.08, ease: EASE }}
-              className="mt-5 font-serif text-4xl sm:text-5xl lg:text-[3.5rem] tracking-tight text-pasha-ink text-balance leading-[1.1]"
-            >
+      <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12 lg:gap-16 items-center">
+          <Reveal>
+            <Kicker tone="light">Community Events</Kicker>
+            <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
               Where Pakistan&apos;s{" "}
-              <span className="text-pasha-red">Ecosystem</span>{" "}
-              Connects
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.16, ease: EASE }}
-              className="mt-5 text-base sm:text-lg text-pasha-muted leading-relaxed max-w-lg"
-            >
+              <span className="text-pasha-red-light">ecosystem connects.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
               Webinars, seminars, and gatherings for founders, investors, and
               ecosystem enablers across Pakistan — curated by P@SHA.
-            </motion.p>
+            </p>
 
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.24, ease: EASE }}
-              className="mt-8 flex items-center gap-6 flex-wrap"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-pasha-red/10 border border-pasha-red/15 grid place-items-center">
-                  <Calendar className="w-4 h-4 text-pasha-red" />
-                </div>
-                <div>
-                  <p className="text-xl font-serif text-pasha-ink leading-none">{totalEvents}</p>
-                  <p className="text-[11px] text-pasha-muted uppercase tracking-[1px] mt-0.5">Events</p>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-pasha-line" />
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-pasha-ink/[0.05] border border-pasha-line grid place-items-center">
-                  <Users className="w-4 h-4 text-pasha-muted" />
-                </div>
-                <div>
-                  <p className="text-xl font-serif text-pasha-ink leading-none">5,000+</p>
-                  <p className="text-[11px] text-pasha-muted uppercase tracking-[1px] mt-0.5">Attendees</p>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-pasha-line" />
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-pasha-ink/[0.05] border border-pasha-line grid place-items-center">
-                  <MapPin className="w-4 h-4 text-pasha-muted" />
-                </div>
-                <div>
-                  <p className="text-xl font-serif text-pasha-ink leading-none">10+</p>
-                  <p className="text-[11px] text-pasha-muted uppercase tracking-[1px] mt-0.5">Cities</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.32, ease: EASE }}
-              className="mt-8 flex items-center gap-3 flex-wrap"
-            >
+            <div className="mt-8 flex flex-wrap items-center gap-5">
               <Link
                 href="/apply"
-                className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-pasha-red/20 hover:bg-pasha-red-dark hover:scale-105 hover:shadow-pasha-red/30 hover:shadow-md transition-all duration-300"
+                className="inline-flex items-center gap-3 rounded-2xl bg-pasha-red pl-5 pr-2.5 py-2.5 text-sm font-bold text-white shadow-[0_18px_38px_rgba(233,33,39,0.24)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
               >
-                Host an Event with P@SHA
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                Host an event with P@SHA
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-pasha-red">
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
               </Link>
               <Link
                 href="#events"
-                className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white/80 px-6 py-3 text-sm font-medium text-pasha-ink hover:border-pasha-ink/30 hover:bg-white transition-all duration-200"
+                className="text-sm font-semibold text-white/75 border-b border-white/30 pb-1 hover:text-white hover:border-white transition-colors"
               >
-                Browse Events
+                Browse events <span aria-hidden>&rarr;</span>
               </Link>
-            </motion.div>
-          </div>
+            </div>
 
-          {/* Right — floating tag orbit */}
-          <div className="relative hidden lg:flex items-center justify-center h-72">
-            {/* Outer decorative rings */}
-            <div className="absolute w-64 h-64 rounded-full border border-pasha-line/60" />
-            <div className="absolute w-48 h-48 rounded-full border border-pasha-line/40" />
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+              {["Curated by P@SHA", "Nationwide coverage", "Founder-first"].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1.5 text-xs text-white/45">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#31B57B]" />
+                  {t}
+                </span>
+              ))}
+            </div>
+          </Reveal>
 
-            {/* Central calendar badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.65, delay: 0.2, ease: EASE }}
-              className="relative z-10 w-28 h-28 rounded-2xl bg-white border border-pasha-line shadow-[0_8px_32px_rgba(14,14,16,0.10)] grid place-items-center flex-col"
+          <Reveal delay={0.08}>
+            <aside
+              aria-label="Events index summary"
+              className="overflow-hidden rounded-[26px] border border-white/12 bg-white/[0.06] backdrop-blur-xl"
             >
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 rounded-lg bg-pasha-red/10 grid place-items-center mb-1.5">
-                  <Calendar className="w-4 h-4 text-pasha-red" />
-                </div>
-                <p className="font-serif text-2xl text-pasha-ink leading-none">{totalEvents}</p>
-                <p className="text-[9px] font-mono uppercase tracking-[1.5px] text-pasha-muted mt-0.5">Events</p>
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-[11px] font-bold uppercase tracking-[1.5px] text-white/45">
+                Upcoming
+                <span className="h-2 w-2 rounded-full bg-[#31B57B] shadow-[0_0_0_6px_rgba(49,181,123,0.15)]" />
               </div>
-            </motion.div>
 
-            {/* Orbiting type pills */}
-            {FLOATING_TAGS.map((tag, i) => {
-              const angle = (i / FLOATING_TAGS.length) * 360 - 90;
-              const rad = (angle * Math.PI) / 180;
-              const r = 128;
-              const x = Math.cos(rad) * r;
-              const y = Math.sin(rad) * r;
-              return (
-                <motion.div
-                  key={tag.label}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.35 + tag.delay, ease: EASE }}
-                  style={{
-                    position: "absolute",
-                    left: `calc(50% + ${x}px)`,
-                    top: `calc(50% + ${y}px)`,
-                    transform: "translate(-50%, -50%)",
-                  }}
-                  className="inline-flex items-center rounded-full border border-pasha-line bg-white shadow-sm px-3.5 py-1.5 text-xs font-semibold text-pasha-ink/70 whitespace-nowrap hover:border-pasha-red/30 hover:text-pasha-red hover:shadow-md transition-all duration-300 cursor-default"
-                >
-                  {tag.label}
-                </motion.div>
-              );
-            })}
-          </div>
+              <div className="px-5 pt-6 pb-5">
+                <div className="font-serif text-5xl sm:text-6xl font-extrabold tracking-tight text-white">
+                  {totalEvents}
+                </div>
+                <div className="mt-2 text-sm text-white/50">events scheduled</div>
+              </div>
 
+              <div className="grid grid-cols-2 divide-x divide-white/[0.09] border-t border-white/10">
+                <div className="p-4">
+                  <strong className="block font-serif text-xl font-bold text-white">5,000+</strong>
+                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">total attendees</span>
+                </div>
+                <div className="p-4">
+                  <strong className="block font-serif text-xl font-bold text-white">10+</strong>
+                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">cities reached</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-4 text-xs text-white/55">
+                <span>Webinars, summits &amp; workshops</span>
+                <b className="text-pasha-red-light font-bold">Updated weekly</b>
+              </div>
+            </aside>
+          </Reveal>
         </div>
       </div>
     </section>

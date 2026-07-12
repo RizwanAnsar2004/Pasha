@@ -152,7 +152,7 @@ export default async function ApplicantOverviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-3xl tracking-tight text-pasha-ink">
+        <h1 className="font-serif font-bold text-3xl tracking-tight text-pasha-ink">
           {greetingName ? `Welcome, ${greetingName}` : "Welcome"} 👋
         </h1>
         <p className="mt-1.5 text-sm text-pasha-muted">

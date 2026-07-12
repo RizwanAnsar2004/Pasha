@@ -177,8 +177,21 @@ export function EventDetailContent({
 
   return (
     <>
-      <section className="bg-pasha-ink text-white">
-        <div className="mx-auto max-w-7xl px-5 sm:px-8 py-14 sm:py-20">
+      <section className="relative overflow-hidden bg-pasha-ink pt-14 pb-16 sm:pt-16 sm:pb-20">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
+        />
+        <div aria-hidden className="pointer-events-none absolute -right-56 -top-72 h-[720px] w-[720px] rounded-full bg-pasha-red/[0.32] blur-[80px]" />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-56 -right-16 select-none font-serif font-black leading-none text-white/[0.02]"
+          style={{ fontSize: "clamp(20rem,34vw,36rem)" }}
+        >
+          @
+        </span>
+
+        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-md bg-pasha-red px-2.5 py-1 text-[10px] font-mono uppercase tracking-[2px] text-white">
               {eventTypeLabel(event.event_type)}
@@ -191,34 +204,34 @@ export function EventDetailContent({
             )}
           </div>
 
-          <h1 className="mt-6 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight max-w-4xl">
+          <h1 className="mt-6 font-serif text-[2.75rem] leading-[0.96] sm:text-6xl lg:text-[5.5rem] lg:leading-[0.9] font-extrabold text-white text-balance max-w-4xl">
             {event.title}
           </h1>
 
           {event.summary && (
-            <p className="mt-5 text-base sm:text-lg text-white/70 max-w-3xl leading-relaxed">
+            <p className="mt-6 text-base sm:text-lg text-white/60 max-w-2xl leading-relaxed text-pretty">
               {event.summary}
             </p>
           )}
 
           <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 text-sm text-white/60">
             <span className="inline-flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-pasha-red" />
+              <Calendar className="w-4 h-4 text-pasha-red-light" />
               {format(parseISO(event.event_date), "MMMM d, yyyy")}
             </span>
             <span className="inline-flex items-center gap-2">
-              <Clock className="w-4 h-4 text-pasha-red" />
+              <Clock className="w-4 h-4 text-pasha-red-light" />
               {timeRange(event.start_time, event.end_time, event.timezone)}
             </span>
             {(event.location || event.venue) && (
               <span className="inline-flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-pasha-red" />
+                <MapPin className="w-4 h-4 text-pasha-red-light" />
                 {event.location || event.venue}
               </span>
             )}
             {event.expected_attendees && (
               <span className="inline-flex items-center gap-2">
-                <Users className="w-4 h-4 text-pasha-red" />
+                <Users className="w-4 h-4 text-pasha-red-light" />
                 {event.expected_attendees} Expected Attendees
               </span>
             )}
@@ -226,7 +239,7 @@ export function EventDetailContent({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 sm:px-8 py-12 sm:py-16">
+      <section className="mx-auto max-w-[1480px] px-5 sm:px-8 py-12 sm:py-16">
         <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
           <div className="space-y-10 min-w-0">
             {aboutParagraphs.length > 0 && (

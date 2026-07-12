@@ -1,239 +1,114 @@
-"use client";
-
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useInView,
-  animate,
-} from "framer-motion";
-import { Sparkles, Database, BadgeCheck, MapPin } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+import Link from "next/link";
+import { ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Kicker } from "@/components/landing/shared/Kicker";
+import { Reveal } from "@/components/landing/shared/Reveal";
+import { formatNumber } from "@/lib/utils";
 
 export function DirectoryHero({
   totalStartups,
   sectorCount,
+  cityCount,
 }: {
   totalStartups: number;
   sectorCount: number;
+  cityCount: number;
 }) {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 18 });
-  const blob1X = useTransform(springX, [-1, 1], [-25, 25]);
-  const blob1Y = useTransform(springY, [-1, 1], [-25, 25]);
-  const blob2X = useTransform(springX, [-1, 1], [20, -20]);
-  const blob2Y = useTransform(springY, [-1, 1], [20, -20]);
-
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    mouseX.set(((e.clientX - left) / width) * 2 - 1);
-    mouseY.set(((e.clientY - top) / height) * 2 - 1);
-  }
-
   return (
-    <section
-      onMouseMove={onMouseMove}
-      className="relative overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(180deg, #FAF8F4 0%, #FFFFFF 100%)",
-      }}
-    >
-      {/* Warm orbs */}
-      <motion.div
-        style={{ x: blob1X, y: blob1Y }}
-        aria-hidden
-        className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slow bg-gradient-to-br from-orange-200/50 via-rose-200/40 to-amber-100/30"
-      />
-      <motion.div
-        style={{ x: blob2X, y: blob2Y }}
-        aria-hidden
-        className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slower bg-gradient-to-br from-pasha-red/15 via-rose-200/40 to-orange-200/30"
-      />
-
-      {/* Dot grid */}
+    <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
       <div
         aria-hidden
-        className="absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(14, 14, 16, 0.06) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
-        }}
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
       />
+      <div aria-hidden className="pointer-events-none absolute -right-56 -top-72 h-[720px] w-[720px] rounded-full bg-pasha-red/[0.32] blur-[80px]" />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-56 -right-16 select-none font-serif font-black leading-none text-white/[0.02]"
+        style={{ fontSize: "clamp(20rem,34vw,36rem)" }}
+      >
+        @
+      </span>
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-16 lg:pb-20">
-        {/* Two-column layout: copy on left, stat cards on right */}
-        <div className="mt-10 grid lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-end">
-          {/* LEFT — eyebrow + headline + lede */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm border border-pasha-line shadow-sm px-3 py-1.5"
-            >
-              <Sparkles className="w-3 h-3 text-pasha-red" />
-              <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-ink/80">
-                The live startup index
-              </span>
-            </motion.div>
-
-            <h1 className="mt-6 font-serif text-[40px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
-              <motion.span
-                initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
-                className="block"
-              >
-                Pakistan&apos;s product
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
-                className="block relative"
-              >
-                <span className="relative inline-block">
-                  <span className="bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift">
-                    economy
-                  </span>
-                  <motion.svg
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 1.1, delay: 0.9, ease: EASE }}
-                    className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-2.5"
-                    viewBox="0 0 300 12"
-                    fill="none"
-                    preserveAspectRatio="none"
-                  >
-                    <motion.path
-                      d="M2 8 Q 60 2, 120 6 T 240 5 T 298 7"
-                      stroke="url(#dirUnderline)"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-                    <defs>
-                      <linearGradient id="dirUnderline" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#E6160F" />
-                        <stop offset="100%" stopColor="#FF8A30" />
-                      </linearGradient>
-                    </defs>
-                  </motion.svg>
-                </span>
-                ,{" "}
-                <span className="italic font-light text-pasha-muted">indexed.</span>
-              </motion.span>
+      <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12 lg:gap-16 items-center">
+          <Reveal>
+            <Kicker tone="light">P@SHA Startup Directory</Kicker>
+            <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+              Pakistan&apos;s startup ecosystem,{" "}
+              <span className="text-pasha-red-light">clearly indexed.</span>
             </h1>
+            <p className="mt-6 max-w-xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
+              Discover verified startups and founder-led companies across Pakistan — organised by
+              sector, city and stage for investors, customers, partners and talent.
+            </p>
 
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.65 }}
-              className="mt-7 text-base sm:text-lg text-pasha-muted leading-relaxed text-pretty max-w-xl"
+            <div className="mt-8 flex flex-wrap items-center gap-5">
+              <Link
+                href="#directory"
+                className="inline-flex items-center gap-3 rounded-2xl bg-pasha-red pl-5 pr-2.5 py-2.5 text-sm font-bold text-white shadow-[0_18px_38px_rgba(233,33,39,0.24)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
+              >
+                Explore startups
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-pasha-red">
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+              </Link>
+              <Link
+                href="/apply"
+                className="text-sm font-semibold text-white/75 border-b border-white/30 pb-1 hover:text-white hover:border-white transition-colors"
+              >
+                List your startup <span aria-hidden>&rarr;</span>
+              </Link>
+            </div>
+
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+              {["Verified profiles", "Curated categories", "Pakistan-wide coverage"].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1.5 text-xs text-white/45">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#31B57B]" />
+                  {t}
+                </span>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <aside
+              aria-label="Directory index summary"
+              className="overflow-hidden rounded-[26px] border border-white/12 bg-white/[0.06] backdrop-blur-xl"
             >
-              Seeded from Ignite&apos;s StartupConnect, the P@SHA ICT Awards,
-              and incubator networks across the country. Vetted entries earn
-              the Featured tier.
-            </motion.p>
-          </div>
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-[11px] font-bold uppercase tracking-[1.5px] text-white/45">
+                Live index
+                <span className="h-2 w-2 rounded-full bg-[#31B57B] shadow-[0_0_0_6px_rgba(49,181,123,0.15)]" />
+              </div>
 
-          {/* RIGHT — three stat tiles */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="grid grid-cols-3 gap-3"
-          >
-            <StatTile
-              icon={Database}
-              value={totalStartups}
-              label="Indexed"
-              accent="from-pasha-red/10 to-pasha-red-light/5"
-            />
-            <StatTile
-              icon={MapPin}
-              value={sectorCount}
-              label="Sectors"
-              accent="from-blue-100/40 to-cyan-100/30"
-            />
-            <StatTile
-              icon={BadgeCheck}
-              value={5}
-              suffix="+"
-              label="Verified"
-              accent="from-amber-100/40 to-orange-100/30"
-              highlight
-            />
-          </motion.div>
+              <div className="px-5 pt-6 pb-5">
+                <div className="font-serif text-5xl sm:text-6xl font-extrabold tracking-tight text-white">
+                  {formatNumber(totalStartups)}
+                </div>
+                <div className="mt-2 text-sm text-white/50">verified startup profiles</div>
+              </div>
+
+              <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-t border-white/10">
+                <div className="p-4">
+                  <strong className="block font-serif text-xl font-bold text-white">{sectorCount}</strong>
+                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">technology sectors</span>
+                </div>
+                <div className="p-4">
+                  <strong className="block font-serif text-xl font-bold text-white">{cityCount}</strong>
+                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">startup cities</span>
+                </div>
+                <div className="p-4">
+                  <strong className="block font-serif text-xl font-bold text-white">5+</strong>
+                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">verification sources</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-4 text-xs text-white/55">
+                <span>Searchable by sector, location and stage</span>
+                <b className="text-pasha-red-light font-bold">Updated weekly</b>
+              </div>
+            </aside>
+          </Reveal>
         </div>
       </div>
     </section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────── */
-function StatTile({
-  icon: Icon,
-  value,
-  label,
-  accent,
-  suffix = "",
-  highlight = false,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  value: number;
-  label: string;
-  accent: string;
-  suffix?: string;
-  highlight?: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    if (!inView) return;
-    const controls = animate(0, value, {
-      duration: 1.5,
-      ease: EASE,
-      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString()),
-    });
-    return () => controls.stop();
-  }, [inView, value]);
-
-  return (
-    <div
-      ref={ref}
-      className={`relative rounded-2xl border ${
-        highlight ? "border-pasha-red/25" : "border-pasha-line"
-      } bg-white p-4 lg:p-5 overflow-hidden`}
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${accent} opacity-50`} />
-      {highlight && (
-        <span className="absolute top-2 right-2 inline-flex w-1.5 h-1.5">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-pasha-red opacity-75 animate-pulse-soft" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pasha-red" />
-        </span>
-      )}
-      <div className="relative">
-        <Icon
-          className={`w-4 h-4 ${highlight ? "text-pasha-red" : "text-pasha-ink/60"} mb-3`}
-        />
-        <div className="font-serif text-2xl lg:text-3xl font-semibold text-pasha-ink leading-none tabular-nums">
-          {display}
-          {suffix}
-        </div>
-        <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[1.5px] text-pasha-muted">
-          {label}
-        </div>
-      </div>
-    </div>
   );
 }

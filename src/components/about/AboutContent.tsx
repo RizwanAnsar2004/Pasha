@@ -1,22 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-} from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
-  Sparkles,
   Compass,
   ShieldCheck,
   Network,
   Mail,
   Users,
 } from "lucide-react";
+import { Kicker } from "@/components/landing/shared/Kicker";
+import { PillButton } from "@/components/landing/shared/PillButton";
+import { Reveal } from "@/components/landing/shared/Reveal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -55,152 +51,52 @@ const SECTIONS = [
 ];
 
 export function AboutContent() {
-  // Hero mouse parallax
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 18 });
-  const blob1X = useTransform(springX, [-1, 1], [-25, 25]);
-  const blob1Y = useTransform(springY, [-1, 1], [-25, 25]);
-  const blob2X = useTransform(springX, [-1, 1], [20, -20]);
-  const blob2Y = useTransform(springY, [-1, 1], [20, -20]);
-
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    mouseX.set(((e.clientX - left) / width) * 2 - 1);
-    mouseY.set(((e.clientY - top) / height) * 2 - 1);
-  }
-
   return (
     <>
       {/* ──────────────────────────────────────────────────────
-          HERO — magazine-style header matching the home page
+          HERO — dark, matches Hero.tsx / DirectoryHero.tsx
           ────────────────────────────────────────────────────── */}
-      <section
-        onMouseMove={onMouseMove}
-        className="relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(180deg, #FAF8F4 0%, #FFFFFF 100%)",
-        }}
-      >
-        {/* Warm orbs */}
-        <motion.div
-          style={{ x: blob1X, y: blob1Y }}
-          aria-hidden
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slow bg-gradient-to-br from-orange-200/50 via-rose-200/40 to-amber-100/30"
-        />
-        <motion.div
-          style={{ x: blob2X, y: blob2Y }}
-          aria-hidden
-          className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slower bg-gradient-to-br from-pasha-red/15 via-rose-200/40 to-orange-200/30"
-        />
-
-        {/* Dot grid */}
+      <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(14, 14, 16, 0.06) 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-          }}
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
         />
+        <div aria-hidden className="pointer-events-none absolute -right-56 -top-72 h-[720px] w-[720px] rounded-full bg-pasha-red/[0.32] blur-[80px]" />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-56 -right-16 select-none font-serif font-black leading-none text-white/[0.02]"
+          style={{ fontSize: "clamp(20rem,34vw,36rem)" }}
+        >
+          @
+        </span>
 
-        <div className="relative mx-auto max-w-4xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-16 lg:pb-20">
-          {/* Eyebrow chip */}
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-10 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm border border-pasha-line shadow-sm px-3 py-1.5"
-          >
-            <Sparkles className="w-3 h-3 text-pasha-red" />
-            <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-ink/80">
-              About the directory
-            </span>
-          </motion.div>
+        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+          <Reveal>
+            <Kicker tone="light">About the directory</Kicker>
+            <h1 className="mt-5 font-serif font-bold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+              P@SHA Startup <span className="text-pasha-red-light">Directory.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
+              The Pakistan Software Houses Association (P@SHA) maintains the
+              country&apos;s curated directory of Pakistani startups, founders,
+              investors, and ecosystem enablers.
+            </p>
 
-          {/* Editorial headline */}
-          <h1 className="mt-6 font-serif text-[40px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
-            <motion.span
-              initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
-              className="block"
-            >
-              P@SHA Startup
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
-              className="block relative"
-            >
-              <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift">
-                  Directory
+            <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/10">
+              <Meta label="Established" value="2026" />
+              <Divider />
+              <Meta label="Stewarded by" value="P@SHA" />
+              <Divider />
+              <Meta label="Committees" value="6" />
+              <Divider />
+              <span className="inline-flex items-center gap-2 text-white/45">
+                <Compass className="w-3.5 h-3.5 text-pasha-red-light" />
+                <span className="font-mono text-[10px] uppercase tracking-[1.5px]">
+                  Updated daily
                 </span>
-                <motion.svg
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ duration: 1.1, delay: 0.9, ease: EASE }}
-                  className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-2.5"
-                  viewBox="0 0 300 12"
-                  fill="none"
-                  preserveAspectRatio="none"
-                >
-                  <motion.path
-                    d="M2 8 Q 60 2, 120 6 T 240 5 T 298 7"
-                    stroke="url(#aboutUnderline)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <defs>
-                    <linearGradient id="aboutUnderline" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#E6160F" />
-                      <stop offset="100%" stopColor="#FF8A30" />
-                    </linearGradient>
-                  </defs>
-                </motion.svg>
               </span>
-              .
-            </motion.span>
-          </h1>
-
-          {/* Lede paragraph */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.65 }}
-            className="mt-8 text-lg sm:text-xl text-pasha-muted leading-relaxed text-pretty max-w-2xl"
-          >
-            The Pakistan Software Houses Association (P@SHA) maintains the
-            country&apos;s curated directory of Pakistani startups, founders,
-            investors, and ecosystem enablers.
-          </motion.p>
-
-          {/* Meta strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.85 }}
-            className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-pasha-ink/10"
-          >
-            <Meta label="Established" value="2026" />
-            <Divider />
-            <Meta label="Stewarded by" value="P@SHA" />
-            <Divider />
-            <Meta label="Committees" value="6" />
-            <Divider />
-            <span className="inline-flex items-center gap-2 text-pasha-muted">
-              <Compass className="w-3.5 h-3.5 text-pasha-red" />
-              <span className="font-mono text-[10px] uppercase tracking-[1.5px]">
-                Updated daily
-              </span>
-            </span>
-          </motion.div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -217,9 +113,7 @@ export function AboutContent() {
             transition={{ duration: 0.5, ease: EASE }}
             className="flex items-center gap-3 mb-12 pb-4 border-b border-pasha-ink/10"
           >
-            <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-red font-semibold">
-              The handbook
-            </span>
+            <Kicker>The handbook</Kicker>
             <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
               §1–5
             </span>
@@ -240,24 +134,12 @@ export function AboutContent() {
             transition={{ duration: 0.6, ease: EASE }}
             className="mt-16 pt-10 border-t border-pasha-ink/10 flex flex-col sm:flex-row items-center gap-3"
           >
-            <Link
-              href="/apply"
-              className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-pasha-ink px-7 py-3.5 text-base font-medium text-white shadow-xl shadow-pasha-ink/20 hover:bg-pasha-red hover:shadow-pasha-red/30 transition-all hover:-translate-y-0.5 overflow-hidden"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700"
-              />
-              <span className="relative">Apply to join</span>
-              <ArrowRight className="relative w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/directory"
-              className="group inline-flex items-center justify-center gap-2 rounded-full border border-pasha-ink/15 bg-white px-7 py-3.5 text-base font-medium text-pasha-ink hover:bg-pasha-stone/60 hover:border-pasha-ink/30 transition-all"
-            >
+            <PillButton href="/apply" variant="solid" dot={false}>
+              Apply to join
+            </PillButton>
+            <PillButton href="/directory" variant="outline" dot={false}>
               Browse the directory
-              <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-            </Link>
+            </PillButton>
           </motion.div>
         </div>
       </section>
@@ -302,7 +184,7 @@ function ArticleSection({
 
       {/* Content */}
       <div className="min-w-0">
-        <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
+        <h2 className="font-serif text-2xl font-medium sm:text-3xl tracking-tight text-pasha-ink leading-tight group-hover:text-pasha-red transition-colors duration-200">
           {section.title}
         </h2>
         <div className="mt-3 text-base sm:text-[17px] text-pasha-ink/75 leading-relaxed text-pretty">
@@ -326,14 +208,14 @@ function ArticleSection({
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-mono text-[9px] uppercase tracking-[2px] text-pasha-muted">
+      <span className="font-mono text-[9px] uppercase tracking-[2px] text-white/45">
         {label}
       </span>
-      <span className="font-serif text-lg text-pasha-ink">{value}</span>
+      <span className="font-serif text-lg text-white">{value}</span>
     </div>
   );
 }
 
 function Divider() {
-  return <span aria-hidden className="hidden sm:block w-px h-8 bg-pasha-ink/10" />;
+  return <span aria-hidden className="hidden sm:block w-px h-8 bg-white/10" />;
 }

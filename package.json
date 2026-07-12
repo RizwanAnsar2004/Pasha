@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" next dev",
-    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" next build",
+    "dev": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --webpack",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test:schema": "node --import tsx --test src/lib/__tests__/schema.test.ts src/lib/__tests__/safe-url.test.ts",

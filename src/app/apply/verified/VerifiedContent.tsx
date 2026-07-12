@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BadgeCheck,
-  ArrowRight,
   Sparkles,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { PillButton } from "@/components/landing/shared/PillButton";
 
 /**
  * Landing page the applicant reaches after clicking the email-verification link.
@@ -81,7 +80,7 @@ export function VerifiedContent() {
               <div className="mx-auto w-14 h-14 rounded-2xl bg-pasha-red/10 grid place-items-center mb-7">
                 <AlertCircle className="w-7 h-7 text-pasha-red" />
               </div>
-              <h1 className="font-serif text-4xl sm:text-5xl tracking-tight text-pasha-ink text-balance">
+              <h1 className="font-serif font-extrabold text-4xl sm:text-5xl tracking-tight text-pasha-ink text-balance">
                 This link has expired.
               </h1>
               <p className="mt-5 text-lg text-pasha-muted max-w-lg mx-auto leading-relaxed text-pretty">
@@ -89,13 +88,10 @@ export function VerifiedContent() {
                 Head back to sign in and we&apos;ll send you a fresh one.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link
-                  href="/apply/login"
-                  className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-                >
+                <PillButton href="/apply/login" variant="solid" dot={false} arrow={false}>
                   <RefreshCw className="w-4 h-4" />
                   Back to sign in
-                </Link>
+                </PillButton>
               </div>
             </motion.div>
           </div>
@@ -152,7 +148,7 @@ export function VerifiedContent() {
               </span>
             </motion.div>
 
-            <h1 className="font-serif text-5xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
+            <h1 className="font-serif font-extrabold text-5xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
               Email verified.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
@@ -167,19 +163,12 @@ export function VerifiedContent() {
             transition={{ duration: 0.5, delay: 0.55 }}
             className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <Link
-              href="/apply"
-              className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-6 py-3 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
-            >
+            <PillButton href="/apply" variant="solid" dot={false}>
               Continue to your application
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/directory"
-              className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-6 py-3 text-sm text-pasha-ink hover:bg-pasha-stone/60 transition-colors"
-            >
+            </PillButton>
+            <PillButton href="/directory" variant="outline" dot={false} arrow={false}>
               Browse the directory
-            </Link>
+            </PillButton>
           </motion.div>
         </div>
       </main>

@@ -1,23 +1,24 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Hero } from "@/components/landing/Hero";
-import { TrustStrip } from "@/components/landing/TrustStrip";
-import { VerifiedStartupsToWatch } from "@/components/landing/VerifiedStartupsToWatch";
+import { HomeSearchProvider } from "@/components/landing/HomeSearchProvider";
+import { NewsTicker } from "@/components/landing/NewsTicker";
+import { DirectoryBento } from "@/components/landing/DirectoryBento";
 import { WomenFounders } from "@/components/landing/WomenFounders";
 import { AwardWinningStartups } from "@/components/landing/AwardWinningStartups";
-import { Pillars } from "@/components/landing/Pillars";
-import { Process } from "@/components/landing/Process";
-import { Criteria } from "@/components/landing/Criteria";
-import { CommitteeBanner } from "@/components/landing/CommitteeBanner";
+import { Manifesto } from "@/components/landing/Manifesto";
+import { JoinCTA } from "@/components/landing/JoinCTA";
+import { Ecosystem } from "@/components/landing/Ecosystem";
+import { NewsCarousel } from "@/components/landing/NewsCarousel";
 import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { getUpcomingPublishedEvents } from "@/lib/events.server";
-import { getHomepageFeaturedWatchlist } from "@/lib/featured-startups.server";
+import { getHomepageFeaturedWatchlist, getHomepageVerifiedWatchlist } from "@/lib/featured-startups.server";
 import { getWomenLedStartups } from "@/lib/women-led.server";
 import { getHomepageAwardWinners } from "@/lib/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
-import type { WatchlistStartup } from "@/components/landing/VerifiedStartupsToWatch";
+import type { WatchlistStartup } from "@/components/landing/DirectoryBento";
 import type { AwardWinningStartup } from "@/components/landing/AwardWinningStartups";
 import type { WomenLedStartup } from "@/lib/women-led";
 
@@ -26,6 +27,8 @@ export const dynamic = "force-dynamic";
 // Homepage carousels pull a small, capped slice of the databank (≤20 each)
 // rather than the full list — keeps the home query light.
 const HOME_CAROUSEL_LIMIT = 20;
+// The directory bento shows 1 spotlight + 4 mini cards.
+const BENTO_MIN = 5;
 
 async function loadHomeData(): Promise<{
   databankCount: number;
@@ -35,14 +38,23 @@ async function loadHomeData(): Promise<{
 }> {
   try {
     const supabase = createServiceClient();
-    const [countRes, watchlist, curatedAwards, womenLed] = await Promise.all([
+    const [countRes, curatedWatchlist, curatedAwards, womenLed] = await Promise.all([
       supabase.from("databank").select("*", { count: "exact", head: true }),
-      // Admin-curated featured startups (time-boxed) for the homepage carousel.
+      // Admin-curated featured startups (time-boxed) for the homepage bento.
       getHomepageFeaturedWatchlist(),
       // Admin-curated awards (startup_awards table).
       getHomepageAwardWinners(HOME_CAROUSEL_LIMIT),
       getWomenLedStartups(HOME_CAROUSEL_LIMIT),
     ]);
+
+    // Top up with verified startups when curation hasn't filled the bento yet,
+    // so the "Featured startups" section never looks sparse.
+    let watchlist = curatedWatchlist;
+    if (watchlist.length < BENTO_MIN) {
+      const verified = await getHomepageVerifiedWatchlist(HOME_CAROUSEL_LIMIT);
+      const seen = new Set(watchlist.map((s) => s.id));
+      watchlist = [...watchlist, ...verified.filter((s) => !seen.has(s.id))];
+    }
 
     // Prefer the curated awards table; fall back to the legacy databank.awards
     // text column when nothing has been curated yet (or pre-migration).
@@ -76,17 +88,19 @@ export default async function Home() {
 
   return (
     <>
-      <SiteHeader variant="transparent" />
+      <SiteHeader />
       <main className="flex-1">
-        <Hero databankCount={count} />
-        <TrustStrip />
-        <VerifiedStartupsToWatch startups={watchlist} />
+        <HomeSearchProvider>
+          <Hero databankCount={count} />
+          <NewsTicker />
+          <DirectoryBento startups={watchlist} />
+        </HomeSearchProvider>
         <WomenFounders startups={womenLed.startups} totalCount={womenLed.totalCount} />
         <AwardWinningStartups startups={awardWinners} />
-        <Pillars />
-        <Process />
-        <Criteria />
-        <CommitteeBanner />
+        <Manifesto />
+        <JoinCTA />
+        <Ecosystem />
+        <NewsCarousel />
         <UpcomingEvents events={upcomingEvents} />
         <FAQ />
         <CTA />

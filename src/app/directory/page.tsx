@@ -6,6 +6,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DirectoryClient } from "./DirectoryClient";
 import type { DirectoryRow, DirectoryFilters } from "./DirectoryClient";
 import { DirectoryHero } from "@/components/directory/DirectoryHero";
+import { Kicker } from "@/components/landing/shared/Kicker";
+import { PillButton } from "@/components/landing/shared/PillButton";
+import { Reveal } from "@/components/landing/shared/Reveal";
 import { createServiceClient } from "@/lib/supabase/server";
 import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
 
@@ -26,12 +29,12 @@ export const metadata: Metadata = {
 // Reads searchParams (page + filters), so this route renders dynamically.
 export const dynamic = "force-dynamic";
 
-export const PAGE_SIZE = 12;
+const PAGE_SIZE = 12;
 
 // Card column set, richest first. If a column is missing (pre-migration), we
 // retry with the smaller, always-present set so the page still renders.
 const SELECT_COLUMNS =
-  "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created,answers";
+  "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,company_linkedin,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created,answers";
 const SELECT_COLUMNS_FALLBACK =
   "id,startup_name,tagline,primary_industry,nic_name,city,website,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,pasha_verified";
 
@@ -74,9 +77,12 @@ function parseFilters(sp: SearchParams): DirectoryFilters {
     q: str(sp.q).trim(),
     sector: str(sp.sector) || "all",
     city: str(sp.city) || "all",
+    stage: str(sp.stage) || "all",
     verified: bool(sp.verified),
     womenLed: bool(sp.women_led),
     hiring: bool(sp.hiring),
+    fundraising: bool(sp.fundraising),
+    sort: str(sp.sort) || "featured",
   };
 }
 
@@ -85,9 +91,11 @@ function parseFilters(sp: SearchParams): DirectoryFilters {
 function applyFilters(query: any, f: DirectoryFilters) {
   if (f.sector !== "all") query = query.eq("primary_industry", f.sector);
   if (f.city !== "all") query = query.eq("city", f.city);
+  if (f.stage !== "all") query = query.eq("product_stage", f.stage);
   if (f.verified) query = query.eq("pasha_verified", true);
   if (f.womenLed) query = query.eq("women_led", true);
   if (f.hiring) query = query.eq("hiring", true);
+  if (f.fundraising) query = query.eq("fundraising", true);
   // Strip PostgREST `or()` delimiters from the user term, then match across the
   // searchable text columns. (founder_name lives in key_persons, not databank,
   // so it isn't searchable from the listing table.)
@@ -118,12 +126,20 @@ async function loadPage(
   for (const columns of [SELECT_COLUMNS, SELECT_COLUMNS_FALLBACK]) {
     let query = supabase.from("databank").select(columns, { count: "exact" });
     query = applyFilters(query, filters);
-    const { data, count, error } = await query
-      // Verified first, then newest, then revenue (matches the prior ordering).
-      .order("pasha_verified", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("current_revenue", { ascending: false, nullsFirst: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+    if (filters.sort === "az") {
+      query = query.order("startup_name", { ascending: true });
+    } else if (filters.sort === "newest") {
+      query = query.order("founded_date", { ascending: false, nullsFirst: false });
+    } else if (filters.sort === "oldest") {
+      query = query.order("founded_date", { ascending: true, nullsFirst: false });
+    } else {
+      // Featured (default): verified first, then newest, then revenue.
+      query = query
+        .order("pasha_verified", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .order("current_revenue", { ascending: false, nullsFirst: false });
+    }
+    const { data, count, error } = await query.range(offset, offset + PAGE_SIZE - 1);
 
     if (error) {
       // A missing column → retry with the more compatible set; otherwise bail.
@@ -138,10 +154,10 @@ async function loadPage(
 // Filter-dropdown options + the unfiltered total. These change rarely, so cache
 // for 5 minutes — they no longer re-scan the table on every navigation.
 const getDirectoryMeta = unstable_cache(
-  async (): Promise<{ sectors: string[]; cities: string[]; totalAll: number }> => {
+  async (): Promise<{ sectors: string[]; cities: string[]; stages: string[]; totalAll: number }> => {
     const supabase = createServiceClient();
     const [{ data: opts }, { count }] = await Promise.all([
-      supabase.from("databank").select("primary_industry, city"),
+      supabase.from("databank").select("primary_industry, city, product_stage"),
       supabase.from("databank").select("id", { count: "exact", head: true }),
     ]);
     const sectors = Array.from(
@@ -159,9 +175,16 @@ const getDirectoryMeta = unstable_cache(
           .map((s) => s.trim())
       )
     ).sort();
-    return { sectors, cities, totalAll: count ?? 0 };
+    const stages = Array.from(
+      new Set(
+        (opts ?? [])
+          .map((r) => r.product_stage)
+          .filter((s): s is string => !isMissing(s))
+      )
+    ).sort();
+    return { sectors, cities, stages, totalAll: count ?? 0 };
   },
-  ["directory-meta-v1"],
+  ["directory-meta-v2"],
   { revalidate: 300 }
 );
 
@@ -176,9 +199,11 @@ function inMemory(
   const matched = all.filter((r) => {
     if (filters.sector !== "all" && r.primary_industry !== filters.sector) return false;
     if (filters.city !== "all" && r.city !== filters.city) return false;
+    if (filters.stage !== "all" && r.product_stage !== filters.stage) return false;
     if (filters.verified && !r.pasha_verified) return false;
     if (filters.womenLed && !r.women_led) return false;
     if (filters.hiring && !r.hiring) return false;
+    if (filters.fundraising && !r.fundraising) return false;
     if (!needle) return true;
     const hay = [r.startup_name, r.primary_industry, r.nic_name, r.city]
       .filter(Boolean)
@@ -186,6 +211,15 @@ function inMemory(
       .toLowerCase();
     return hay.includes(needle);
   });
+  if (filters.sort === "az") {
+    matched.sort((a, b) => a.startup_name.localeCompare(b.startup_name));
+  } else if (filters.sort === "newest" || filters.sort === "oldest") {
+    matched.sort((a, b) => {
+      const at = a.founded_date ? new Date(a.founded_date).getTime() : 0;
+      const bt = b.founded_date ? new Date(b.founded_date).getTime() : 0;
+      return filters.sort === "newest" ? bt - at : at - bt;
+    });
+  }
   const offset = (page - 1) * PAGE_SIZE;
   return { rows: matched.slice(offset, offset + PAGE_SIZE), total: matched.length };
 }
@@ -204,7 +238,7 @@ export default async function DirectoryPage({
 
   let rows = pageResult?.rows ?? [];
   let total = pageResult?.total ?? 0;
-  let { sectors, cities, totalAll } = meta;
+  let { sectors, cities, stages, totalAll } = meta;
 
   // No real data yet → fall back to bundled sample startups.
   if (totalAll === 0 && (!pageResult || pageResult.total === 0)) {
@@ -223,16 +257,19 @@ export default async function DirectoryPage({
           .map((s) => s.trim())
       )
     ).sort();
+    stages = Array.from(
+      new Set(all.map((r) => r.product_stage).filter((s): s is string => !isMissing(s)))
+    ).sort();
     totalAll = all.length;
   }
 
   return (
     <>
       <SiteHeader />
-      <main className="flex-1">
-        <DirectoryHero totalStartups={totalAll} sectorCount={sectors.length} />
-        <section className="bg-white border-t border-pasha-line">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12 sm:py-16">
+      <main className="flex-1 bg-pasha-stone">
+        <DirectoryHero totalStartups={totalAll} sectorCount={sectors.length} cityCount={cities.length} />
+        <section id="directory" className="py-16 sm:py-24">
+          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
             {/* useSearchParams in the client needs a Suspense boundary; route
                 transitions reuse the existing UI so the fallback only shows on
                 the very first paint. */}
@@ -243,11 +280,40 @@ export default async function DirectoryPage({
                 totalAll={totalAll}
                 sectors={sectors}
                 cities={cities}
+                stages={stages}
                 filters={filters}
                 page={page}
                 pageSize={PAGE_SIZE}
               />
             </Suspense>
+          </div>
+        </section>
+
+        <section className="bg-white py-14 sm:py-20">
+          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+            <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-4 -top-24 select-none font-serif font-black leading-none text-white/[0.04]"
+                style={{ fontSize: "19rem" }}
+              >
+                @
+              </span>
+              <div className="relative">
+                <Kicker tone="light" className="text-pasha-red-light">
+                  Not listed yet?
+                </Kicker>
+                <h2 className="mt-4 max-w-xl font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
+                  Make your startup easier to find, understand and trust.
+                </h2>
+                <p className="mt-4 max-w-md text-white/55 text-base leading-relaxed">
+                  Create a verified profile for buyers, investors, partners and ecosystem opportunities.
+                </p>
+              </div>
+              <PillButton href="/apply" variant="light" dot={false} className="relative shrink-0">
+                Start your application
+              </PillButton>
+            </Reveal>
           </div>
         </section>
       </main>

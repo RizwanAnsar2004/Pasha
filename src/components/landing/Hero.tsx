@@ -1,279 +1,228 @@
 "use client";
 
-import Link from "next/link";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useInView,
-  animate,
-} from "framer-motion";
-import {
-  ArrowRight,
-  Sparkles,
-  ChevronDown,
-  Star,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowUpRight, Search } from "lucide-react";
+import { SelectMenu } from "@/components/ui/SelectMenu";
+import { usePageReady } from "@/components/PageReady";
+import { useHomeSearch } from "./HomeSearchProvider";
+import { SECTORS, STAGES } from "@/lib/options";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-export function Hero({ databankCount }: { databankCount: number }) {
-  // Mouse parallax for the background gradient blobs
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 18 });
-  const blob1X = useTransform(springX, [-1, 1], [-30, 30]);
-  const blob1Y = useTransform(springY, [-1, 1], [-30, 30]);
-  const blob2X = useTransform(springX, [-1, 1], [25, -25]);
-  const blob2Y = useTransform(springY, [-1, 1], [25, -25]);
+const SECTOR_OPTIONS = [{ value: "all", label: "All sectors" }, ...SECTORS.map((s) => ({ value: s, label: s }))];
+const STAGE_OPTIONS = [
+  { value: "all", label: "All stages" },
+  ...STAGES.map((s) => ({ value: s.value, label: s.label.split(" — ")[0] })),
+];
 
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    mouseX.set(((e.clientX - left) / width) * 2 - 1);
-    mouseY.set(((e.clientY - top) / height) * 2 - 1);
+const QUICK_FILTERS = [
+  { label: "AI & data", sector: "Artificial Intelligence (AI)" },
+  { label: "Fintech", sector: "Fintech" },
+  { label: "Healthtech", sector: "HealthTech" },
+];
+
+function StatTile({
+  value,
+  label,
+  href,
+  accent = false,
+}: {
+  value: string;
+  label: string;
+  href: string;
+  accent?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`group relative flex flex-col gap-1.5 px-6 py-6 text-left transition-colors ${
+        accent ? "bg-gradient-to-br from-pasha-red/25 via-pasha-red/[0.14] to-transparent" : "hover:bg-white/[0.03]"
+      }`}
+    >
+      <span className={`font-serif text-2xl sm:text-3xl font-extrabold leading-none ${accent ? "text-pasha-red-light" : "text-white"}`}>
+        {value}
+      </span>
+      <span className="flex items-center gap-1 text-xs text-white/45 group-hover:text-white/70 transition-colors">
+        {label}
+        <ArrowUpRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+      </span>
+    </a>
+  );
+}
+
+export function Hero({ databankCount }: { databankCount: number }) {
+  const ready = usePageReady();
+  const reduceMotion = useReducedMotion();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { keyword, sector, stage, setKeyword, setSector, setStage, submit, quickFilter, reset } = useHomeSearch();
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit();
   }
 
   return (
-    <section
-      onMouseMove={onMouseMove}
-      className="relative overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(180deg, #FAF8F4 0%, #FFFFFF 60%, #FAF8F4 100%)",
-      }}
-    >
-      {/* ─── Warm gradient mesh blobs ─────────────────────────── */}
-      <motion.div
-        style={{ x: blob1X, y: blob1Y }}
-        aria-hidden
-        className="absolute -top-40 -left-32 w-[600px] h-[600px] rounded-full blur-[120px] animate-float-slow bg-gradient-to-br from-orange-200/60 via-rose-200/50 to-amber-100/40"
-      />
-      <motion.div
-        style={{ x: blob2X, y: blob2Y }}
-        aria-hidden
-        className="absolute -bottom-40 -right-40 w-[700px] h-[700px] rounded-full blur-[140px] animate-float-slower bg-gradient-to-br from-rose-200/60 via-pink-200/40 to-orange-200/50"
-      />
-
-      {/* Center glow */}
+    <section className="relative overflow-hidden bg-pasha-ink">
+      {/* Grid texture */}
       <div
         aria-hidden
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.08] via-pasha-red-light/[0.05] to-pasha-red/[0.08] blur-3xl"
-      />
-
-      {/* Subtle dot grid texture */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.4]"
+        className="absolute inset-0 opacity-[0.05]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(14, 14, 16, 0.06) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
+            "linear-gradient(to right, rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-12 lg:pb-16">
-        {/* ───────────────────────────────────────────────────────
-            MAGAZINE MASTHEAD — top-line metadata
-            ─────────────────────────────────────────────────────── */}
+      {/* Color glows */}
+      <div aria-hidden className="absolute -top-40 -left-32 w-[600px] h-[600px] rounded-full bg-pasha-red/[0.18] blur-[140px] animate-float-slow" />
+      <div aria-hidden className="absolute -bottom-32 -right-32 w-[560px] h-[560px] rounded-full bg-accent-teal/[0.14] blur-[140px] animate-float-slower" />
 
-        {/* ───────────────────────────────────────────────────────
-            CENTERED EDITORIAL HEADLINE
-            ─────────────────────────────────────────────────────── */}
-        <div className="text-center max-w-5xl mx-auto mt-8 lg:mt-12">
-          {/* Eyebrow */}
+      {/* Giant faint "@" watermark */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-[6vw] top-1/2 -translate-y-1/2 select-none font-serif font-black text-white/[0.035] leading-none"
+        style={{ fontSize: "clamp(22rem, 38vw, 43rem)" }}
+      >
+        @
+      </span>
+
+      <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8 pt-16 sm:pt-20 lg:pt-24 pb-14 lg:pb-20">
+        <div className="text-center mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+            animate={ready ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm border border-pasha-line shadow-sm px-3 py-1.5 mb-5"
+            className="inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur px-4 py-1.5 mb-6"
           >
-            <Star className="w-3 h-3 text-pasha-red fill-pasha-red" />
-            <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-ink/80">
-              The vetted home of Pakistani product startups
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-pasha-red text-[10px] font-bold text-white">@</span>
+            <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-white/70">
+              P@SHA Startup Directory
             </span>
           </motion.div>
 
-          {/* HUGE headline */}
-          <h1 className="font-serif text-[40px] sm:text-[56px] lg:text-[76px] leading-[0.95] tracking-tight text-pasha-ink text-balance">
+          <h1 className="font-serif font-extrabold text-white leading-[0.96] tracking-tight" style={{ fontSize: "clamp(2rem, 5vw, 5rem)" }}>
             <motion.span
-              initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+              animate={ready ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.65, delay: 0.2, ease: EASE }}
               className="block"
             >
-              Every product
+              Discover the startups
             </motion.span>
             <motion.span
-              initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
-              className="block"
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+              animate={ready ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.65, delay: 0.35, ease: EASE }}
+              className="block text-pasha-red-light"
             >
-              startup{" "}
-              <span className="italic font-light text-pasha-muted">that&apos;s</span>{" "}
-              building
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.5, ease: EASE }}
-              className="block relative"
-            >
-              <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift">
-                  Pakistan&apos;s tomorrow
-                </span>
-                {/* Hand-drawn underline */}
-                <motion.svg
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ duration: 1.2, delay: 1, ease: EASE }}
-                  className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-3"
-                  viewBox="0 0 300 12"
-                  fill="none"
-                  preserveAspectRatio="none"
-                >
-                  <motion.path
-                    d="M2 8 Q 60 2, 120 6 T 240 5 T 298 7"
-                    stroke="url(#heroUnderline)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <defs>
-                    <linearGradient id="heroUnderline" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#E6160F" />
-                      <stop offset="100%" stopColor="#FF8A30" />
-                    </linearGradient>
-                  </defs>
-                </motion.svg>
-              </span>
-              .
+              shaping Pakistan&apos;s future.
             </motion.span>
           </h1>
 
-          {/* Subhead */}
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="mt-6 text-base sm:text-lg text-pasha-muted max-w-2xl mx-auto leading-relaxed text-pretty"
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+            animate={ready ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mt-6 text-lg sm:text-xl text-white/55 max-w-3xl mx-auto leading-relaxed text-pretty"
           >
-            A curated index of {databankCount.toLocaleString()}+ Pakistani product
-            companies — vetted by P@SHA, surfaced to investors, and built for the
-            founders shipping what&apos;s next.
+            Explore credible startups across sectors, stages and cities. Find founders and teams
+            ready for customers, investment, partnerships and talent.
           </motion.p>
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.85 }}
-            className="mt-7 flex flex-col sm:flex-row justify-center gap-3"
+          {/* Directory browser */}
+          <motion.form
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 20 }}
+            animate={ready ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.65 }}
+            onSubmit={onSubmit}
+            className="mt-10 mx-auto max-w-4xl rounded-[32px] bg-white p-3 shadow-2xl shadow-black/40 flex flex-col sm:flex-row items-stretch gap-2"
           >
-            <Link
-              href="/apply"
-              className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-pasha-ink px-7 py-3.5 text-base font-medium text-white shadow-xl shadow-pasha-ink/20 hover:bg-pasha-red hover:shadow-pasha-red/30 transition-all hover:-translate-y-0.5 overflow-hidden"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700"
+            <div className="flex flex-1 items-center gap-3 rounded-[22px] bg-pasha-soft px-5 py-4">
+              <Search className="h-5 w-5 shrink-0 text-pasha-muted" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Search startups, sectors, founders or business needs"
+                className="w-full bg-transparent text-base text-pasha-ink placeholder:text-pasha-muted outline-none"
               />
-              <span className="relative">Apply to be indexed</span>
-              <ArrowRight className="relative w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/directory"
-              className="group inline-flex items-center justify-center gap-2 rounded-full border border-pasha-ink/15 bg-white/60 backdrop-blur-sm px-7 py-3.5 text-base font-medium text-pasha-ink hover:bg-white hover:border-pasha-ink/30 transition-all"
+            </div>
+            <div className="grid grid-cols-2 sm:flex gap-1 shrink-0">
+              <SelectMenu
+                value={sector}
+                onValueChange={setSector}
+                options={SECTOR_OPTIONS}
+                placeholder="All sectors"
+                searchable
+                className="h-auto rounded-[18px] border-0 bg-transparent px-4 py-4 text-base font-medium text-pasha-ink hover:bg-pasha-stone [&_svg]:text-pasha-ink/50 data-[placeholder]:text-pasha-ink"
+              />
+              <SelectMenu
+                value={stage}
+                onValueChange={setStage}
+                options={STAGE_OPTIONS}
+                placeholder="All stages"
+                className="h-auto rounded-[18px] border-0 bg-transparent px-4 py-4 text-base font-medium text-pasha-ink hover:bg-pasha-stone [&_svg]:text-pasha-ink/50 data-[placeholder]:text-pasha-ink"
+              />
+            </div>
+            <button
+              type="submit"
+              className="group inline-flex items-center justify-center gap-2 rounded-[22px] bg-pasha-red px-7 py-4 text-base font-semibold text-white hover:bg-pasha-red-dark transition-colors shrink-0"
             >
-              Explore the index
-              <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-            </Link>
-          </motion.div>
+              Browse directory
+              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </button>
+          </motion.form>
 
-          {/* Inline trust metrics */}
+          {/* Quick filters */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm"
+            animate={ready ? { opacity: 1 } : {}}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm"
           >
-            <InlineMetric number={databankCount} label="indexed" />
-            <Dot />
-            <InlineMetric number={500} suffix="+" label="founders" />
-            <Dot />
-            <InlineMetric number={6} label="committees" />
-            <Dot />
-            <span className="inline-flex items-center gap-1.5 text-pasha-muted">
-              <Sparkles className="w-3.5 h-3.5 text-pasha-red" />
-              <span className="font-mono text-[11px] uppercase tracking-[1.5px]">
-                No fee · No equity
-              </span>
-            </span>
+            <span className="text-white/35 mr-1">Popular:</span>
+            {QUICK_FILTERS.map((f) => (
+              <button
+                key={f.label}
+                type="button"
+                onClick={() => quickFilter(f.sector)}
+                className="rounded-full border border-white/10 px-3.5 py-1.5 text-white/65 hover:text-white hover:border-white/30 hover:bg-white/[0.06] transition-colors"
+              >
+                {f.label}
+              </button>
+            ))}
+            <a
+              href="#women-led"
+              className="rounded-full border border-white/10 px-3.5 py-1.5 text-white/65 hover:text-white hover:border-white/30 hover:bg-white/[0.06] transition-colors"
+            >
+              Women-led
+            </a>
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-full border border-white/10 px-3.5 py-1.5 text-white/65 hover:text-white hover:border-white/30 hover:bg-white/[0.06] transition-colors"
+            >
+              View all
+            </button>
           </motion.div>
         </div>
 
-        {/* Scroll indicator */}
+        {/* Trust stat strip */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 1.8 }}
-          className="hidden md:flex justify-center mt-12 lg:mt-16 flex-col items-center gap-1.5 text-pasha-muted"
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+          animate={ready ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.95 }}
+          className="mt-14 grid grid-cols-2 divide-x divide-y sm:divide-y-0 divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] lg:grid-cols-4"
         >
-          <span className="font-mono text-[9px] uppercase tracking-[2.5px]">
-            Continue
-          </span>
-          <ChevronDown className="w-4 h-4 animate-scroll-bounce" />
+          <StatTile value={`${databankCount.toLocaleString()}+`} label="Member companies" href="#directory" />
+          <StatTile value={`${SECTORS.length}+`} label="Technology sectors" href="#directory" />
+          <StatTile value="Women-led" label="Founder spotlight" href="#women-led" accent />
+          <StatTile value="Global" label="Award-winning startups" href="#awards" />
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function InlineMetric({
-  number,
-  label,
-  suffix = "",
-}: {
-  number: number;
-  label: string;
-  suffix?: string;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    if (!inView) return;
-    const controls = animate(0, number, {
-      duration: 1.6,
-      ease: EASE,
-      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString()),
-    });
-    return () => controls.stop();
-  }, [inView, number]);
-
-  return (
-    <span className="inline-flex items-baseline gap-1.5">
-      <span
-        ref={ref}
-        className="font-serif text-xl font-semibold text-pasha-ink tabular-nums"
-      >
-        {display}
-        {suffix}
-      </span>
-      <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-pasha-muted">
-        {label}
-      </span>
-    </span>
-  );
-}
-
-function Dot() {
-  return (
-    <span aria-hidden className="w-1 h-1 rounded-full bg-pasha-ink/20" />
   );
 }

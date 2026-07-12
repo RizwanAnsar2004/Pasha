@@ -1,8 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
 import { PageReadyProvider } from "@/components/PageReady";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 // Google Analytics 4 measurement ID (G-XXXXXXXXXX). When unset, GA is skipped
 // entirely — keeps local dev and previews out of the production property.
@@ -14,7 +29,7 @@ const SITE_DESCRIPTION =
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pasha-startup-platform.vercel.app";
 
 export const viewport: Viewport = {
-  themeColor: "#E6160F",
+  themeColor: "#E92127",
   width: "device-width",
   initialScale: 1,
 };
@@ -92,16 +107,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font -- app/layout.tsx is the correct place for global fonts in the App Router */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,300..700;1,300..700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
         <PageReadyProvider>
           {/* Per-navigation enter animation lives in app/template.tsx, which Next
