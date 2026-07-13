@@ -58,7 +58,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
       >
         <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
           <div className="flex items-center justify-between h-20">
-            <PashaLogo width={96} priority />
+            <PashaLogo width={125} priority />
 
             <div className="hidden lg:flex items-center gap-9">
               <nav className="flex items-center gap-9">
