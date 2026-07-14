@@ -79,6 +79,13 @@ function toDateInput(iso: string) {
   return iso.slice(0, 10);
 }
 
+// Local "today" as a yyyy-mm-dd string, for date <input min> and validation.
+function todayInput() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10);
+}
+
 function endOfDayIso(dateStr: string) {
   return new Date(`${dateStr}T23:59:59.999`).toISOString();
 }
@@ -205,6 +212,8 @@ export function FeaturedStartupsClient({
 
   const searchStartups = async (q: string) => {
     setSearch(q);
+    // Typing invalidates any previous selection and re-opens the results list.
+    setSelectedId(null);
     if (q.trim().length < 1) {
       setCandidates([]);
       return;
@@ -226,6 +235,13 @@ export function FeaturedStartupsClient({
     run(async () => {
       if (!selectedId || !untilDate) {
         throw new Error("Select a startup and end date");
+      }
+      const today = todayInput();
+      if (untilDate <= today) {
+        throw new Error("End date must be after today.");
+      }
+      if (fromDate && untilDate < fromDate) {
+        throw new Error("End date must be on or after the start date.");
       }
       if (editing) {
         await api("PATCH", {
@@ -325,7 +341,7 @@ export function FeaturedStartupsClient({
         </div>
       </div>
 
-      {msg && (
+      {msg && !showModal && (
         <p className="text-sm text-pasha-red rounded-lg border border-pasha-red/30 bg-pasha-red/4 px-4 py-3">
           {msg}
         </p>
@@ -508,7 +524,7 @@ export function FeaturedStartupsClient({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={closeModal}
-              className="fixed inset-0 z-50 bg-pasha-ink/40 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-pasha-ink/40 h-[100vh] backdrop-blur-sm"
             />
             <motion.div
               key="featured-dialog"
@@ -550,6 +566,7 @@ export function FeaturedStartupsClient({
               </div>
             </label>
 
+            {(searching || (search.trim().length > 0 && !selectedId)) && (
             <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-pasha-line divide-y divide-pasha-line">
               {searching && (
                 <div className="px-3 py-4 text-sm text-pasha-muted flex items-center gap-2">
@@ -558,13 +575,16 @@ export function FeaturedStartupsClient({
                 </div>
               )}
               {!searching && candidates.length === 0 && (
-                <p className="px-3 py-4 text-sm text-pasha-muted">Search for a databank startup</p>
+                <p className="px-3 py-4 text-sm text-pasha-muted">No startups found — try a different name</p>
               )}
               {candidates.map((c) => (
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => {
+                    setSelectedId(c.id);
+                    setSearch(c.startup_name);
+                  }}
                   className={cn(
                     "w-full text-left px-3 py-2.5 text-sm hover:bg-pasha-stone/50 transition-colors",
                     selectedId === c.id && "bg-pasha-red/5 text-pasha-red"
@@ -577,6 +597,7 @@ export function FeaturedStartupsClient({
                 </button>
               ))}
             </div>
+            )}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block text-sm text-pasha-ink">
@@ -585,6 +606,7 @@ export function FeaturedStartupsClient({
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
+                  min={editing ? undefined : todayInput()}
                   className="mt-1.5 w-full h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
                 />
               </label>
@@ -595,10 +617,17 @@ export function FeaturedStartupsClient({
                   value={untilDate}
                   onChange={(e) => setUntilDate(e.target.value)}
                   required
+                  min={fromDate && fromDate > todayInput() ? fromDate : todayInput()}
                   className="mt-1.5 w-full h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
                 />
               </label>
             </div>
+
+            {msg && (
+              <p className="mt-4 text-sm text-pasha-red rounded-lg border border-pasha-red/30 bg-pasha-red/4 px-3 py-2">
+                {msg}
+              </p>
+            )}
 
             <div className="mt-5 flex items-center gap-2">
               <button

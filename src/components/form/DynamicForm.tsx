@@ -63,6 +63,9 @@ export function DynamicForm({
     const max = Math.max(0, steps.length - 1);
     return Math.min(Math.max(0, initialStep), max);
   }); // index into `steps`
+  // Furthest step the user has reached, so the stepper can jump forward to any
+  // already-visited step (not just strictly-earlier ones).
+  const [maxStepReached, setMaxStepReached] = useState(stepIdx);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -78,6 +81,11 @@ export function DynamicForm({
 
   const totalSteps = steps.length;
   const currentStep = steps[stepIdx];
+
+  // Remember the furthest step reached so it stays clickable after going back.
+  useEffect(() => {
+    setMaxStepReached((m) => Math.max(m, stepIdx));
+  }, [stepIdx]);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema as never) as Resolver<Values>,
@@ -353,7 +361,7 @@ export function DynamicForm({
                 stepRefs.current[i] = el;
               }}
               type="button"
-              onClick={() => i < stepIdx && setStepIdx(i)}
+              onClick={() => i !== stepIdx && i <= maxStepReached && setStepIdx(i)}
               className={
                 "text-xs font-medium transition-colors " +
                 (titles.length === 3 && i === 1
@@ -361,7 +369,7 @@ export function DynamicForm({
                   : "") +
                 (i === stepIdx
                   ? "text-pasha-red"
-                  : i < stepIdx
+                  : i <= maxStepReached
                   ? "text-pasha-ink hover:text-pasha-red cursor-pointer"
                   : "text-pasha-muted")
               }

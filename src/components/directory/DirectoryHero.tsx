@@ -89,15 +89,15 @@ export function DirectoryHero({
               <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-t border-white/10">
                 <div className="p-4">
                   <strong className="block font-serif text-xl font-bold text-white">{sectorCount}</strong>
-                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">technology sectors</span>
+                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">technology sectors</span>
                 </div>
                 <div className="p-4">
                   <strong className="block font-serif text-xl font-bold text-white">{cityCount}</strong>
-                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">startup cities</span>
+                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">startup cities</span>
                 </div>
                 <div className="p-4">
                   <strong className="block font-serif text-xl font-bold text-white">5+</strong>
-                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">verification sources</span>
+                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">verification sources</span>
                 </div>
               </div>
 
