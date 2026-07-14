@@ -107,7 +107,7 @@ export default async function Home() {
         <Manifesto />
         <JoinCTA />
         <Ecosystem />
-        <NewsCarousel />
+        {/* <NewsCarousel /> */}
         <UpcomingEvents events={upcomingEvents} />
         <FAQ />
         <CTA />
