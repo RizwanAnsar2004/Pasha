@@ -1171,7 +1171,7 @@ function ProblemSolutionCard({
         <span className="text-xs font-bold tracking-[1.5px] text-pasha-ink/45">{number}</span>
         <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-white ${iconColor}`}>{icon}</span>
       </div>
-      <small className="relative block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-ink/55 mb-4">{label}</small>
+      <small className="relative block text-base font-bold uppercase tracking-[2px] text-pasha-ink/60 mb-4">{label}</small>
       {/* The founder's real problem / solution statement — the card's hero copy
           (no generic template headline). Sized to stay prominent yet wrap a
           full paragraph gracefully. */}
