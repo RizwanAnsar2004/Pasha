@@ -767,7 +767,6 @@ export default async function StartupDetailPage({
                       <ProblemSolutionCard
                         number={numProblem!}
                         label="Problem"
-                        title="The challenge the market is still struggling to solve."
                         body={problemText}
                         icon={<AlertCircle className="h-5 w-5" aria-hidden />}
                         tint="bg-accent-coral/[0.16]"
@@ -778,7 +777,6 @@ export default async function StartupDetailPage({
                       <ProblemSolutionCard
                         number={numSolution!}
                         label="Solution"
-                        title="A practical response to a clear market need."
                         body={solutionText}
                         icon={<Lightbulb className="h-5 w-5" aria-hidden />}
                         tint="bg-accent-green/[0.14]"
@@ -1154,7 +1152,6 @@ function StorySection({
 function ProblemSolutionCard({
   number,
   label,
-  title,
   body,
   icon,
   tint,
@@ -1162,7 +1159,6 @@ function ProblemSolutionCard({
 }: {
   number: string;
   label: string;
-  title: string;
   body: string;
   icon: React.ReactNode;
   tint: string;
@@ -1175,9 +1171,13 @@ function ProblemSolutionCard({
         <span className="text-xs font-bold tracking-[1.5px] text-pasha-ink/45">{number}</span>
         <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-white ${iconColor}`}>{icon}</span>
       </div>
-      <small className="relative block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-ink/55 mb-3">{label}</small>
-      <h2 className="relative text-[2.08rem] leading-[1.05] tracking-tight text-pasha-ink font-bold mb-4 max-w-[430px]">{title}</h2>
-      <p className="relative text-[13px] leading-[1.7] text-pasha-ink/65 max-w-[440px]">{body}</p>
+      <small className="relative block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-ink/55 mb-4">{label}</small>
+      {/* The founder's real problem / solution statement — the card's hero copy
+          (no generic template headline). Sized to stay prominent yet wrap a
+          full paragraph gracefully. */}
+      <p className="relative text-[1.35rem] leading-[1.45] tracking-tight text-pasha-ink font-semibold max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
+        {body}
+      </p>
     </article>
   );
 }
