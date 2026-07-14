@@ -43,22 +43,16 @@ export function Field({
       value={{ inputId, hintId, errorId, hasError: !!error }}
     >
       <div className={`flex flex-col gap-2 ${className ?? ""}`}>
-        
+        {/* Label stays a single, clean line — the descriptive hint renders as a
+            subtext line below the input, not inline. This keeps labels a uniform
+            height so inputs align across multi-column form grids. */}
         {label && (
           <Label htmlFor={inputId} required={required}>
             {label}
-            {hint && (
-              <>
-                {" "}
-                <span id={hintId} className="font-normal text-xs text-pasha-muted">
-                  ({hint})
-                </span>
-              </>
-            )}
           </Label>
         )}
-        {!label && hint && <FieldHint id={hintId}>{hint}</FieldHint>}
         {children}
+        {hint && <FieldHint id={hintId}>{hint}</FieldHint>}
         {error && <FieldError id={errorId}>{error}</FieldError>}
       </div>
     </FieldContext.Provider>

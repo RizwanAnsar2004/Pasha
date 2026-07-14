@@ -461,7 +461,14 @@ const DEV_COMPANY: Record<string, unknown> = {
     "Lumen Robotics builds autonomous mobile robots that automate order " +
     "picking and inventory counts for mid-market warehouses across North America.",
   secondary_sector: "Robotics & Automation",
-  awards: "Forbes AI 50 (2024); TechCrunch Disrupt Battlefield finalist",
+  // Structured awards group (title / year / description per row).
+  awards: [
+    {
+      title: "Forbes AI 50",
+      year: "2024",
+      description: "Named to the annual list of the 50 most promising AI companies.",
+    },
+  ],
   certifications: "ISO 9001, SOC 2 Type II",
   closing_notes: "Created via local debug prefill.",
   company_linkedin: "https://www.linkedin.com/company/lumen-robotics",

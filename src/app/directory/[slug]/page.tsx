@@ -20,7 +20,8 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ShareProfileButton } from "@/components/ShareProfileButton";
 import { earnedBadges } from "@/lib/badges";
 import { getFormConfig } from "@/lib/form-config.server";
-import { getAwardTitlesForDatabank } from "@/lib/awards.server";
+import { getAwardEntriesForDatabank, type AwardEntry } from "@/lib/awards.server";
+import { parseAwardsText } from "@/lib/awards-sync.server";
 import { fieldLabelMap } from "@/lib/profile-completion";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
@@ -403,11 +404,14 @@ export default async function StartupDetailPage({
   const row = await getStartup(slug);
   if (!row) notFound();
 
-  // Awards are curated in Admin → Award Winners (startup_awards). Prefer those;
-  // fall back to the legacy databank.awards text if none are curated.
-  const curatedAwards = await getAwardTitlesForDatabank(row.id);
-  const awardsText = curatedAwards.length > 0 ? curatedAwards.join("\n") : cleanText(row.awards);
-  const awardLines = awardsText ? awardsText.split("\n").map((l) => l.trim()).filter(Boolean) : [];
+  // Awards are curated in Admin → Award Winners (startup_awards) — structured
+  // with year + description. Prefer those; fall back to parsing the legacy
+  // databank.awards free-text blob when none are curated.
+  const curatedAwards = await getAwardEntriesForDatabank(row.id);
+  const awardEntries: AwardEntry[] =
+    curatedAwards.length > 0
+      ? curatedAwards
+      : parseAwardsText(cleanText(row.awards)).map((a) => ({ title: a.title, year: a.year, description: null }));
 
   const tagline = cleanText(row.tagline);
   const sector = cleanText(row.primary_industry);
@@ -532,7 +536,7 @@ export default async function StartupDetailPage({
   const hasProblem = problemText.length > 0;
   const hasSolution = solutionText.length > 0;
   const hasMarket = !!tamDisplay || !!samDisplay || !!somDisplay;
-  const hasRecognition = awardLines.length > 0;
+  const hasRecognition = awardEntries.length > 0;
   const hasCertifications = certifications.length > 0;
   const hasBusinessExtra = businessItems.length > 0;
   const hasImpact = !!impact || sdgs.length > 0;
@@ -849,10 +853,22 @@ export default async function StartupDetailPage({
                 {hasRecognition && (
                   <StorySection number={numRecognition!} label="Awards & recognition">
                     <ol className="border-t border-pasha-ink/[0.14]">
-                      {awardLines.map((title, i) => (
-                        <li key={`${title}-${i}`} className="flex items-center justify-between gap-4 border-b border-pasha-ink/[0.14] py-6">
-                          <h3 className="text-xl font-bold tracking-tight text-pasha-ink">{title}</h3>
-                          <ArrowUpRight className="h-5 w-5 shrink-0 text-pasha-red" aria-hidden />
+                      {awardEntries.map((a, i) => (
+                        <li key={`${a.title}-${i}`} className="flex items-start justify-between gap-4 border-b border-pasha-ink/[0.14] py-6">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                              <h3 className="text-xl font-bold tracking-tight text-pasha-ink">{a.title}</h3>
+                              {a.year && (
+                                <span className="inline-flex items-center rounded-full bg-pasha-ink/[0.06] px-2.5 py-0.5 text-xs font-bold tracking-wide text-pasha-ink/60">
+                                  {a.year}
+                                </span>
+                              )}
+                            </div>
+                            {a.description && (
+                              <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-pasha-ink/65">{a.description}</p>
+                            )}
+                          </div>
+                          <ArrowUpRight className="mt-1 h-5 w-5 shrink-0 text-pasha-red" aria-hidden />
                         </li>
                       ))}
                     </ol>

@@ -79,6 +79,7 @@ export function AwardsClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [year, setYear] = useState("");
+  const [description, setDescription] = useState("");
   const [searching, setSearching] = useState(false);
 
   // Portal target + body scroll lock while the modal is open.
@@ -113,6 +114,7 @@ export function AwardsClient({
     setSelectedId(null);
     setTitle("");
     setYear("");
+    setDescription("");
     setMsg(null);
   };
 
@@ -128,6 +130,7 @@ export function AwardsClient({
     setSelectedId(entry.databank_id);
     setTitle(entry.title);
     setYear(entry.year != null ? String(entry.year) : "");
+    setDescription(entry.description ?? "");
     setMsg(null);
   };
 
@@ -172,6 +175,7 @@ export function AwardsClient({
         databank_id: selectedId,
         title: title.trim(),
         year: year.trim() || undefined,
+        description: description.trim() || null,
       };
       if (editing) {
         await api("PATCH", { id: editing.id, ...body });
@@ -343,24 +347,31 @@ export function AwardsClient({
                   {group.awards.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-pasha-line/70 bg-pasha-stone/20 px-3 py-2"
+                      className="flex items-start justify-between gap-3 rounded-lg border border-pasha-line/70 bg-pasha-stone/20 px-3 py-2"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-                        <span className="text-sm text-pasha-ink truncate">
-                          {entry.title}
-                          {entry.year ? ` · ${entry.year}` : ""}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            entry.source === "manual"
-                              ? "bg-sky-50 text-sky-700"
-                              : "bg-pasha-stone text-pasha-muted"
-                          )}
-                        >
-                          {entry.source === "manual" ? "Manual" : "From application"}
-                        </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                          <span className="text-sm text-pasha-ink truncate">
+                            {entry.title}
+                            {entry.year ? ` · ${entry.year}` : ""}
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                              entry.source === "manual"
+                                ? "bg-sky-50 text-sky-700"
+                                : "bg-pasha-stone text-pasha-muted"
+                            )}
+                          >
+                            {entry.source === "manual" ? "Manual" : "From application"}
+                          </span>
+                        </div>
+                        {entry.description && (
+                          <p className="mt-1 pl-[22px] text-xs text-pasha-muted line-clamp-2">
+                            {entry.description}
+                          </p>
+                        )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <button
@@ -519,6 +530,21 @@ export function AwardsClient({
                         />
                       </label>
                     </div>
+
+                    <label className="mt-4 block text-sm text-pasha-ink">
+                      Description
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value.slice(0, 300))}
+                        rows={3}
+                        maxLength={300}
+                        placeholder="What it was awarded for (optional)…"
+                        className="mt-1.5 block w-full resize-y rounded-lg border border-pasha-line px-3 py-2 text-sm focus:outline-none focus:border-pasha-red"
+                      />
+                      <span className="mt-1 block text-right text-[11px] text-pasha-muted">
+                        {description.length}/300
+                      </span>
+                    </label>
 
                     <div className="mt-5 flex items-center gap-2">
                       <button

@@ -27,6 +27,12 @@ const addSchema = z.object({
         .max(2100, "Enter a valid year (1900–2100)")
         .nullable()
     ),
+  description: z
+    .string()
+    .trim()
+    .max(300, "Description is too long (max 300 characters)")
+    .nullish()
+    .transform((v) => (v && v.length ? v : null)),
 });
 
 const patchSchema = addSchema.extend({ id: z.string().uuid() });
@@ -95,7 +101,7 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const { databank_id, title, year } = parsed.data;
+  const { databank_id, title, year, description } = parsed.data;
 
   const supabase = createServiceClient();
   const { data: startup } = await supabase
@@ -107,16 +113,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Startup not found" }, { status: 404 });
   }
 
-  const { data, error: dbErr } = await supabase
+  // Strip-and-retry so an award can still be added before the `description`
+  // column has been migrated in (the description is simply dropped in that case).
+  const insertRow: Record<string, unknown> = { databank_id, title, year, description };
+  let { data, error: dbErr } = await supabase
     .from("startup_awards")
-    .insert({ databank_id, title, year })
+    .insert(insertRow)
     .select("id")
     .single();
+  if (dbErr && /description/i.test(dbErr.message)) {
+    delete insertRow.description;
+    ({ data, error: dbErr } = await supabase
+      .from("startup_awards")
+      .insert(insertRow)
+      .select("id")
+      .single());
+  }
 
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({ id: data?.id });
 }
 
 // PATCH → edit an existing award entry.
@@ -131,13 +148,18 @@ export async function PATCH(req: Request) {
       { status: 400 }
     );
   }
-  const { id, databank_id, title, year } = parsed.data;
+  const { id, databank_id, title, year, description } = parsed.data;
 
   const supabase = createServiceClient();
-  const { error: dbErr } = await supabase
+  const updateRow: Record<string, unknown> = { databank_id, title, year, description };
+  let { error: dbErr } = await supabase
     .from("startup_awards")
-    .update({ databank_id, title, year })
+    .update(updateRow)
     .eq("id", id);
+  if (dbErr && /description/i.test(dbErr.message)) {
+    delete updateRow.description;
+    ({ error: dbErr } = await supabase.from("startup_awards").update(updateRow).eq("id", id));
+  }
 
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });

@@ -8,6 +8,7 @@ export type AwardRow = {
   databank_id: string;
   title: string;
   year: number | null;
+  description: string | null;
   sort_order: number;
   created_at: string;
   source: string;
@@ -20,13 +21,14 @@ export type AwardRow = {
 export type AwardSourceFilter = "all" | "submission" | "manual";
 
 const JOIN_SELECT =
-  "id,databank_id,title,year,sort_order,created_at,source,databank:databank_id!inner(startup_name,primary_industry,city,pasha_verified)";
+  "id,databank_id,title,year,description,sort_order,created_at,source,databank:databank_id!inner(startup_name,primary_industry,city,pasha_verified)";
 
 type JoinShape = {
   id: string;
   databank_id: string;
   title: string;
   year: number | null;
+  description: string | null;
   sort_order: number;
   created_at: string;
   source: string;
@@ -53,6 +55,7 @@ function flatten(r: JoinShape): AwardRow {
     databank_id: r.databank_id,
     title: r.title,
     year: r.year,
+    description: r.description ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
     source: r.source ?? "manual",
@@ -82,6 +85,37 @@ export async function getAwardTitlesForDatabank(databankId: string): Promise<str
       const row = r as { title: string; year: number | null };
       return row.year ? `${row.title} (${row.year})` : row.title;
     });
+  } catch {
+    return [];
+  }
+}
+
+// One award as shown on the public startup profile.
+export type AwardEntry = { title: string; year: number | null; description: string | null };
+
+/**
+ * Structured awards for a single startup (title + year + description), ordered
+ * for the directory profile's "Awards & recognition" section. Returns [] when
+ * none are curated — the profile falls back to the legacy databank.awards text.
+ * Falls back to a description-less select if that column isn't migrated in yet.
+ */
+export async function getAwardEntriesForDatabank(databankId: string): Promise<AwardEntry[]> {
+  const fetchWith = async (cols: string) =>
+    createServiceClient()
+      .from("startup_awards")
+      .select(cols)
+      .eq("databank_id", databankId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+  try {
+    let { data, error } = await fetchWith("title, year, description, sort_order, created_at");
+    if (error && /description/i.test(error.message)) {
+      ({ data, error } = await fetchWith("title, year, sort_order, created_at"));
+    }
+    if (error || !data) return [];
+    return (data as unknown as { title: string; year: number | null; description?: string | null }[]).map(
+      (r) => ({ title: r.title, year: r.year ?? null, description: r.description ?? null })
+    );
   } catch {
     return [];
   }

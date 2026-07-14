@@ -15,7 +15,7 @@ import { getFieldLabelMap } from "@/lib/form-config.server";
 import { isYes } from "@/lib/badges";
 import { requestOrigin } from "@/lib/site-url";
 import { notifyRagDatabank } from "@/lib/rag-sync";
-import { syncAwardsFromText } from "@/lib/awards-sync.server";
+import { syncAwardsFromText, syncAwardsFromStructured } from "@/lib/awards-sync.server";
 
 // Coerce an answers-bag value to a finite number, else null. Used to fill the
 // numeric databank metric columns from the form's number fields.
@@ -346,10 +346,17 @@ export async function PATCH(req: Request) {
         );
         if (publishedId) {
           notifyRagDatabank("UPDATE", publishedId);
-          // Mirror the applicant's awards text into structured startup_awards
-          // rows (source='submission') so approved awards surface on the
-          // homepage. Best-effort; never blocks the publish.
-          await syncAwardsFromText(supabase, publishedId, full.awards);
+          // Mirror the applicant's awards into structured startup_awards rows
+          // (source='submission') so approved awards surface on the profile +
+          // homepage. New submissions carry a structured title/year/description
+          // array in answers.awards; older ones only have the legacy text blob.
+          // Best-effort; never blocks the publish.
+          const structuredAwards = (answers as Record<string, unknown>).awards;
+          if (Array.isArray(structuredAwards) && structuredAwards.length > 0) {
+            await syncAwardsFromStructured(supabase, publishedId, structuredAwards);
+          } else {
+            await syncAwardsFromText(supabase, publishedId, full.awards);
+          }
         }
       }
     }
