@@ -1,0 +1,4 @@
+# The pre-push hook is run by Git Bash; it MUST keep LF line endings,
+# otherwise Windows checkouts get CRLF and the hook fails with
+# "bad interpreter: /bin/sh^M". This forces LF regardless of core.autocrlf.
+.githooks/pre-push text eol=lf

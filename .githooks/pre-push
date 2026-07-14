@@ -1,0 +1,148 @@
+#!/bin/sh
+#
+# pre-push hook  -  Next.js "deploy branch" packager.
+#
+# PORTABILITY: pure POSIX shell. The only requirement is Git for Windows,
+# which every dev already has (it bundles Git Bash + `tar`). It does NOT
+# depend on PowerShell being present or on any particular PowerShell version,
+# so it runs identically on every Windows machine on the team.
+#
+# Behaviour
+#   * Pushing the 'deploy' branch:
+#       1. package .next/standalone (+ .next/static + public) into a
+#          server-ready tarball at the repo root,
+#       2. delete any existing tarball first,
+#       3. commit the tarball and push it together with the commit.
+#   * Pushing any other branch:
+#       -> do nothing, let git push immediately.
+#
+# Why the re-push at the end? git locks the commit to be pushed BEFORE
+# calling this hook, so a commit created here can't ride the current push.
+# We commit the tarball, push that new commit ourselves (guarded against
+# recursion), then abort the original - now stale - push.
+
+DEPLOY_BRANCH="deploy"
+TARBALL="next-standalone.tar.gz"
+REMOTE="${1:-origin}"
+
+# Recursion guard: the re-push we trigger below must pass straight through.
+if [ "$PREPUSH_DEPLOY_GUARD" = "1" ]; then
+  exit 0
+fi
+
+# --- Which refs are being pushed? (git feeds them on stdin) -------------
+# Each line: <local ref> <local sha> <remote ref> <remote sha>
+pushing_deploy=0
+remote_ref_to_update="refs/heads/$DEPLOY_BRANCH"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$local_ref" ] && continue
+
+  is_deploy=0
+  if [ "$local_ref" = "refs/heads/$DEPLOY_BRANCH" ] || \
+     [ "$remote_ref" = "refs/heads/$DEPLOY_BRANCH" ]; then
+    is_deploy=1
+  fi
+
+  # branch deletion? local sha is all zeros
+  is_del=0
+  case "$local_sha" in
+    *[!0]*) is_del=0 ;;   # has a non-zero char -> real sha
+    *)      is_del=1 ;;   # all zeros or empty  -> deletion
+  esac
+
+  if [ "$is_deploy" = "1" ] && [ "$is_del" = "0" ]; then
+    pushing_deploy=1
+    remote_ref_to_update="$remote_ref"
+  fi
+done
+
+# --- Not the deploy branch -> let git push normally --------------------
+[ "$pushing_deploy" = "1" ] || exit 0
+
+echo "[pre-push] Push targets '$DEPLOY_BRANCH' - packaging .next standalone..."
+
+repo_root=$(git rev-parse --show-toplevel) || { echo "[pre-push] not a git worktree"; exit 1; }
+cd "$repo_root" || exit 1
+
+# We commit onto HEAD, so deploy must be the checked-out branch.
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$current_branch" != "$DEPLOY_BRANCH" ]; then
+  echo "[pre-push] on '$current_branch', not '$DEPLOY_BRANCH'; pushing as-is."
+  exit 0
+fi
+
+# --- Build FIRST, then package -----------------------------------------
+# Always rebuild on a deploy push so the tarball matches the latest code.
+# (Set PREPUSH_SKIP_BUILD=1 to reuse an existing .next/standalone instead.)
+if [ "$PREPUSH_SKIP_BUILD" = "1" ]; then
+  echo "[pre-push] PREPUSH_SKIP_BUILD=1 - reusing existing .next/standalone (no rebuild)."
+else
+  echo "[pre-push] running 'npm run build'..."
+  npm run build || { echo "[pre-push] build failed. Aborting push."; exit 1; }
+fi
+
+if [ ! -d ".next/standalone" ]; then
+  echo "[pre-push] ERROR: no .next/standalone directory after build."
+  echo "[pre-push] Ensure next.config.* has  output: 'standalone'."
+  exit 1
+fi
+
+# --- Delete an existing tarball ----------------------------------------
+if [ -f "$TARBALL" ]; then
+  echo "[pre-push] removing existing $TARBALL ..."
+  rm -f "$TARBALL"
+fi
+
+# --- Assemble a server-ready layout in a temp staging dir --------------
+#   <root>/            <- contents of .next/standalone (has server.js)
+#   <root>/.next/static
+#   <root>/public
+staging=$(mktemp -d) || { echo "[pre-push] mktemp failed"; exit 1; }
+trap 'rm -rf "$staging"' EXIT
+
+cp -R .next/standalone/. "$staging/"
+
+if [ -d ".next/static" ]; then
+  mkdir -p "$staging/.next/static"
+  cp -R .next/static/. "$staging/.next/static/"
+fi
+
+if [ -d "public" ]; then
+  mkdir -p "$staging/public"
+  cp -R public/. "$staging/public/"
+fi
+
+# --- Create the tarball at the repo root -------------------------------
+echo "[pre-push] creating $TARBALL ..."
+tar -czf "$TARBALL" -C "$staging" . || { echo "[pre-push] tar failed. Aborting push."; exit 1; }
+rm -rf "$staging"
+trap - EXIT
+
+echo "[pre-push] built $TARBALL."
+
+# --- Commit the tarball onto the deploy branch -------------------------
+git add -f -- "$TARBALL"
+
+if [ -z "$(git status --porcelain -- "$TARBALL")" ]; then
+  echo "[pre-push] tarball unchanged since last commit - pushing as-is."
+  exit 0
+fi
+
+echo "[pre-push] committing tarball..."
+git commit -m "chore(deploy): package .next standalone -> $TARBALL [skip ci]" --no-verify >/dev/null \
+  || { echo "[pre-push] git commit failed. Aborting push."; exit 1; }
+
+# --- Push the new commit, then abort the original (now stale) push -----
+echo "[pre-push] pushing deploy commit + tarball..."
+PREPUSH_DEPLOY_GUARD=1 git push "$REMOTE" "HEAD:$remote_ref_to_update"
+push_exit=$?
+
+if [ "$push_exit" = "0" ]; then
+  echo "[pre-push] Deploy commit + tarball pushed successfully."
+  echo "[pre-push] The 'failed to push some refs' line below is EXPECTED - the deploy push above already succeeded."
+else
+  echo "[pre-push] Re-push failed. See git output above."
+fi
+
+# Stop the original push: we already pushed the up-to-date commit ourselves.
+exit 1
