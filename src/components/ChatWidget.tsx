@@ -99,7 +99,7 @@ export function ChatWidget() {
       {/* Panel */}
       {open && (
         <div
-          className="fixed bottom-24 right-5 z-[60] flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-black/10"
+          className="fixed bottom-24 right-5 z-[60] flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-black/10"
           role="dialog"
           aria-label="Chat"
         >

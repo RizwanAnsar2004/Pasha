@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, Coins, Calendar } from "lucide-react";
+import { Search, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, Coins, Calendar, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -705,6 +705,9 @@ export function DirectoryClient({
   const [isPending, startTransition] = useTransition();
 
   const [view, setView] = useState<"grid" | "list">("grid");
+  // On mobile the filter controls collapse behind a "Filters" toggle; on sm+
+  // they're always visible (this flag only affects the small-screen layout).
+  const [filtersOpen, setFiltersOpen] = useState(false);
   // Local mirror of the search box so typing stays instant; it's pushed to the
   // URL (which triggers the server refetch) after a short debounce.
   const [searchInput, setSearchInput] = useState(filters.q);
@@ -760,6 +763,18 @@ export function DirectoryClient({
     filters.hiring ||
     filters.fundraising;
 
+  // Count of active filters (search excluded — it has its own always-visible
+  // box) for the mobile "Filters" toggle badge.
+  const activeFilterCount = [
+    filters.sector !== "all",
+    filters.city !== "all",
+    filters.stage !== "all",
+    filters.verified,
+    filters.womenLed,
+    filters.hiring,
+    filters.fundraising,
+  ].filter(Boolean).length;
+
   // Scroll to top of listing when the page changes.
   const gridRef = useRef<HTMLDivElement>(null);
   function goToPage(p: number) {
@@ -802,6 +817,29 @@ export function DirectoryClient({
           )}
         </div>
 
+        {/* Mobile "Filters" toggle — collapses the controls below into a
+            hamburger-style panel on small screens. Hidden from sm+ where the
+            filters are always shown. */}
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          className="mt-2 flex sm:hidden w-full items-center justify-between rounded-[14px] border border-pasha-ink/10 bg-white px-4 h-11 text-sm font-bold text-pasha-ink"
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pasha-red px-1.5 text-[11px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 text-pasha-ink/50 transition-transform", filtersOpen && "rotate-180")} />
+        </button>
+
+        {/* Collapsible filter controls — always visible on sm+, toggled on mobile. */}
+        <div className={cn("sm:block", filtersOpen ? "block" : "hidden")}>
         {/* Dropdown filter row */}
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1fr_auto] gap-2">
           <PillFilter
@@ -854,6 +892,7 @@ export function DirectoryClient({
               Fundraising
             </QuickChip>
           </div>
+        </div>
         </div>
       </div>
 
