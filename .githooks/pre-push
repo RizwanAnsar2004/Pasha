@@ -22,7 +22,7 @@
 # recursion), then abort the original - now stale - push.
 
 DEPLOY_BRANCH="deploy"
-TARBALL="next-standalone.tar.gz"
+TARBALL="release.tar.gz"
 REMOTE="${1:-origin}"
 
 # Recursion guard: the re-push we trigger below must pass straight through.
@@ -78,7 +78,15 @@ if [ "$PREPUSH_SKIP_BUILD" = "1" ]; then
   echo "[pre-push] PREPUSH_SKIP_BUILD=1 - reusing existing .next/standalone (no rebuild)."
 else
   echo "[pre-push] running 'npm run build'..."
-  npm run build || { echo "[pre-push] build failed. Aborting push."; exit 1; }
+  # GUI git clients (GitHub Desktop, VS Code) launch hooks with a bash whose
+  # environment cannot exec the unix `npm` script ("No such file or directory").
+  # Run the build through cmd.exe so Windows uses the self-contained npm.cmd
+  # (which calls node.exe by absolute path). Falls back to npm on Linux/mac.
+  if command -v cmd.exe >/dev/null 2>&1; then
+    cmd.exe //c "npm run build" || { echo "[pre-push] build failed. Aborting push."; exit 1; }
+  else
+    npm run build || { echo "[pre-push] build failed. Aborting push."; exit 1; }
+  fi
 fi
 
 if [ ! -d ".next/standalone" ]; then

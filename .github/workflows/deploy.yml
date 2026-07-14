@@ -1,0 +1,83 @@
+name: Deploy to server
+
+# Fires after the pre-push hook builds + commits next-standalone.tar.gz
+# onto the deploy branch. Also runnable manually from the Actions tab.
+on:
+  push:
+    branches: [deploy]
+  workflow_dispatch:
+
+# Never run two deploys at once.
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TARBALL: release.tar.gz
+  # ===== EDIT THESE to match your server =====
+  DEPLOY_PATH: /var/www/pasha-test     # dir on the server where the app lives
+  SERVICE_NAME: pasha-test             # systemd service to restart
+  SSH_PORT: "22"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deploy branch
+        uses: actions/checkout@v4
+
+      - name: Verify tarball is present
+        run: |
+          if [ ! -f "$TARBALL" ]; then
+            echo "::error::$TARBALL not found at repo root. The pre-push hook should have built & committed it on the deploy branch."
+            exit 1
+          fi
+          ls -lh "$TARBALL"
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Pin the server's host key (safer than disabling host checking).
+          ssh-keyscan -p "$SSH_PORT" "$SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy tarball to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          scp -i ~/.ssh/id_deploy -P "$SSH_PORT" \
+            "$TARBALL" \
+            "$SERVER_USER@$SERVER_HOST:$DEPLOY_PATH/$TARBALL"
+
+      - name: Extract, restart service, and check status
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SERVER_USER@$SERVER_HOST" "
+            set -e
+            cd '$DEPLOY_PATH'
+            echo '==> Extracting $TARBALL'
+            tar -xzf '$TARBALL'
+            rm -f '$TARBALL'
+            echo '==> Restarting $SERVICE_NAME'
+            sudo systemctl restart '$SERVICE_NAME'
+            sleep 3
+            echo '==> Status'
+            sudo systemctl status '$SERVICE_NAME' --no-pager -l | head -n 30 || true
+            if sudo systemctl is-active --quiet '$SERVICE_NAME'; then
+              echo '==> OK: $SERVICE_NAME is active'
+            else
+              echo '==> FAIL: $SERVICE_NAME is not active - recent logs:'
+              sudo journalctl -u '$SERVICE_NAME' -n 50 --no-pager || true
+              exit 1
+            fi
+          "
