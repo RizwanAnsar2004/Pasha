@@ -142,6 +142,8 @@ export function AwardsClient({
 
   const searchStartups = async (value: string) => {
     setSearch(value);
+    // Typing invalidates any previous selection and re-opens the results list.
+    setSelectedId(null);
     if (value.trim().length < 1) {
       setCandidates([]);
       return;
@@ -461,6 +463,7 @@ export function AwardsClient({
                       </div>
                     </label>
 
+                    {(searching || (search.trim().length > 0 && !selectedId)) && (
                     <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-pasha-line divide-y divide-pasha-line">
                       {searching && (
                         <div className="px-3 py-4 text-sm text-pasha-muted flex items-center gap-2">
@@ -470,14 +473,17 @@ export function AwardsClient({
                       )}
                       {!searching && candidates.length === 0 && (
                         <p className="px-3 py-4 text-sm text-pasha-muted">
-                          Search for a databank startup
+                          No startups found — try a different name
                         </p>
                       )}
                       {candidates.map((c) => (
                         <button
                           key={c.id}
                           type="button"
-                          onClick={() => setSelectedId(c.id)}
+                          onClick={() => {
+                            setSelectedId(c.id);
+                            setSearch(c.startup_name ?? "");
+                          }}
                           className={cn(
                             "w-full text-left px-3 py-2.5 text-sm hover:bg-pasha-stone/50 transition-colors",
                             selectedId === c.id && "bg-pasha-red/5 text-pasha-red"
@@ -490,6 +496,7 @@ export function AwardsClient({
                         </button>
                       ))}
                     </div>
+                    )}
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
                       <label className="block text-sm text-pasha-ink">
@@ -498,7 +505,7 @@ export function AwardsClient({
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           placeholder="e.g. Winner — National Tech Awards"
-                          className="mt-1.5 w-full h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
+                          className="mt-1.5 block w-full h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
                         />
                       </label>
                       <label className="block text-sm text-pasha-ink">
@@ -508,7 +515,7 @@ export function AwardsClient({
                           onChange={(e) => setYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
                           inputMode="numeric"
                           placeholder="2024"
-                          className="mt-1.5 w-full sm:w-28 h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
+                          className="mt-1.5 block w-full sm:w-28 h-10 rounded-lg border border-pasha-line px-3 text-sm focus:outline-none focus:border-pasha-red"
                         />
                       </label>
                     </div>

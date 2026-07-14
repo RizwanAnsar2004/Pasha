@@ -78,6 +78,10 @@ web_modules/
 .next
 out
 
+# Assembled standalone build (build-standalone.bat)
+build.7z
+.build-stage/
+
 # Nuxt.js build / generate output
 .nuxt
 dist

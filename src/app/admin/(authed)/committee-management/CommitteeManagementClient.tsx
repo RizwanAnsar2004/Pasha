@@ -237,30 +237,30 @@ export function CommitteeManagementClient({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full name "
-              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+              placeholder="Full name"
+              className="h-11 w-full min-w-0 text-ellipsis rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="person@pasha.org.pk"
-              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+              placeholder="Email address"
+              className="h-11 w-full min-w-0 text-ellipsis rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
             <input
               type="text"
               value={roles}
               onChange={(e) => setRoles(e.target.value)}
-              placeholder="Role (e.g. Founder & CEO)"
-              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+              placeholder="Role"
+              className="h-11 w-full min-w-0 text-ellipsis rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
             <input
               type="text"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              placeholder="Company (e.g. Bits Collision)"
-              className="h-11 rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+              placeholder="Company"
+              className="h-11 w-full min-w-0 text-ellipsis rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
             <select
               value={type}
