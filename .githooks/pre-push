@@ -137,7 +137,7 @@ if [ -z "$(git status --porcelain -- "$TARBALL")" ]; then
 fi
 
 echo "[pre-push] committing tarball..."
-git commit -m "chore(deploy): package .next standalone -> $TARBALL [skip ci]" --no-verify >/dev/null \
+git commit -m "chore(deploy): package .next standalone -> $TARBALL" --no-verify >/dev/null \
   || { echo "[pre-push] git commit failed. Aborting push."; exit 1; }
 
 # --- Push the new commit, then abort the original (now stale) push -----
