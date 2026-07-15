@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   MapPin,
   Calendar,
-  Layers,
   Briefcase,
   Globe,
   CheckCircle2,
@@ -13,6 +12,7 @@ import {
   Lightbulb,
   ArrowUpRight,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -420,6 +420,8 @@ export default async function StartupDetailPage({
   const city = cityRaw ?? country;
   const stage = cleanText(row.product_stage);
   const founded = formatDate(row.founded_date);
+  const teamSizeDisplay =
+    row.total_employees && row.total_employees > 0 ? `${row.total_employees.toLocaleString()} people` : null;
   const websiteHref = row.website ? safeHref(row.website) : "#";
   const websiteShown = row.website
     ? row.website.replace(/^https?:\/\//, "").replace(/\/$/, "")
@@ -473,7 +475,7 @@ export default async function StartupDetailPage({
           value: tamDisplay,
           pct: marketBarPct(tamNum),
           label: "Total addressable market",
-          tint: "bg-accent-coral/[0.18]",
+          tint: "bg-[#f0d9d6]",
           body: "The complete market demand for this category if the startup reached every potential customer.",
         }
       : null,
@@ -483,7 +485,7 @@ export default async function StartupDetailPage({
           value: samDisplay,
           pct: marketBarPct(samNum),
           label: "Serviceable available market",
-          tint: "bg-accent-green/[0.16]",
+          tint: "bg-[#dff1ea]",
           body: "The portion of the total market aligned with the startup's geography, product and operating model.",
         }
       : null,
@@ -493,14 +495,12 @@ export default async function StartupDetailPage({
           value: somDisplay,
           pct: marketBarPct(somNum),
           label: "Serviceable obtainable market",
-          tint: "bg-accent-purple/[0.16]",
+          tint: "bg-[#e9e2f2]",
           body: "The realistic near-term opportunity the startup can capture with its current capabilities and strategy.",
         }
       : null,
   ].filter((m): m is NonNullable<typeof m> => m !== null);
 
-  // Headcount / team-size is BACKEND-ONLY per the directory review meeting —
-  // kept in the DB/admin but never shown publicly on this page.
   const customers = row.number_of_customers && row.number_of_customers > 0 ? row.number_of_customers : null;
   const raisedDisplay =
     (row.investment_raised && row.investment_raised > 1
@@ -569,7 +569,7 @@ export default async function StartupDetailPage({
             @
           </span>
 
-          <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="relative site-container">
             <nav aria-label="Breadcrumb" className="mb-10 sm:mb-14 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[1.5px] text-white/45">
               <Link href="/" className="hover:text-white transition-colors">Home</Link>
               <span aria-hidden>/</span>
@@ -700,7 +700,7 @@ export default async function StartupDetailPage({
                         key={t.label}
                         className={`min-h-[100px] border-b border-white/[0.09] p-5 ${i % 2 === 0 ? "border-r border-white/[0.09]" : ""}`}
                       >
-                        <small className="block text-[10px] font-bold uppercase tracking-[1.5px] text-white/40">{t.label}</small>
+                        <small className="block text-[10px] font-medium uppercase tracking-[1.5px] text-white/40">{t.label}</small>
                         <strong className="text-base leading-tight text-white">{t.value}</strong>
                       </div>
                     ))}
@@ -721,7 +721,7 @@ export default async function StartupDetailPage({
 
         {/* ── CONTENT ── */}
         <section className="py-16 sm:py-24">
-          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="site-container">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-14 lg:gap-16 items-start">
               {/* ── Main story column ── */}
               <article className="min-w-0">
@@ -756,7 +756,7 @@ export default async function StartupDetailPage({
                       {[sector, ...secondaries, ...bizTypes].filter(Boolean).map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full border border-pasha-ink/10 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[1px] text-pasha-ink/65"
+                          className="rounded-full border border-pasha-ink/10 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[1px] text-pasha-ink/65"
                         >
                           {tag}
                         </span>
@@ -815,7 +815,7 @@ export default async function StartupDetailPage({
                     </div>
                     <div
                       className={cn(
-                        "relative grid gap-4",
+                        "relative grid gap-3",
                         marketMetrics.length === 3
                           ? "sm:grid-cols-3"
                           : marketMetrics.length === 2
@@ -826,10 +826,10 @@ export default async function StartupDetailPage({
                       {marketMetrics.map((m, i) => (
                         <div key={m.badge} className={cn("rounded-[21px] p-6 sm:p-7", m.tint)}>
                           <div className="flex items-center justify-between mb-8">
-                            <span className="inline-flex min-h-[27px] items-center rounded-full bg-white/70 px-3 text-[11px] font-extrabold tracking-[1.5px] text-pasha-ink">
+                            <span className="inline-flex min-h-[27px] items-center rounded-full bg-white/70 px-3 text-[10px] font-extrabold tracking-[1.5px] text-pasha-ink">
                               {m.badge}
                             </span>
-                            <span className="text-xs font-bold tracking-[1.5px] text-pasha-ink/40">
+                            <span className="text-[10px] font-bold tracking-[1.5px] text-pasha-ink/40">
                               {String(i + 1).padStart(2, "0")}
                             </span>
                           </div>
@@ -837,7 +837,7 @@ export default async function StartupDetailPage({
                             {m.value}
                           </strong>
                           <h3 className="mt-3 text-base font-semibold tracking-tight text-pasha-ink">{m.label}</h3>
-                          <p className="mt-2 text-sm leading-relaxed text-pasha-ink/60">{m.body}</p>
+                          <p className="mt-2 text-xs leading-relaxed text-pasha-ink/60">{m.body}</p>
                           <div className="mt-6 h-1 rounded-full bg-pasha-ink/10">
                             <div
                               className="h-full rounded-full bg-pasha-ink"
@@ -981,17 +981,17 @@ export default async function StartupDetailPage({
                       {[
                         { icon: <Calendar className="h-[19px] w-[19px]" aria-hidden />, label: "Founded", value: founded },
                         { icon: <MapPin className="h-[19px] w-[19px]" aria-hidden />, label: "Location", value: city },
-                        { icon: <Layers className="h-[19px] w-[19px]" aria-hidden />, label: "Stage", value: stage },
+                        { icon: <Users className="h-[19px] w-[19px]" aria-hidden />, label: "Team size", value: teamSizeDisplay },
                         { icon: <Briefcase className="h-[19px] w-[19px]" aria-hidden />, label: "Category", value: sector },
                       ]
                         .filter((f) => f.value)
                         .map((f) => (
-                          <div key={f.label} className="min-h-[118px] bg-white p-4.5 flex items-start gap-3">
+                          <div key={f.label} className="min-h-[118px] bg-white py-4 px-2 flex items-start gap-3">
                             <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[11px] bg-pasha-stone text-pasha-muted">
                               {f.icon}
                             </span>
                             <div>
-                              <small className="block text-[10px] font-bold uppercase tracking-[1px] text-pasha-muted/80 mb-1.5">{f.label}</small>
+                              <small className="block text-[10px] font-medium uppercase tracking-[1px] text-pasha-muted/80">{f.label}</small>
                               <strong className="text-[13px] leading-snug text-pasha-ink">{f.value}</strong>
                             </div>
                           </div>
@@ -1003,7 +1003,7 @@ export default async function StartupDetailPage({
                 </Reveal>
 
                 {row.key_persons && row.key_persons.length > 0 && (
-                  <Reveal delay={0.05} className="rounded-[29px] border border-pasha-ink/10 bg-[#eee9e3] p-4.5 shadow-[0_18px_50px_rgba(23,23,23,0.055)]">
+                  <Reveal delay={0.05} className="rounded-[29px] border border-pasha-ink/10 bg-white p-4.5 shadow-[0_18px_50px_rgba(23,23,23,0.055)]">
                     <div className="flex items-end justify-between px-1 pb-3.5 border-b border-pasha-ink/[0.09] mb-3">
                       <div>
                         <span className="block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-muted mb-1.5">Leadership</span>
@@ -1077,7 +1077,7 @@ export default async function StartupDetailPage({
         {/* ── RELATED STARTUPS ── */}
         {related.length > 0 && (
           <section className="bg-white py-16 sm:py-24">
-            <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+            <div className="site-container">
               <Reveal className="flex flex-wrap items-end justify-between gap-6 mb-10">
                 <div>
                   <Kicker>Keep exploring</Kicker>
@@ -1104,7 +1104,7 @@ export default async function StartupDetailPage({
 
         {/* ── BOTTOM CTA ── */}
         <section className="bg-pasha-stone py-14 sm:py-20">
-          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="site-container">
             <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
               <span
                 aria-hidden
@@ -1195,61 +1195,6 @@ function ProblemSolutionCard({
         {body}
       </p>
     </article>
-  );
-}
-
-function SidebarSocialRow({
-  row,
-  websiteHref,
-  websiteShown,
-}: {
-  row: Row;
-  websiteHref: string;
-  websiteShown: string | null;
-}) {
-  const items: { label: string; href: string; glyph: React.ReactNode; primary?: boolean }[] = [];
-  if (websiteShown && websiteHref !== "#") {
-    items.push({ label: "Website", href: websiteHref, glyph: <Globe className="h-[18px] w-[18px]" aria-hidden />, primary: true });
-  }
-  function push(label: string, raw: string | null | undefined, glyph: React.ReactNode) {
-    if (!raw) return;
-    const href = safeHref(raw);
-    if (href === "#") return;
-    items.push({ label, href, glyph });
-  }
-  push("LinkedIn", row.company_linkedin, <LinkedInGlyph className="h-[18px] w-[18px]" />);
-  push("Instagram", row.company_instagram, <InstagramGlyph className="h-[18px] w-[18px]" />);
-  push("X", row.company_x, <XGlyph className="h-[18px] w-[18px]" />);
-  push("YouTube", row.company_youtube, <YouTubeGlyph className="h-[18px] w-[18px]" />);
-  push("Facebook", row.company_facebook, <FacebookGlyph className="h-[18px] w-[18px]" />);
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="bg-white px-4.5 pb-4 pt-4.5">
-      <span className="block px-0.5 mb-3 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-muted/80">
-        Connect with the company
-      </span>
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {items.map((it) => (
-          <a
-            key={it.label}
-            href={it.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={it.label}
-            title={it.label}
-            className={`grid h-12 place-items-center rounded-[13px] border transition-colors ${
-              it.primary
-                ? "bg-pasha-ink text-white border-pasha-ink"
-                : "border-pasha-ink/10 bg-pasha-stone text-pasha-ink hover:bg-pasha-ink hover:text-white hover:border-pasha-ink"
-            }`}
-          >
-            {it.glyph}
-          </a>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -1416,3 +1361,61 @@ function YouTubeGlyph({ className }: { className?: string }) {
     </svg>
   );
 }
+
+// SidebarSocialRow — "Connect with the company" icon row at the bottom of the
+// At a glance card (website + whichever social links the startup has set).
+function SidebarSocialRow({
+  row,
+  websiteHref,
+  websiteShown,
+}: {
+  row: Row;
+  websiteHref: string;
+  websiteShown: string | null;
+}) {
+  const items: { label: string; href: string; glyph: React.ReactNode; primary?: boolean }[] = [];
+  if (websiteShown && websiteHref !== "#") {
+    items.push({ label: "Website", href: websiteHref, glyph: <Globe className="h-[18px] w-[18px]" aria-hidden />, primary: true });
+  }
+  function push(label: string, raw: string | null | undefined, glyph: React.ReactNode) {
+    if (!raw) return;
+    const href = safeHref(raw);
+    if (href === "#") return;
+    items.push({ label, href, glyph });
+  }
+  push("LinkedIn", row.company_linkedin, <LinkedInGlyph className="h-[18px] w-[18px]" />);
+  push("Instagram", row.company_instagram, <InstagramGlyph className="h-[18px] w-[18px]" />);
+  push("X", row.company_x, <XGlyph className="h-[18px] w-[18px]" />);
+  push("YouTube", row.company_youtube, <YouTubeGlyph className="h-[18px] w-[18px]" />);
+  push("Facebook", row.company_facebook, <FacebookGlyph className="h-[18px] w-[18px]" />);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="bg-white px-4.5 pb-4 pt-4.5">
+      <span className="block px-0.5 mb-3 text-[10px] font-bold uppercase tracking-[1.5px] text-pasha-muted/80">
+        Connect with the company
+      </span>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {items.map((it) => (
+          <a
+            key={it.label}
+            href={it.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={it.label}
+            title={it.label}
+            className={`grid h-12 place-items-center rounded-[13px] border transition-colors ${
+              it.primary
+                ? "bg-pasha-ink text-white border-pasha-ink"
+                : "border-pasha-ink/10 bg-pasha-stone text-pasha-ink hover:bg-pasha-ink hover:text-white hover:border-pasha-ink"
+            }`}
+          >
+            {it.glyph}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+

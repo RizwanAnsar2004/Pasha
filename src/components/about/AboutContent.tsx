@@ -70,7 +70,7 @@ export function AboutContent() {
           @
         </span>
 
-        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="relative site-container">
           <Reveal>
             <Kicker tone="light">About the directory</Kicker>
             <h1 className="mt-5 font-serif font-bold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">

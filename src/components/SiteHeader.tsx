@@ -33,10 +33,10 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
     <header className="sticky top-0 z-50 w-full">
       {/* Announcement bar */}
       <div className="hidden sm:block bg-pasha-ink text-white/70">
-        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
-          <div className="flex items-center justify-between h-9 text-xs">
-            <span className="font-mono uppercase tracking-[1.5px]">
-              The vetted home of Pakistani product startups
+        <div className="site-container">
+          <div className="flex items-center justify-between h-8 text-xs"  style={{ fontSize: "0.65rem" }}>
+            <span className="font-mono ">
+              <strong className="text-white">P@SHA Startup Directory</strong>  · Discover ambitious startups across Pakistan
             </span>
             <Link href="/apply" className="inline-flex items-center gap-1.5 text-white hover:text-pasha-red-light transition-colors">
               Applications are open
@@ -56,8 +56,8 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
           background: "linear-gradient(90deg, #EFEDE9 0%, #F3E6E1 55%, #F5DBD5 100%)",
         }}
       >
-        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
-          <div className="flex items-center justify-between h-20">
+        <div className="site-container">
+          <div className="flex items-center justify-between h-[74px]">
             <PashaLogo width={125} priority />
 
             <div className="hidden lg:flex items-center gap-9">
@@ -72,7 +72,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
                       key={link.href}
                       href={link.href}
                       className={cn(
-                        "relative text-[14px] font-medium transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
+                        "relative text-[12px] font-semibold transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
                         active ? "text-pasha-red" : "text-pasha-ink/80 hover:text-pasha-ink"
                       )}
                     >
@@ -88,12 +88,12 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
                   variant="outline"
                   dot={false}
                   arrow={false}
-                  className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-sm font-medium shadow-sm"
+                  className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-xs font-semibold shadow-sm"
                 >
                   <Search className="h-4 w-4" />
                   Search directory
                 </PillButton>
-                <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-sm font-medium">
+                <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-xs font-semibold">
                   List your startup
                 </PillButton>
               </div>

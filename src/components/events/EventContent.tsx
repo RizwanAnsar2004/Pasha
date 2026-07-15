@@ -191,7 +191,7 @@ export function EventDetailContent({
           @
         </span>
 
-        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="relative site-container">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-md bg-pasha-red px-2.5 py-1 text-[10px] font-mono uppercase tracking-[2px] text-white">
               {eventTypeLabel(event.event_type)}
@@ -239,7 +239,7 @@ export function EventDetailContent({
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1480px] px-5 sm:px-8 py-12 sm:py-16">
+      <section className="site-container py-12 sm:py-16">
         <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
           <div className="space-y-10 min-w-0">
             {aboutParagraphs.length > 0 && (

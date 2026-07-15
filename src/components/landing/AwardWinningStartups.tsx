@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
-import { PillButton } from "./shared/PillButton";
 
 export type AwardWinningStartup = {
   id: string;
@@ -47,22 +46,28 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
         <div className="absolute -bottom-32 -right-20 w-[480px] h-[480px] rounded-full bg-accent-yellow/[0.06] blur-[140px]" />
       </div>
 
-      <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="relative site-container">
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16">
           <Reveal>
             <Kicker tone="light">Recognition</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white text-balance">
+            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white text-balance">
               Built to win on the world stage.
             </h2>
-            <p className="mt-4 text-white/55 text-xl leading-relaxed text-pretty max-w-md">
+            <p className="mt-4 text-white/55 text-base leading-relaxed text-pretty max-w-md">
               Recognised by P@SHA and industry partners for outstanding products, growth, and impact.
             </p>
-            <PillButton href="/directory" variant="outline-light" className="mt-6">
+            <Link
+              href="/directory"
+              className="group mt-6 inline-flex items-center gap-3 rounded-full border border-white/25 bg-white/[0.06] py-2.5 pl-5 pr-2.5 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:text-pasha-ink"
+            >
               View all awards
-            </PillButton>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-pasha-red text-white">
+                <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+              </span>
+            </Link>
           </Reveal>
 
-          <Reveal delay={0.1}>
+          <Reveal delay={0.1} className="min-w-0">
             <ol className="border-t border-white/10">
               {winners.map((winner, i) => {
                 const meta = [winner.primary_industry, winner.city].filter(Boolean).join(" · ");
@@ -77,7 +82,7 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline gap-2 flex-wrap">
-                          <span className="font-serif text-2xl sm:text-3xl font-bold text-white group-hover:text-pasha-red-light transition-colors">
+                          <span className="font-serif text-2xl sm:text-2xl font-bold text-white group-hover:text-pasha-red-light transition-colors">
                             {winner.startup_name}
                           </span>
                           {meta && <span className="text-xs text-white/35">{meta}</span>}

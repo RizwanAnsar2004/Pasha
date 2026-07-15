@@ -11,10 +11,10 @@ export function NewsTicker() {
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
   return (
-    <div className="relative overflow-hidden bg-pasha-ink border-y border-white/10 py-3.5">
+    <div className="relative overflow-hidden bg-pasha-ink border-y border-white/10 py-5">
       <div className="flex w-max animate-marquee">
         {items.map((item, i) => (
-          <span key={i} className="flex items-center shrink-0 px-6 text-sm font-medium text-white/70 whitespace-nowrap">
+          <span key={i} className="flex items-center shrink-0 px-6 text-sm font-bold text-white whitespace-nowrap">
             {item}
             <span aria-hidden className="ml-6 text-pasha-red">
               &#10022;

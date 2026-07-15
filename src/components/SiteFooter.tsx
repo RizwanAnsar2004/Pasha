@@ -4,7 +4,7 @@ import { PashaLogo } from "./PashaLogo";
 export function SiteFooter() {
   return (
     <footer className="bg-pasha-ink text-white">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8 py-16">
+      <div className="site-container py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-2 md:pr-10">
             <PashaLogo width={130} href="/" className="brightness-0 invert" />

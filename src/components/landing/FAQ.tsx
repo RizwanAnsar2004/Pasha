@@ -40,7 +40,7 @@ export function FAQ() {
 
   return (
     <section id="faq" className="relative bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="site-container">
         <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-16">
           <Reveal>
             <div className="lg:sticky lg:top-28">

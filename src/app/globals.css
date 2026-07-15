@@ -46,6 +46,21 @@
   --radius-md: 0.875rem;
   --radius-lg: 1.25rem;
   --radius-xl: 1.75rem;
+
+  /* Site-wide content container — single source of truth for max width. */
+  --container-max: 1280px;
+}
+
+/* Site-wide container: capped at --container-max, with a 32px gutter on each
+   side once the viewport is narrower than that. Named `site-container`, not
+   `container` — Tailwind v4 treats `container` as a reserved multi-rule
+   utility with its own hardcoded breakpoint ladder, and @utility can't
+   cleanly override that reserved name (it gets silently superseded). Every
+   section uses `className="site-container"` instead of repeating
+   `mx-auto max-w-[Npx] px-5 sm:px-8` everywhere. */
+@utility site-container {
+  width: min(var(--container-max), calc(100% - 64px));
+  margin-inline: auto;
 }
 
 @layer base {

@@ -54,8 +54,8 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
 
 function CardFooterLinks({ dark = false }: { dark?: boolean }) {
   const cls = dark
-    ? "text-sm font-bold text-white hover:text-white/70"
-    : "text-sm font-bold text-pasha-ink hover:text-pasha-ink/60";
+    ? "text-xs font-bold text-white hover:text-white/70"
+    : "text-xs font-bold text-pasha-ink hover:text-pasha-ink/60";
   return (
     <div className={`mt-5 flex items-center justify-between border-t pt-4 ${dark ? "border-white/15" : "border-pasha-ink/10"}`}>
       <Link href="/directory" className={`inline-flex items-center gap-1 transition-colors ${cls}`}>
@@ -85,7 +85,7 @@ function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: s
 
       <div className="mt-5 flex items-center justify-between gap-2">
         {startup.primary_industry && (
-          <span className="rounded-full bg-pasha-ink px-3 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-white">
+          <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-pasha-ink">
             {startup.primary_industry}
           </span>
         )}
@@ -98,9 +98,9 @@ function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: s
       </div>
 
       <div className="mt-3">
-        <h3 className="font-serif text-2xl font-bold text-pasha-ink leading-tight">{startup.startup_name}</h3>
+        <h3 className="font-serif text-xl font-bold text-pasha-ink leading-tight">{startup.startup_name}</h3>
         {startup.tagline && (
-          <RichText inline value={startup.tagline} className="mt-1.5 text-base text-pasha-ink/60 leading-relaxed line-clamp-2" />
+          <RichText inline value={startup.tagline} className="mt-1.5 text-xs text-pasha-ink/60 leading-relaxed line-clamp-2" />
         )}
       </div>
 
@@ -197,19 +197,16 @@ export function DirectoryBento({ startups }: { startups: WatchlistStartup[] }) {
 
   return (
     <section id="directory" className="relative bg-pasha-stone py-20 sm:py-28">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="site-container">
         <Reveal className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
           <div>
             <Kicker>Featured startups</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
               Startups worth knowing.
             </h2>
           </div>
           <div className="max-w-md">
-            <p className="text-lg text-pasha-muted leading-relaxed">
-              Handpicked by the P@SHA committee — verified companies actively seeking investors,
-              pilots, and partnerships across Pakistan&apos;s product economy.
-            </p>
+            
             <PillButton href="/directory" variant="outline" className="mt-4">
               View all startups
             </PillButton>

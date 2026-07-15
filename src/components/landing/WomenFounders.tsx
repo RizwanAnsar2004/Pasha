@@ -74,6 +74,10 @@ export function WomenFounders({
   if (startups.length === 0) return null;
 
   const shown = startups.slice(0, 4);
+  // Keep the 2x2 grid shape (matches the reference design); unfilled slots
+  // just render as blank space rather than a placeholder card, and never get
+  // padded with real startups that aren't actually women-led.
+  const emptySlots = Math.max(0, 4 - shown.length);
 
   return (
     <section id="women-led" className="relative overflow-hidden bg-accent-coral/[0.08] py-20 sm:py-28">
@@ -85,19 +89,15 @@ export function WomenFounders({
         @
       </span>
 
-      <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="relative site-container">
         <Reveal className="flex flex-wrap items-start justify-between gap-8 mb-12">
           <div className="max-w-xl">
             <Kicker>Women-led startups</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
               Better visibility for the women building what comes next.
             </h2>
           </div>
           <div className="max-w-sm lg:pt-2">
-            <p className="text-pasha-muted text-base leading-relaxed text-pretty">
-              A dedicated spotlight on {formatNumber(totalCount)} women-led startups across
-              finance, health, mobility, education and enterprise technology.
-            </p>
             <Link
               href="/directory?women_led=true"
               className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-pasha-ink hover:text-pasha-red transition-colors underline underline-offset-4"
@@ -147,6 +147,9 @@ export function WomenFounders({
 
           {shown.map((startup, i) => (
             <ProfileCard key={startup.id} startup={startup} avatarTint={AVATAR_TINTS[i % AVATAR_TINTS.length]} />
+          ))}
+          {Array.from({ length: emptySlots }).map((_, i) => (
+            <div key={`empty-${i}`} aria-hidden />
           ))}
         </div>
       </div>

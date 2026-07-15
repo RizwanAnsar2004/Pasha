@@ -1111,7 +1111,7 @@ export function DirectoryClient({
 
               {/* Meta row */}
               {(city || foundedYear) && (
-                <div className="relative z-20 pointer-events-none mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-pasha-ink/50">
+                <div className="relative z-20 pointer-events-none mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-pasha-ink/50">
                   {city && (
                     <span className="inline-flex items-center gap-1">
                       <MapPin aria-hidden className="h-3 w-3 text-pasha-red" />
@@ -1132,7 +1132,7 @@ export function DirectoryClient({
                 {displayTagline ? (
                   <RichText inline value={displayTagline} className="text-[13px] leading-relaxed text-pasha-ink/60 line-clamp-2" />
                 ) : (
-                  <p className="text-[13px] leading-relaxed text-pasha-ink/40 italic">No description available</p>
+                  <p className="text-[12px] leading-relaxed text-pasha-ink/40 italic">No description available</p>
                 )}
               </div>
 
@@ -1149,8 +1149,8 @@ export function DirectoryClient({
                 >
                   {statItems.map((s, si) => (
                     <div key={si} className="px-3">
-                      <small className="block text-[9px] font-bold uppercase tracking-[1px] text-pasha-muted mb-0.5">{s.label}</small>
-                      <strong className="block truncate text-[13px] text-pasha-ink">{s.value}</strong>
+                      <small className="block text-[8px] font-medium uppercase tracking-[1px] text-pasha-muted mb-0.5">{s.label}</small>
+                      <strong className="block truncate text-[10px] text-pasha-ink">{s.value}</strong>
                     </div>
                   ))}
                 </div>

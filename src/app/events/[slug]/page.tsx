@@ -47,7 +47,7 @@ export default async function EventDetailPage({
     <>
       <SiteHeader />
       <main className="flex-1">
-        <div className="mx-auto max-w-[1480px] px-5 sm:px-8 pt-6">
+        <div className="site-container pt-6">
           <Link
             href="/events"
             className="inline-flex items-center gap-2 text-sm text-pasha-muted hover:text-pasha-ink transition-colors"

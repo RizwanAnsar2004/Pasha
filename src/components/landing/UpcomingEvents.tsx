@@ -25,7 +25,7 @@ export function UpcomingEvents({ events }: { events: EventRow[] }) {
 
   return (
     <section id="events" className="relative overflow-hidden bg-accent-coral/[0.08] py-20 sm:py-28">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="site-container">
         <Reveal className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.4fr] gap-8 lg:gap-14 items-center">
           <div className="text-center lg:text-left">
             <span className="block font-serif font-black text-pasha-ink leading-none text-[clamp(6rem,12vw,10rem)]">

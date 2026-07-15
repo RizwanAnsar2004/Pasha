@@ -269,7 +269,7 @@ export default async function DirectoryPage({
       <main className="flex-1 bg-pasha-stone">
         <DirectoryHero totalStartups={totalAll} sectorCount={sectors.length} cityCount={cities.length} />
         <section id="directory" className="py-16 sm:py-24">
-          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="site-container">
             {/* useSearchParams in the client needs a Suspense boundary; route
                 transitions reuse the existing UI so the fallback only shows on
                 the very first paint. */}
@@ -290,7 +290,7 @@ export default async function DirectoryPage({
         </section>
 
         <section className="bg-white py-14 sm:py-20">
-          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="site-container">
             <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
               <span
                 aria-hidden

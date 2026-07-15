@@ -67,7 +67,7 @@ export function NewsCarousel() {
 
   return (
     <section id="news" className="relative bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="site-container">
         <Reveal className="flex flex-wrap items-end justify-between gap-6 mb-10">
           <h2 className="max-w-3xl font-serif text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[0.98] tracking-tight text-pasha-ink text-balance">
             News, insight and signals from Pakistan&apos;s startup community.

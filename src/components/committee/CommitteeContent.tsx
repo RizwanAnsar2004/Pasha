@@ -174,7 +174,7 @@ export function CommitteeContent({
           @
         </span>
 
-        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="relative site-container">
           <Reveal>
             <Kicker tone="light">P@SHA Startups &amp; Entrepreneurship Committee</Kicker>
             <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
@@ -205,7 +205,7 @@ export function CommitteeContent({
           MISSION & OBJECTIVES
           ─────────────────────────────────────────────────────── */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
-        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="site-container">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-16">
             {/* Left: heading + body */}
             <motion.div
@@ -267,7 +267,7 @@ export function CommitteeContent({
           aria-hidden
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-accent-coral/[0.08] to-pasha-red/[0.06] blur-3xl"
         />
-        <div className="relative mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="relative site-container">
 
           {/* Section header */}
           <motion.div
@@ -395,7 +395,7 @@ export function CommitteeContent({
           ─────────────────────────────────────────────────────── */}
       {activities.length > 0 ? (
         <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
-          <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+          <div className="site-container">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -460,7 +460,7 @@ export function CommitteeContent({
           CTA
           ─────────────────────────────────────────────────────── */}
       <section className="bg-pasha-stone py-14 sm:py-20">
-        <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+        <div className="site-container">
           <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
             <span
               aria-hidden

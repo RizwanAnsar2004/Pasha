@@ -53,7 +53,7 @@ export function PillButton(props: LinkProps | ButtonProps) {
   );
 
   const cls = cn(
-    "group inline-flex items-center gap-2.5 rounded-full py-2.5 pl-2.5 pr-6 text-base font-semibold transition-all duration-300 hover:-translate-y-0.5",
+    "group inline-flex items-center gap-2.5 rounded-full py-2.5 pl-2.5 pr-6 text-xs font-bold transition-all duration-300 hover:-translate-y-0.5",
     !dot && "pl-5",
     VARIANT_CLS[variant],
     className

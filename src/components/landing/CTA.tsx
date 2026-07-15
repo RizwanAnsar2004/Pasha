@@ -5,7 +5,7 @@ import { PillButton } from "./shared/PillButton";
 export function CTA() {
   return (
     <section className="relative bg-pasha-stone py-20 sm:py-28">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
+      <div className="site-container">
         <Reveal className="relative overflow-hidden rounded-[32px] bg-pasha-ink px-6 py-14 sm:px-14 sm:py-20">
           <span
             aria-hidden

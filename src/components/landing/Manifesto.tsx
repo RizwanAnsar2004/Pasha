@@ -26,8 +26,8 @@ const PILLARS = [
 export function Manifesto() {
   return (
     <section className="relative bg-white py-20 sm:py-28 overflow-hidden">
-      <div className="mx-auto max-w-[1480px] px-5 sm:px-8">
-        <Reveal className="max-w-3xl">
+      <div className="site-container">
+        <Reveal className="">
           <p className="font-serif font-bold text-[clamp(2.1rem,4vw,3.4rem)] leading-[1.2] tracking-tight text-pasha-ink text-balance">
             A startup directory should do more than list names.{" "}
             <em className="not-italic text-pasha-red">It should open doors.</em>
