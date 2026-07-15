@@ -37,7 +37,7 @@ export function Ecosystem() {
               </span>
               <div className="relative">
                 <h3 className={`font-serif text-2xl font-bold ${c.dark ? "text-white" : "text-pasha-ink"}`}>{c.title}</h3>
-                <p className={`mt-2 text-base leading-relaxed ${c.dark ? "text-white/55" : "text-pasha-ink/60"}`}>
+                <p className={`mt-2 text-[12px] leading-relaxed ${c.dark ? "text-white/55" : "text-pasha-ink/99"}`}>
                   {c.body}
                 </p>
               </div>

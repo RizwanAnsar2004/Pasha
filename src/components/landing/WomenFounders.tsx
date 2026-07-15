@@ -4,6 +4,7 @@ import { initials, formatNumber } from "@/lib/utils";
 import { safeImageSrc } from "@/lib/safe-url";
 import { RichText } from "@/components/ui/RichText";
 import { Kicker } from "./shared/Kicker";
+import { PillButton } from "./shared/PillButton";
 import { Reveal } from "./shared/Reveal";
 import type { WomenLedStartup } from "@/lib/women-led";
 
@@ -43,11 +44,11 @@ function ProfileCard({ startup, avatarTint }: { startup: WomenLedStartup; avatar
       </div>
 
       <div className="mt-5">
-        <h3 className="font-serif text-2xl font-bold text-pasha-ink leading-tight">{startup.startup_name}</h3>
+        <h3 className="font-serif text-xl font-bold text-pasha-ink leading-tight">{startup.startup_name}</h3>
         {startup.tagline ? (
-          <RichText inline value={startup.tagline} className="mt-1.5 text-sm text-pasha-ink/60 leading-relaxed line-clamp-2" />
+          <RichText inline value={startup.tagline} className="mt-1.5 text-xs text-pasha-ink/60 leading-relaxed line-clamp-2" />
         ) : startup.city ? (
-          <span className="mt-1.5 inline-flex items-center gap-1 text-sm text-pasha-ink/60">
+          <span className="mt-1.5 inline-flex items-center gap-1 text-xs text-pasha-ink/60">
             <MapPin className="h-3 w-3" />
             {startup.city}
           </span>
@@ -55,7 +56,7 @@ function ProfileCard({ startup, avatarTint }: { startup: WomenLedStartup; avatar
       </div>
 
       <div className="mt-5 border-t border-pasha-ink/10 pt-4">
-        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-pasha-ink group-hover:text-pasha-red transition-colors">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-pasha-ink group-hover:text-pasha-red transition-colors">
           View profile
           <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </span>
@@ -91,20 +92,16 @@ export function WomenFounders({
 
       <div className="relative site-container">
         <Reveal className="flex flex-wrap items-start justify-between gap-8 mb-12">
-          <div className="max-w-xl">
+          <div className="max-w-3xl">
             <Kicker>Women-led startups</Kicker>
             <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
               Better visibility for the women building what comes next.
             </h2>
           </div>
           <div className="max-w-sm lg:pt-2">
-            <Link
-              href="/directory?women_led=true"
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-pasha-ink hover:text-pasha-red transition-colors underline underline-offset-4"
-            >
+            <PillButton href="/directory?women_led=true" variant="outline" dot className="mt-4">
               Browse women-led profiles
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            </PillButton>
           </div>
         </Reveal>
 

@@ -58,7 +58,7 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
             </p>
             <Link
               href="/directory"
-              className="group mt-6 inline-flex items-center gap-3 rounded-full border border-white/25 bg-white/[0.06] py-2.5 pl-5 pr-2.5 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:text-pasha-ink"
+              className="group mt-6 inline-flex items-center gap-3 rounded-full border border-white/25 bg-white/[0.06] py-2.5 pl-5 pr-2.5 text-xs font-regular text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:text-pasha-ink"
             >
               View all awards
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-pasha-red text-white">
@@ -82,12 +82,12 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline gap-2 flex-wrap">
-                          <span className="font-serif text-2xl sm:text-2xl font-bold text-white group-hover:text-pasha-red-light transition-colors">
+                          <span className="font-serif text-1xl sm:text-xl font-bold text-white group-hover:text-pasha-red-light transition-colors">
                             {winner.startup_name}
                           </span>
                           {meta && <span className="text-xs text-white/35">{meta}</span>}
                         </span>
-                        <span className="mt-1 block text-base text-white/45 truncate">
+                        <span className="mt-1 block text-xs text-white/45 truncate">
                           {winner.titles.join(" · ")}
                         </span>
                       </span>

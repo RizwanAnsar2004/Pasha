@@ -54,8 +54,8 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
 
 function CardFooterLinks({ dark = false }: { dark?: boolean }) {
   const cls = dark
-    ? "text-xs font-bold text-white hover:text-white/70"
-    : "text-xs font-bold text-pasha-ink hover:text-pasha-ink/60";
+    ? "text-[10px] font-bold text-white hover:text-white/70"
+    : "text-[10px] font-bold text-pasha-ink hover:text-pasha-ink/60";
   return (
     <div className={`mt-5 flex items-center justify-between border-t pt-4 ${dark ? "border-white/15" : "border-pasha-ink/10"}`}>
       <Link href="/directory" className={`inline-flex items-center gap-1 transition-colors ${cls}`}>
@@ -85,7 +85,7 @@ function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: s
 
       <div className="mt-5 flex items-center justify-between gap-2">
         {startup.primary_industry && (
-          <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-pasha-ink">
+          <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-[1px] text-pasha-ink">
             {startup.primary_industry}
           </span>
         )}

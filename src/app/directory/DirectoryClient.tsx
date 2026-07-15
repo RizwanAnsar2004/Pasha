@@ -423,7 +423,7 @@ function PillFilter({
         isActive ? "border-pasha-red/35 bg-pasha-red/[0.04]" : "border-pasha-ink/10 bg-white"
       )}
     >
-      <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-muted">
+      <span className="mb-0.5 block text-[9px] font-regular uppercase tracking-[1.5px] text-pasha-muted">
         {label}
       </span>
       <SelectMenu
@@ -431,7 +431,7 @@ function PillFilter({
         onValueChange={onChange}
         aria-label={`Filter by ${label.toLowerCase()}`}
         className={cn(
-          "h-auto w-full border-0 bg-transparent p-0 text-sm font-bold",
+          "h-auto w-full border-0 bg-transparent p-0 text-sm font-medium",
           isActive ? "text-pasha-red" : "text-pasha-ink"
         )}
         options={options}
@@ -1084,7 +1084,7 @@ export function DirectoryClient({
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="min-w-0 truncate font-serif text-[1.1rem] font-bold leading-tight tracking-tight text-pasha-ink">
+                    <h3 className="min-w-0 truncate font-serif text-[1.1rem] font-semibold leading-tight tracking-tight text-pasha-ink">
                       {r.startup_name}
                     </h3>
                     {r.pasha_verified && (
@@ -1096,7 +1096,7 @@ export function DirectoryClient({
                   {sectorLabel && (
                     <span
                       className={cn(
-                        "mt-1.5 inline-flex max-w-full items-center truncate rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[1px]",
+                        "mt-1.5 inline-flex max-w-full items-center truncate rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[1px]",
                         theme.badge
                       )}
                     >
@@ -1180,7 +1180,7 @@ export function DirectoryClient({
                       onClick={(e) => e.stopPropagation()}
                       aria-label={`${r.startup_name} on LinkedIn`}
                       title="LinkedIn"
-                      className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[#0A66C2] text-white transition-colors hover:bg-[#0A66C2]/85"
+                      className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-[#0A66C2] hover:text-white hover:border-[#0A66C2]"
                     >
                       <LinkedInGlyph className="h-3.5 w-3.5" />
                     </a>

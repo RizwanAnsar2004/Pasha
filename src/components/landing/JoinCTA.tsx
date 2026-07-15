@@ -29,7 +29,7 @@ export function JoinCTA() {
               <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-white text-balance">
                 Put your startup where the right people can find it.
               </h2>
-              <p className="mt-5 text-white/55 text-base sm:text-xl leading-relaxed max-w-md text-pretty">
+              <p className="mt-5 text-white/55 text-base sm:text-md leading-relaxed max-w-md text-pretty">
                 No fee, no equity — just a real committee review and a public profile built to convert.
               </p>
 
@@ -37,7 +37,7 @@ export function JoinCTA() {
                 {BENEFITS.map((b) => (
                   <span
                     key={b}
-                    className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/70"
+                    className="rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-regular text-white/70"
                   >
                     {b}
                   </span>
@@ -46,13 +46,13 @@ export function JoinCTA() {
 
               <Link
                 href="/apply"
-                className="group mt-9 inline-flex items-center gap-6 rounded-full bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
+                className="group mt-9 inline-flex items-center gap-6 rounded-2xl bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
               >
                 <span className="flex flex-col items-start">
-                  <span className="text-[11px] font-bold uppercase tracking-[1.5px] text-white/70">
+                  <span className="text-[11px] font-medium uppercase tracking-[1.5px] text-white/70">
                     Ready when you are
                   </span>
-                  <span className="text-lg sm:text-xl font-extrabold text-white">Start your application</span>
+                  <span className="text-md sm:text-md font-extrabold text-white">Start your application</span>
                 </span>
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-pasha-red transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                   <ArrowUpRight className="h-6 w-6" strokeWidth={2.5} />
@@ -63,11 +63,11 @@ export function JoinCTA() {
 
             <div className="flex flex-col gap-5">
               {STEPS.map((s) => (
-                <div key={s.n} className="flex items-start gap-6 rounded-[20px] bg-white/[0.04] p-6 sm:p-7">
-                  <span className="font-serif text-3xl font-black text-pasha-red-light shrink-0">{s.n}</span>
+                <div key={s.n} className="flex items-start gap-6 rounded-[20px] bg-white/[0.04] p-6 sm:p-8">
+                  <span className="font-serif text-2xl font-black text-pasha-red-light shrink-0">{s.n}</span>
                   <div>
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-white">{s.title}</h3>
-                    <p className="mt-1.5 text-sm sm:text-base text-white/50 leading-relaxed">{s.body}</p>
+                    <h3 className="font-serif text-xl sm:text-1xl font-bold text-white">{s.title}</h3>
+                    <p className="mt-1.5 text-xs sm:text-xs text-white/50 leading-relaxed">{s.body}</p>
                   </div>
                 </div>
               ))}

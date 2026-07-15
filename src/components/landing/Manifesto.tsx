@@ -28,7 +28,7 @@ export function Manifesto() {
     <section className="relative bg-white py-20 sm:py-28 overflow-hidden">
       <div className="site-container">
         <Reveal className="">
-          <p className="font-serif font-bold text-[clamp(2.1rem,4vw,3.4rem)] leading-[1.2] tracking-tight text-pasha-ink text-balance">
+          <p className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
             A startup directory should do more than list names.{" "}
             <em className="not-italic text-pasha-red">It should open doors.</em>
           </p>
@@ -61,8 +61,8 @@ export function Manifesto() {
             {PILLARS.map((p) => (
               <div key={p.n}>
                 <span className="font-mono text-lg text-pasha-red font-semibold">{p.n}</span>
-                <h3 className="mt-2 font-serif text-xl font-bold text-pasha-ink">{p.title}</h3>
-                <p className="mt-2 text-base text-pasha-muted leading-relaxed">{p.body}</p>
+                <h3 className="mt-2 font-serif text-lg font-bold text-pasha-ink">{p.title}</h3>
+                <p className="mt-2 text-[12px] text-pasha-muted leading-relaxed">{p.body}</p>
               </div>
             ))}
           </Reveal>

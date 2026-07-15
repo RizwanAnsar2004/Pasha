@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Users,
+  Info,
 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -255,10 +256,16 @@ type RelatedStartup = {
   founded_date: string | null;
   website: string | null;
   company_linkedin: string | null;
+  pasha_verified: boolean | null;
+  total_employees: number | null;
+  business_types: string | null;
+  women_led: boolean | null;
+  hiring: boolean | null;
+  fundraising: boolean | null;
 };
 
 const RELATED_COLS =
-  "id,startup_name,tagline,primary_industry,city,logo_url,product_stage,founded_date,website,company_linkedin,pasha_verified,created_at";
+  "id,startup_name,tagline,primary_industry,city,logo_url,product_stage,founded_date,website,company_linkedin,pasha_verified,created_at,total_employees,business_types,women_led,hiring,fundraising";
 
 /**
  * Other startups a visitor browsing this profile might want to see next —
@@ -372,6 +379,13 @@ function splitMulti(v: string | null | undefined): string[] {
     .split(/[|;,]+/)
     .map((s) => s.trim())
     .filter((s) => s && s.toUpperCase() !== "NULL");
+}
+
+// Compact number formatter for the related-card facts grid (1,200,000 → "1.2M").
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  return n.toLocaleString("en-PK");
 }
 
 function isSelfHostedImage(u: string | null | undefined): u is string {
@@ -753,7 +767,7 @@ export default async function StartupDetailPage({
                   )}
                   {(sector || secondaries.length > 0 || bizTypes.length > 0) && (
                     <div className="mt-7 flex flex-wrap gap-2">
-                      {[sector, ...secondaries, ...bizTypes].filter(Boolean).map((tag) => (
+                      {Array.from(new Set([sector, ...secondaries, ...bizTypes].filter(Boolean))).map((tag) => (
                         <span
                           key={tag}
                           className="rounded-full border border-pasha-ink/10 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[1px] text-pasha-ink/65"
@@ -847,28 +861,37 @@ export default async function StartupDetailPage({
                         </div>
                       ))}
                     </div>
+                    <div className="relative mt-6 flex items-center gap-3 rounded-[16px] bg-white/[0.04] px-5 py-4">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-white/60">
+                        <Info className="h-3.5 w-3.5" />
+                      </span>
+                      <p className="text-[12px] text-white/75">
+                        Figures are reported by the founding team and have not been independently verified.
+                      </p>
+                    </div>
                   </Reveal>
                 )}
 
                 {hasRecognition && (
                   <StorySection number={numRecognition!} label="Awards & recognition">
-                    <ol className="border-t border-pasha-ink/[0.14]">
+                    <ol className="border-t border-pasha-ink/10">
                       {awardEntries.map((a, i) => (
-                        <li key={`${a.title}-${i}`} className="flex items-start justify-between gap-4 border-b border-pasha-ink/[0.14] py-6">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                              <h3 className="text-xl font-bold tracking-tight text-pasha-ink">{a.title}</h3>
-                              {a.year && (
-                                <span className="inline-flex items-center rounded-full bg-pasha-ink/[0.06] px-2.5 py-0.5 text-xs font-bold tracking-wide text-pasha-ink/60">
-                                  {a.year}
-                                </span>
-                              )}
-                            </div>
+                        <li
+                          key={`${a.title}-${i}`}
+                          className="group flex items-start gap-6 border-b border-pasha-ink/10 py-6 transition-transform duration-300 hover:translate-x-1.5"
+                        >
+                          <span className="w-12 shrink-0 pt-1 text-sm font-bold text-pasha-ink/40">
+                            {a.year ?? ""}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-xl font-bold tracking-tight text-pasha-ink">{a.title}</h3>
                             {a.description && (
-                              <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-pasha-ink/65">{a.description}</p>
+                              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-pasha-ink/65">{a.description}</p>
                             )}
                           </div>
-                          <ArrowUpRight className="mt-1 h-5 w-5 shrink-0 text-pasha-red" aria-hidden />
+                          <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-pasha-ink/15 text-pasha-ink/50 transition-all group-hover:bg-pasha-red group-hover:border-pasha-red group-hover:text-white">
+                            <ArrowUpRight className="h-4 w-4" aria-hidden />
+                          </span>
                         </li>
                       ))}
                     </ol>
@@ -977,7 +1000,7 @@ export default async function StartupDetailPage({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-px bg-pasha-ink/[0.09]">
+                    <div className="grid grid-cols-2 gap-px bg-pasha-ink/[0.05]">
                       {[
                         { icon: <Calendar className="h-[19px] w-[19px]" aria-hidden />, label: "Founded", value: founded },
                         { icon: <MapPin className="h-[19px] w-[19px]" aria-hidden />, label: "Location", value: city },
@@ -992,7 +1015,7 @@ export default async function StartupDetailPage({
                             </span>
                             <div>
                               <small className="block text-[10px] font-medium uppercase tracking-[1px] text-pasha-muted/80">{f.label}</small>
-                              <strong className="text-[13px] leading-snug text-pasha-ink">{f.value}</strong>
+                              <strong className="text-[12px] leading-snug text-pasha-ink">{f.value}</strong>
                             </div>
                           </div>
                         ))}
@@ -1095,7 +1118,12 @@ export default async function StartupDetailPage({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {related.map((r, i) => (
-                  <RelatedCard key={r.id} startup={r} tint={RELATED_TINTS[i % RELATED_TINTS.length]} />
+                  <RelatedCard
+                    key={r.id}
+                    startup={r}
+                    tint={RELATED_TINTS[i % RELATED_TINTS.length]}
+                    sequence={String(i + 1).padStart(2, "0")}
+                  />
                 ))}
               </div>
             </div>
@@ -1136,10 +1164,51 @@ export default async function StartupDetailPage({
 // === presentational helpers ===
 
 const RELATED_TINTS = [
-  { bg: "bg-accent-coral/[0.18]", text: "text-[#a64043]" },
-  { bg: "bg-accent-green/[0.16]", text: "text-[#267c5a]" },
-  { bg: "bg-accent-purple/[0.16]", text: "text-[#654d88]" },
+  {
+    bg: "bg-accent-coral/[0.18]",
+    text: "text-[#a64043]",
+    stripe: "bg-gradient-to-r from-accent-coral to-accent-coral",
+    badge: "bg-accent-coral/[0.12] text-[#a64043] border-accent-coral/20",
+  },
+  {
+    bg: "bg-accent-green/[0.16]",
+    text: "text-[#267c5a]",
+    stripe: "bg-gradient-to-r from-accent-green to-accent-green",
+    badge: "bg-accent-green/[0.14] text-[#267c5a] border-accent-green/20",
+  },
+  {
+    bg: "bg-accent-purple/[0.16]",
+    text: "text-[#654d88]",
+    stripe: "bg-gradient-to-r from-accent-purple to-accent-purple",
+    badge: "bg-accent-purple/[0.13] text-[#654d88] border-accent-purple/20",
+  },
 ];
+
+// Women-led / Hiring / Fundraising badge pills — same neutral pill style used
+// on the directory listing grid cards (DirectoryClient.tsx's DirectoryBadges).
+const RELATED_BADGE_CLS = "bg-pasha-ink/[0.05] text-pasha-ink/65 border-pasha-ink/10";
+const RELATED_BADGE_LABEL: Record<"women_led" | "hiring" | "fundraising", string> = {
+  women_led: "Women-led",
+  hiring: "Hiring",
+  fundraising: "Fundraising",
+};
+
+function RelatedBadges({ startup }: { startup: RelatedStartup }) {
+  const keys = (["women_led", "hiring", "fundraising"] as const).filter((k) => startup[k]);
+  if (keys.length === 0) return null;
+  return (
+    <div className="relative z-20 pointer-events-none flex flex-wrap items-center gap-1 mt-2.5">
+      {keys.map((k) => (
+        <span
+          key={k}
+          className={`inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-medium ${RELATED_BADGE_CLS}`}
+        >
+          {RELATED_BADGE_LABEL[k]}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 // Numbered editorial section — the big "01 / 02 …" label column paired with
 // content, matching the reference's story-section rhythm.
@@ -1191,97 +1260,175 @@ function ProblemSolutionCard({
       {/* The founder's real problem / solution statement — the card's hero copy
           (no generic template headline). Sized to stay prominent yet wrap a
           full paragraph gracefully. */}
-      <p className="relative text-[1.35rem] leading-[1.45] tracking-tight text-pasha-ink font-semibold max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
+      <p className="relative text-[13px] leading-[1.45] tracking-tight text-pasha-ink font-regular max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
         {body}
       </p>
     </article>
   );
 }
 
-function RelatedCard({ startup, tint }: { startup: RelatedStartup; tint: { bg: string; text: string } }) {
+function RelatedCard({
+  startup,
+  tint,
+  sequence,
+}: {
+  startup: RelatedStartup;
+  tint: { bg: string; text: string; stripe: string; badge: string };
+  sequence: string;
+}) {
   const safeLogo = safeImageSrc(startup.logo_url);
   const logoOk = isSelfHostedImage(startup.logo_url);
   const href = `/directory/${startupSlug(startup.startup_name, startup.id)}`;
   const websiteHref = startup.website ? safeHref(startup.website) : null;
   const linkedinHref = startup.company_linkedin ? safeHref(startup.company_linkedin) : null;
   const founded = formatYear(startup.founded_date);
+  const teamSize = startup.total_employees && startup.total_employees > 0 ? compact(startup.total_employees) : null;
+  const businessModel = splitMulti(startup.business_types).join(" · ") || null;
+  const statItems = (
+    [
+      startup.product_stage && { label: "Stage", value: startup.product_stage },
+      teamSize && { label: "Team size", value: teamSize },
+      businessModel && { label: "Business model", value: businessModel },
+    ].filter(Boolean) as { label: string; value: string }[]
+  ).slice(0, 3);
 
   return (
-    <Reveal className="flex flex-col min-h-[420px] rounded-[25px] border border-pasha-ink/10 bg-[#f8f6f2] p-6 transition-transform duration-300 hover:-translate-y-1.5 hover:shadow-[0_26px_58px_rgba(23,23,23,0.09)]">
-      <div className="flex items-start justify-between gap-5">
-        <div className={`grid h-[68px] w-[68px] place-items-center overflow-hidden rounded-[18px] font-bold text-sm ${tint.bg} ${tint.text}`}>
+    <Reveal className="group relative flex min-h-[300px] flex-col overflow-hidden rounded-[22px] border border-pasha-ink/10 bg-white p-5 transition-shadow duration-300 hover:shadow-[0_26px_58px_rgba(23,23,23,0.09)]">
+      {/* Top accent stripe */}
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-[4px]", tint.stripe)} />
+      <span className="absolute top-4 right-5 font-mono text-[11px] font-bold tracking-[1.5px] text-pasha-ink/35">
+        {sequence}
+      </span>
+
+      <Link
+        href={href}
+        aria-label={`View ${startup.startup_name} details`}
+        className="absolute inset-0 z-10 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
+      />
+
+      {/* Head — logo + title + category */}
+      <div className="relative z-20 pointer-events-none flex items-start gap-3">
+        <div
+          className={cn(
+            "grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[15px] text-sm font-bold",
+            logoOk ? "bg-white" : `${tint.bg} ${tint.text}`
+          )}
+        >
           {logoOk ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={safeLogo} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+            <img src={safeLogo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <span aria-hidden>{initials(startup.startup_name)}</span>
           )}
         </div>
-        {startup.city && (
-          <span className="inline-flex items-center gap-1.5 pt-1 text-xs text-pasha-ink/55 shrink-0">
-            <MapPin className="h-3.5 w-3.5 text-pasha-red" aria-hidden />
-            {startup.city}
-          </span>
-        )}
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex items-center gap-1.5">
+            <h3 className="min-w-0 truncate font-serif text-[1.1rem] font-semibold leading-tight tracking-tight text-pasha-ink">
+              {startup.startup_name}
+            </h3>
+            {startup.pasha_verified && (
+              <span className="pointer-events-auto shrink-0">
+                <VerifiedBadge size="sm" />
+              </span>
+            )}
+          </div>
+          {startup.primary_industry && (
+            <span
+              className={cn(
+                "mt-1.5 inline-flex max-w-full items-center truncate rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[1px]",
+                tint.badge
+              )}
+            >
+              {startup.primary_industry}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="mt-6 mb-4.5 flex flex-wrap gap-1.5">
-        {startup.primary_industry && (
-          <span className="rounded-full border border-pasha-ink/10 bg-white px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-pasha-ink/65">
-            {startup.primary_industry}
-          </span>
-        )}
-        {startup.product_stage && (
-          <span className="rounded-full border border-pasha-ink/10 bg-white px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-pasha-ink/65">
-            {startup.product_stage}
-          </span>
-        )}
-      </div>
+      {/* Hairline divider */}
+      <div className="relative z-20 mt-3 border-t border-pasha-ink/[0.07]" />
 
-      <h3 className="font-serif text-2xl font-bold tracking-tight text-pasha-ink mb-2.5">{startup.startup_name}</h3>
-      {startup.tagline && (
-        <AutoRichText value={startup.tagline} className="text-[13px] leading-relaxed text-pasha-ink/60 min-h-[54px]" />
-      )}
-
-      {founded && (
-        <div className="mt-6 mb-4.5 border-t border-b border-pasha-ink/10 py-3.5">
-          <small className="block text-[9px] font-bold uppercase tracking-[1px] text-pasha-muted mb-1.5">Founded</small>
-          <strong className="text-[13px] text-pasha-ink">{founded}</strong>
+      {/* Meta row */}
+      {(startup.city || founded) && (
+        <div className="relative z-20 pointer-events-none mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-pasha-ink/50">
+          {startup.city && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin aria-hidden className="h-3 w-3 text-pasha-red" />
+              {startup.city}
+            </span>
+          )}
+          {founded && (
+            <span className="inline-flex items-center gap-1">
+              <Calendar aria-hidden className="h-3 w-3 text-pasha-red" />
+              Founded {founded}
+            </span>
+          )}
         </div>
       )}
 
-      <div className="mt-auto flex items-center justify-end gap-2">
-        {websiteHref && websiteHref !== "#" && (
-          <a
-            href={websiteHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Visit ${startup.startup_name} website`}
-            title="Website"
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-pasha-red hover:text-white hover:border-pasha-red"
-          >
-            <Globe className="h-[19px] w-[19px]" aria-hidden />
-          </a>
+      {/* About */}
+      <div className="relative z-20 pointer-events-none mt-2.5">
+        {startup.tagline ? (
+          <AutoRichText value={startup.tagline} className="text-[13px] leading-relaxed text-pasha-ink/60 line-clamp-2" />
+        ) : (
+          <p className="text-[12px] leading-relaxed text-pasha-ink/40 italic">No description available</p>
         )}
-        {linkedinHref && linkedinHref !== "#" && (
-          <a
-            href={linkedinHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Visit ${startup.startup_name} LinkedIn`}
-            title="LinkedIn"
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-pasha-red hover:text-white hover:border-pasha-red"
-          >
-            <LinkedInGlyph className="h-[19px] w-[19px]" />
-          </a>
-        )}
+      </div>
+
+      <RelatedBadges startup={startup} />
+
+      {/* Facts row — Stage / Team size / Business model */}
+      {statItems.length > 0 && (
+        <div
+          className={cn(
+            "relative z-20 pointer-events-none mt-auto grid divide-x divide-pasha-ink/[0.07] rounded-[12px] bg-pasha-stone/60 py-2.5",
+            statItems.length >= 3 ? "grid-cols-3" : statItems.length === 2 ? "grid-cols-2" : "grid-cols-1"
+          )}
+        >
+          {statItems.map((s, si) => (
+            <div key={si} className="px-3">
+              <small className="block text-[8px] font-medium uppercase tracking-[1px] text-pasha-muted mb-0.5">{s.label}</small>
+              <strong className="block truncate text-[10px] text-pasha-ink">{s.value}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Footer icon actions */}
+      <div className={cn("relative z-20 flex items-center justify-between gap-2", statItems.length === 0 ? "mt-auto pt-3 border-t border-pasha-ink/10" : "mt-2.5")}>
+        <div className="flex items-center gap-2">
+          {websiteHref && websiteHref !== "#" ? (
+            <a
+              href={websiteHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Visit ${startup.startup_name} website`}
+              title="Website"
+              className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-pasha-red hover:text-white hover:border-pasha-red"
+            >
+              <Globe className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+          {linkedinHref && linkedinHref !== "#" ? (
+            <a
+              href={linkedinHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Visit ${startup.startup_name} LinkedIn`}
+              title="LinkedIn"
+              className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-pasha-ink/10 bg-white text-pasha-ink transition-colors hover:bg-[#0A66C2] hover:text-white hover:border-[#0A66C2]"
+            >
+              <LinkedInGlyph className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+        </div>
         <Link
           href={href}
           aria-label={`Open ${startup.startup_name} profile`}
           title="Open profile"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-pasha-ink text-white transition-colors hover:bg-pasha-red"
+          className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-pasha-ink text-white transition-colors hover:bg-pasha-red"
         >
-          <ArrowUpRight className="h-[19px] w-[19px]" aria-hidden />
+          <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     </Reveal>
