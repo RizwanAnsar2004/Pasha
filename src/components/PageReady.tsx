@@ -21,9 +21,9 @@ export function usePageReady(): boolean {
 
 // First load waits for the real page load (+ a branded minimum); subsequent
 // in-app navigations show a shorter loader since there's no window `load` event.
-const FIRST_MIN_MS = 1800;
-const NAV_MIN_MS = 900;
-const SAFETY_MS = 5000;
+const FIRST_MIN_MS = 700;
+const NAV_MIN_MS = 350;
+const SAFETY_MS = 4000;
 
 export function PageReadyProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

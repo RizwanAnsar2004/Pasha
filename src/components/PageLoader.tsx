@@ -17,7 +17,7 @@ export function PageLoader({ show }: { show: boolean }) {
           key="page-loader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.55, ease: EASE }}
+          transition={{ duration: 0.3, ease: EASE }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
           style={{ background: "linear-gradient(160deg, #FAF8F4 0%, #FFFFFF 60%, #FFF5F5 100%)" }}
         >
@@ -61,7 +61,7 @@ export function PageLoader({ show }: { show: boolean }) {
                   strokeDasharray={CIRCUMFERENCE}
                   initial={{ strokeDashoffset: CIRCUMFERENCE }}
                   animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 1.6, ease: "easeInOut" }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }}
                 />
                 <defs>
                   <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -75,7 +75,7 @@ export function PageLoader({ show }: { show: boolean }) {
               <motion.div
                 className="absolute inset-0"
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1.6, ease: "easeInOut" }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
                 style={{ transformOrigin: "center" }}
               >
                 <div
@@ -88,7 +88,7 @@ export function PageLoader({ show }: { show: boolean }) {
               <motion.div
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
+                transition={{ duration: 0.35, delay: 0.1, ease: EASE }}
                 className="absolute inset-0 flex items-center justify-center"
               >
                 <Image
@@ -106,7 +106,7 @@ export function PageLoader({ show }: { show: boolean }) {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5, ease: EASE }}
+              transition={{ duration: 0.3, delay: 0.2, ease: EASE }}
               className="mt-7 flex flex-col items-center gap-1"
             >
               <span className="font-mono text-[10px] uppercase tracking-[4px] text-pasha-ink/40">
@@ -125,7 +125,7 @@ export function PageLoader({ show }: { show: boolean }) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.3 }}
               className="mt-6 flex items-center gap-2"
             >
               {[0, 1, 2].map((i) => (
