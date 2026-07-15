@@ -612,7 +612,7 @@ function AuthInner({
         <div className="w-10 h-10 rounded-lg bg-pasha-red/10 grid place-items-center mb-5">
           <Rocket className="w-5 h-5 text-pasha-red" />
         </div>
-        <h1 className="font-serif text-3xl tracking-tight text-pasha-ink">
+        <h1 className="font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink">
           {isRegister ? "Create your account" : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-pasha-muted leading-relaxed">

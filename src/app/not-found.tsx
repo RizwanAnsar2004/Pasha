@@ -18,7 +18,7 @@ export default function NotFound() {
           <span className="font-mono text-[11px] uppercase tracking-[3px] text-pasha-red">
             404
           </span>
-          <h1 className="mt-3 font-serif text-5xl sm:text-6xl tracking-tight text-pasha-ink">
+          <h1 className="mt-3 font-serif text-3xl sm:text-6xl tracking-tight text-pasha-ink">
             Page not found
           </h1>
           <p className="mt-5 text-pasha-muted leading-relaxed">

@@ -177,7 +177,7 @@ export function CommitteeContent({
         <div className="relative site-container">
           <Reveal>
             <Kicker tone="light">P@SHA Startups &amp; Entrepreneurship Committee</Kicker>
-            <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+            <h1 className="mt-5 font-serif font-extrabold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
               Building Pakistan&apos;s <span className="text-pasha-red-light">startup ecosystem.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
@@ -215,7 +215,7 @@ export function CommitteeContent({
               transition={{ duration: 0.6, ease: EASE }}
             >
               <Kicker>Mission</Kicker>
-              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
+              <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
                 Our Mission &amp; Objectives
               </h2>
               <p className="mt-5 text-pasha-muted leading-relaxed text-pretty">
@@ -404,7 +404,7 @@ export function CommitteeContent({
               className="max-w-2xl mb-12"
             >
               <Kicker>Updates</Kicker>
-              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
+              <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
                 Committee Activity
               </h2>
               <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
@@ -473,7 +473,7 @@ export function CommitteeContent({
               <Kicker tone="light" className="text-pasha-red-light">
                 Get involved
               </Kicker>
-              <h2 className="mt-4 max-w-xl font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
+              <h2 className="mt-4 max-w-xl font-serif text-2xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
                 Want to collaborate with the committee?
               </h2>
               <p className="mt-4 max-w-md text-white/55 text-base leading-relaxed">

@@ -204,7 +204,7 @@ export function EventDetailContent({
             )}
           </div>
 
-          <h1 className="mt-6 font-serif text-[2.75rem] leading-[0.96] sm:text-6xl lg:text-[5.5rem] lg:leading-[0.9] font-extrabold text-white text-balance max-w-4xl">
+          <h1 className="mt-6 font-serif text-[2rem] leading-[0.96] sm:text-6xl lg:text-[5.5rem] lg:leading-[0.9] font-extrabold text-white text-balance max-w-4xl">
             {event.title}
           </h1>
 

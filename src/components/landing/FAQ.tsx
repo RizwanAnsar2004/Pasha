@@ -45,7 +45,7 @@ export function FAQ() {
           <Reveal>
             <div className="lg:sticky lg:top-28">
               <Kicker>Questions, answered</Kicker>
-              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
+              <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
                 Everything you need to know.
               </h2>
               <p className="mt-4 text-pasha-muted leading-relaxed max-w-sm">

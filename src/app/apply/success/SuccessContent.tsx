@@ -66,7 +66,7 @@ export function SuccessContent() {
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+        <div className="mx-auto max-w-3xl px-4 sm:px-8 py-20 sm:py-28 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -78,7 +78,7 @@ export function SuccessContent() {
                 Application submitted
               </span>
             </div>
-            <h1 className="font-serif font-extrabold text-4xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
+            <h1 className="font-serif font-extrabold text-3xl sm:text-6xl tracking-tight text-pasha-ink text-balance">
               Thank you for applying.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">

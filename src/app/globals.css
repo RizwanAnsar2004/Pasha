@@ -51,16 +51,20 @@
   --container-max: 1280px;
 }
 
-/* Site-wide container: capped at --container-max, with a 32px gutter on each
-   side once the viewport is narrower than that. Named `site-container`, not
-   `container` — Tailwind v4 treats `container` as a reserved multi-rule
-   utility with its own hardcoded breakpoint ladder, and @utility can't
-   cleanly override that reserved name (it gets silently superseded). Every
-   section uses `className="site-container"` instead of repeating
-   `mx-auto max-w-[Npx] px-5 sm:px-8` everywhere. */
+/* Site-wide container: capped at --container-max, with a 16px gutter on each
+   side on mobile and a 32px gutter from the sm breakpoint up. Named
+   `site-container`, not `container` — Tailwind v4 treats `container` as a
+   reserved multi-rule utility with its own hardcoded breakpoint ladder, and
+   @utility can't cleanly override that reserved name (it gets silently
+   superseded). Every section uses `className="site-container"` instead of
+   repeating `mx-auto max-w-[Npx] px-5 sm:px-8` everywhere. */
 @utility site-container {
-  width: min(var(--container-max), calc(100% - 64px));
+  width: min(var(--container-max), calc(100% - 32px));
   margin-inline: auto;
+
+  @media (min-width: 640px) {
+    width: min(var(--container-max), calc(100% - 64px));
+  }
 }
 
 @layer base {

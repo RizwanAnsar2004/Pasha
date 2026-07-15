@@ -51,7 +51,7 @@ export function ApplyHero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-5 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-14">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-14">
         {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -66,7 +66,7 @@ export function ApplyHero() {
         </motion.div>
 
         {/* Editorial headline */}
-        <h1 className="mt-6 font-serif text-[40px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
+        <h1 className="mt-6 font-serif text-[30px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
           <motion.span
             initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

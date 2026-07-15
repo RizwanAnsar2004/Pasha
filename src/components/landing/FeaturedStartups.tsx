@@ -37,7 +37,7 @@ export function FeaturedStartups({ startups }: { startups: FeaturedStartup[] }) 
 
   return (
     <section className="relative bg-white border-b border-pasha-line py-20 sm:py-28 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-8">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -50,7 +50,7 @@ export function FeaturedStartups({ startups }: { startups: FeaturedStartup[] }) 
             <span className="font-mono text-[11px] uppercase tracking-[3px] text-pasha-red">
               Featured startups
             </span>
-            <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-3 font-serif text-2xl sm:text-4xl lg:text-5xl tracking-tight text-pasha-ink text-balance">
               Real founders. Real traction. Real impact.
             </h2>
             <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">

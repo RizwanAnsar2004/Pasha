@@ -73,7 +73,7 @@ export function AboutContent() {
         <div className="relative site-container">
           <Reveal>
             <Kicker tone="light">About the directory</Kicker>
-            <h1 className="mt-5 font-serif font-bold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+            <h1 className="mt-5 font-serif font-bold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
               P@SHA Startup <span className="text-pasha-red-light">Directory.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
@@ -104,7 +104,7 @@ export function AboutContent() {
           SECTIONS — editorial article-style layout
           ────────────────────────────────────────────────────── */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
-        <div className="mx-auto max-w-4xl px-5 sm:px-8">
+        <div className="mx-auto max-w-4xl px-4 sm:px-8">
           {/* Section header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

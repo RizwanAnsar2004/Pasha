@@ -119,7 +119,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
               transition={{ duration: 0.25 }}
               className="lg:hidden overflow-hidden border-t border-pasha-line"
             >
-              <div className="flex flex-col gap-4 px-5 sm:px-8 py-6">
+              <div className="flex flex-col gap-4 px-4 sm:px-8 py-6">
                 {NAV_LINKS.map((link) => (
                   <Link
                     key={link.href}

@@ -29,7 +29,7 @@ export default async function ApplicantPortalLayout({
     <div className="min-h-screen bg-pasha-stone/30 flex flex-col">
       <ApiUnauthorizedHandler realm="applicant" />
       <header className="border-b border-pasha-line bg-white">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8 h-14 flex items-center justify-between">
+        <div className="mx-auto max-w-5xl px-4 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <PashaLogo width={100} href="/apply" />
             <span className="hidden md:block h-4 w-px bg-pasha-line" />
@@ -41,7 +41,7 @@ export default async function ApplicantPortalLayout({
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl px-5 sm:px-8 py-8 flex-1">
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-8 py-8 flex-1">
         <PortalNav submitted={draft.submitted} />
         <div className="mt-6">{children}</div>
       </div>

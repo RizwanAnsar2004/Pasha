@@ -50,7 +50,7 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16">
           <Reveal>
             <Kicker tone="light">Recognition</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white text-balance">
+            <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-white text-balance">
               Built to win on the world stage.
             </h2>
             <p className="mt-4 text-white/55 text-base leading-relaxed text-pretty max-w-md">

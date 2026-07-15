@@ -38,7 +38,7 @@ export function UpcomingEvents({ events }: { events: EventRow[] }) {
 
           <div className="rounded-[28px] bg-white border border-pasha-ink/10 p-8 sm:p-10">
             <Kicker>Upcoming event</Kicker>
-            <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
               {event.title}
             </h2>
             {event.summary && (

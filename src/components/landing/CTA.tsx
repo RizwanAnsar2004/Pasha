@@ -18,7 +18,7 @@ export function CTA() {
           <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
             <div>
               <Kicker tone="light">Build visibility that compounds</Kicker>
-              <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white text-balance">
+              <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white text-balance">
                 Ready to make your startup easier to discover?
               </h2>
             </div>

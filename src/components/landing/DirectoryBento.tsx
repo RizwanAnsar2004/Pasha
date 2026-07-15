@@ -162,7 +162,7 @@ function SpotlightCard({ startup }: { startup: WatchlistStartup }) {
 
         <div className="mt-6">
           <span className="text-[11px] font-bold uppercase tracking-[1.5px] text-white/40">Featured company</span>
-          <h3 className="mt-2 font-serif text-4xl font-bold text-white leading-tight">{startup.startup_name}</h3>
+          <h3 className="mt-2 font-serif text-3xl sm:text-4xl font-bold text-white leading-tight">{startup.startup_name}</h3>
           {startup.tagline && (
             <RichText inline value={startup.tagline} className="mt-3 text-white/55 leading-relaxed" />
           )}
@@ -201,7 +201,7 @@ export function DirectoryBento({ startups }: { startups: WatchlistStartup[] }) {
         <Reveal className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
           <div>
             <Kicker>Featured startups</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
               Startups worth knowing.
             </h2>
           </div>

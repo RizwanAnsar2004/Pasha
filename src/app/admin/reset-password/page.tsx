@@ -9,7 +9,7 @@ export default function AdminResetPasswordPage() {
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
-        <div className="mx-auto max-w-md px-5 sm:px-8 py-20">
+        <div className="mx-auto max-w-md px-4 sm:px-8 py-20">
           <ResetPasswordCard loginHref="/admin/login" minLength={8} />
         </div>
       </main>

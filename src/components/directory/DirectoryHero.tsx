@@ -32,7 +32,7 @@ export function DirectoryHero({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12 lg:gap-16 items-center">
           <Reveal>
             <Kicker tone="light">P@SHA Startup Directory</Kicker>
-            <h1 className="mt-5 font-serif font-extrabold text-4xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
+            <h1 className="mt-5 font-serif font-extrabold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
               Pakistan&apos;s startup ecosystem,{" "}
               <span className="text-pasha-red-light">clearly indexed.</span>
             </h1>

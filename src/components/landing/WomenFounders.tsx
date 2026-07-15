@@ -94,7 +94,7 @@ export function WomenFounders({
         <Reveal className="flex flex-wrap items-start justify-between gap-8 mb-12">
           <div className="max-w-3xl">
             <Kicker>Women-led startups</Kicker>
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
+            <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
               Better visibility for the women building what comes next.
             </h2>
           </div>
@@ -122,7 +122,7 @@ export function WomenFounders({
               <span className="text-xs font-bold uppercase tracking-[1.5px] text-pasha-red-light">
                 Women-led.
               </span>
-              <h3 className="mt-3 font-serif text-3xl sm:text-4xl font-bold text-white leading-tight">
+              <h3 className="mt-3 font-serif text-2xl sm:text-4xl font-bold text-white leading-tight">
                 Built with ambition.
                 <br />
                 Discovered on merit.

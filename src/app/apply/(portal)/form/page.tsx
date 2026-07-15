@@ -76,7 +76,7 @@ export default async function ApplicantFormPage({
           <ArrowLeft className="w-4 h-4" />
           Back to overview
         </Link>
-        <h1 className="mt-3 font-serif text-3xl tracking-tight text-pasha-ink">
+        <h1 className="mt-3 font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink">
           Tell us about your startup
         </h1>
         <p className="mt-1.5 text-sm text-pasha-muted">

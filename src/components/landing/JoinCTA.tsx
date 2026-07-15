@@ -26,7 +26,7 @@ export function JoinCTA() {
           <div className="relative grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-12">
             <div>
               <Kicker tone="light">Join the directory</Kicker>
-              <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-white text-balance">
+              <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance">
                 Put your startup where the right people can find it.
               </h2>
               <p className="mt-5 text-white/55 text-base sm:text-md leading-relaxed max-w-md text-pretty">

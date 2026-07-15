@@ -662,7 +662,7 @@ export default async function StartupDetailPage({
                     )}
                   </div>
 
-                  <h1 className="font-serif text-[2.75rem] leading-[0.96] tracking-tight sm:text-6xl lg:text-[5.5rem] lg:leading-[0.9] font-extrabold text-white text-balance">
+                  <h1 className="font-serif text-[2rem] leading-[0.96] tracking-tight sm:text-6xl lg:text-[5.5rem] lg:leading-[0.9] font-extrabold text-white text-balance">
                     {row.startup_name}
                   </h1>
 
@@ -820,7 +820,7 @@ export default async function StartupDetailPage({
                           <small className="block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-red-light">
                             Market opportunity
                           </small>
-                          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">TAM, SAM &amp; SOM</h2>
+                          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">TAM, SAM &amp; SOM</h2>
                         </div>
                       </div>
                       <p className="relative max-w-sm text-sm leading-relaxed text-white/55">
@@ -1104,7 +1104,7 @@ export default async function StartupDetailPage({
               <Reveal className="flex flex-wrap items-end justify-between gap-6 mb-10">
                 <div>
                   <Kicker>Keep exploring</Kicker>
-                  <h2 className="mt-4 font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink">
+                  <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink">
                     Related startups.
                   </h2>
                   <p className="mt-3 max-w-2xl text-base text-pasha-muted leading-relaxed">
@@ -1145,7 +1145,7 @@ export default async function StartupDetailPage({
                 <Kicker tone="light" className="text-pasha-red-light">
                   Building a startup in Pakistan?
                 </Kicker>
-                <h2 className="mt-4 max-w-xl font-serif text-3xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
+                <h2 className="mt-4 max-w-xl font-serif text-2xl sm:text-4xl lg:text-[3.5rem] font-extrabold leading-[0.98] tracking-tight text-white">
                   Create a profile built for discovery.
                 </h2>
               </div>

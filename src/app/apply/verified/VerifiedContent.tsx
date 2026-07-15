@@ -71,7 +71,7 @@ export function VerifiedContent() {
       <>
         <SiteHeader />
         <main className="flex-1 bg-pasha-stone/30">
-          <div className="mx-auto max-w-2xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+          <div className="mx-auto max-w-2xl px-4 sm:px-8 py-20 sm:py-28 text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -80,7 +80,7 @@ export function VerifiedContent() {
               <div className="mx-auto w-14 h-14 rounded-2xl bg-pasha-red/10 grid place-items-center mb-7">
                 <AlertCircle className="w-7 h-7 text-pasha-red" />
               </div>
-              <h1 className="font-serif font-extrabold text-4xl sm:text-5xl tracking-tight text-pasha-ink text-balance">
+              <h1 className="font-serif font-extrabold text-3xl sm:text-5xl tracking-tight text-pasha-ink text-balance">
                 This link has expired.
               </h1>
               <p className="mt-5 text-lg text-pasha-muted max-w-lg mx-auto leading-relaxed text-pretty">
@@ -105,7 +105,7 @@ export function VerifiedContent() {
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-20 sm:py-28 text-center">
+        <div className="mx-auto max-w-3xl px-4 sm:px-8 py-20 sm:py-28 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -148,7 +148,7 @@ export function VerifiedContent() {
               </span>
             </motion.div>
 
-            <h1 className="font-serif font-extrabold text-5xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
+            <h1 className="font-serif font-extrabold text-4xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
               Email verified.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">

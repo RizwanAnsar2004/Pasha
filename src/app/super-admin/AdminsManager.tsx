@@ -106,7 +106,7 @@ export function AdminsManager({
     <main className="min-h-screen bg-pasha-stone/30">
       <ApiUnauthorizedHandler realm="super-admin" />
       <header className="border-b border-pasha-line bg-white">
-        <div className="mx-auto max-w-4xl px-5 sm:px-8 h-14 flex items-center justify-between">
+        <div className="mx-auto max-w-4xl px-4 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-4 h-4 text-pasha-red" />
             <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
@@ -126,9 +126,9 @@ export function AdminsManager({
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-5 sm:px-8 py-10 space-y-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-8 py-10 space-y-8">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight text-pasha-ink">
+          <h1 className="font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink">
             Manage admins
           </h1>
           <p className="mt-2 text-sm text-pasha-muted max-w-xl leading-relaxed">

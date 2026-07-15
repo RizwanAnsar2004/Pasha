@@ -82,7 +82,7 @@ function LoginInner() {
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
-        <div className="mx-auto max-w-md px-5 sm:px-8 py-20">
+        <div className="mx-auto max-w-md px-4 sm:px-8 py-20">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -114,7 +114,7 @@ function LoginInner() {
             <div className="w-10 h-10 rounded-lg bg-pasha-red/10 grid place-items-center mb-5">
               <ShieldCheck className="w-5 h-5 text-pasha-red" />
             </div>
-            <h1 className="font-serif text-3xl tracking-tight text-pasha-ink">
+            <h1 className="font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink">
               {forgot ? "Reset your password" : "Committee sign-in"}
             </h1>
             <p className="mt-2 text-sm text-pasha-muted leading-relaxed">

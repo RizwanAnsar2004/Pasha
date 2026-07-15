@@ -16,7 +16,7 @@ export function Ecosystem() {
       <div className="site-container">
         <Reveal className="max-w-4xl mb-12">
           <Kicker>One connected ecosystem</Kicker>
-          <h2 className="mt-4 font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-pasha-ink text-balance">
+          <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-pasha-ink text-balance">
             For everyone helping startups move forward.
           </h2>
         </Reveal>
