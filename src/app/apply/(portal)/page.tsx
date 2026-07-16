@@ -22,11 +22,16 @@ import {
   getApplicantSubmissionStatus,
 } from "@/lib/applicant-auth";
 import { getFormConfig } from "@/lib/form-config.server";
+import { buildDevPrefill } from "@/lib/form-config";
 import { getOptionRegistry } from "@/lib/option-lists.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/profile-completion";
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
 import { deriveBadges, isYes, type BadgeTone } from "@/lib/badges";
 import { ReapplyButton } from "./ReapplyButton";
+import { PortalTabs } from "./PortalTabs";
+import { StartApplicationButton } from "./StartApplicationButton";
+import { DynamicForm } from "@/components/form/DynamicForm";
+import { ApplyForm } from "@/components/form/ApplyForm";
 import { RichText } from "@/components/ui/RichText";
 
 export const metadata: Metadata = {
@@ -72,7 +77,21 @@ const STAGE_ICON: Record<WorkflowStage, typeof CheckCircle2> = {
   featured: Star,
 };
 
-export default async function ApplicantOverviewPage() {
+// Whether to prefill the form with the Western debug sample company. STRICTLY
+// local-debug: hard-off in any production build, regardless of flags.
+function debugPrefillEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false; // never in prod
+  const flag = process.env.DEBUG_FORM_PREFILL;
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return process.env.NODE_ENV === "development";
+}
+
+export default async function ApplicantOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; step?: string }>;
+}) {
   // The layout gates this section, but a layout redirect doesn't stop the page
   // from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
@@ -144,12 +163,41 @@ export default async function ApplicantOverviewPage() {
   ].filter((f) => f.value);
   const greetingName = firstName || startupName;
 
-  // CTA target + label by stage.
-  const cta = editable
-    ? { href: "/apply/form", label: draft.started ? "Continue application" : "Start application" }
-    : { href: "/directory", label: "Browse the directory" };
+  // CTA label by stage. Editable → switch to the form tab (client, instant);
+  // otherwise link out to the directory.
+  const ctaLabel = editable
+    ? draft.started
+      ? "Continue application"
+      : "Start application"
+    : "Browse the directory";
 
-  return (
+  // ---- Build the form tab node (only meaningful while editable) -------------
+  const { tab, step } = await searchParams;
+  const stepParam = step != null ? Number.parseInt(step, 10) : NaN;
+  const initialStep = Number.isFinite(stepParam)
+    ? Math.max(0, stepParam)
+    : draft.current_step;
+
+  const draftEmpty = !draft.data || Object.keys(draft.data).length === 0;
+  const usePrefill =
+    debugPrefillEnabled() && draftEmpty && config != null && config.length > 0;
+  const initialValues = usePrefill ? buildDevPrefill(config, optionLists) : draft.data;
+
+  const formNode = editable ? (
+    config && config.length > 0 ? (
+      <DynamicForm
+        config={config}
+        initialValues={initialValues}
+        initialStep={initialStep}
+        serverPersist
+        optionLists={optionLists}
+      />
+    ) : (
+      <ApplyForm />
+    )
+  ) : null;
+
+  const overview = (
     <div className="space-y-6">
       <div>
         <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-pasha-ink">
@@ -260,12 +308,16 @@ export default async function ApplicantOverviewPage() {
         <div className="mt-5 flex flex-wrap gap-2.5">
           {stage === "rejected" ? (
             <ReapplyButton />
+          ) : editable ? (
+            <StartApplicationButton
+              label={stage === "needs_update" ? "Edit & resubmit" : ctaLabel}
+            />
           ) : (
             <Link
-              href={cta.href}
+              href="/directory"
               className="group inline-flex items-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-pasha-red-dark transition-all"
             >
-              {stage === "needs_update" ? "Edit & resubmit" : cta.label}
+              {ctaLabel}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           )}
@@ -334,7 +386,7 @@ export default async function ApplicantOverviewPage() {
                 </div>
                 {editable && (
                   <Link
-                    href={`/apply/form?step=${m.step}`}
+                    href={`/apply?tab=form&step=${m.step}`}
                     className="mt-3 inline-flex items-center gap-1.5 text-sm text-pasha-red hover:text-pasha-red-dark font-medium"
                   >
                     {m.percent >= 100 ? "Review" : "Complete"}
@@ -347,5 +399,14 @@ export default async function ApplicantOverviewPage() {
         </div>
       )}
     </div>
+  );
+
+  return (
+    <PortalTabs
+      overview={overview}
+      form={formNode}
+      formAvailable={editable}
+      initialTab={tab === "form" ? "form" : "overview"}
+    />
   );
 }
