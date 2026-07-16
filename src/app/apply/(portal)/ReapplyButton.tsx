@@ -18,7 +18,7 @@ export function ReapplyButton() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? "Couldn't reopen application");
       }
-      router.push("/apply/form");
+      router.push("/apply?tab=form");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't reopen application");

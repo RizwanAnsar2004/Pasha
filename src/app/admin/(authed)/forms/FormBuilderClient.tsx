@@ -69,6 +69,73 @@ const CHOICE_TYPES = new Set<number>([
   InputType.RADIO_CARDS,
 ]);
 
+// FILE_UPLOAD "accept" presets. `accept` is react-dropzone's MIME→extensions
+// map; editing that raw JSON is admin-hostile, so we expose it as tick-boxes
+// and store the merge of the chosen presets. Previously this was only settable
+// by hand-writing the validation JSON via a SQL query.
+const FILE_ACCEPT_PRESETS: {
+  id: string;
+  label: string;
+  accept: Record<string, string[]>;
+}[] = [
+  { id: "pdf", label: "PDF", accept: { "application/pdf": [".pdf"] } },
+  { id: "images", label: "Images (any)", accept: { "image/*": [] } },
+  { id: "png", label: "PNG", accept: { "image/png": [".png"] } },
+  { id: "jpeg", label: "JPG / JPEG", accept: { "image/jpeg": [".jpg", ".jpeg"] } },
+  {
+    id: "word",
+    label: "Word (.doc / .docx)",
+    accept: {
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+    },
+  },
+  {
+    id: "excel",
+    label: "Excel (.xls / .xlsx)",
+    accept: {
+      "application/vnd.ms-excel": [".xls"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+    },
+  },
+  {
+    id: "ppt",
+    label: "PowerPoint (.ppt / .pptx)",
+    accept: {
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+    },
+  },
+  { id: "csv", label: "CSV", accept: { "text/csv": [".csv"] } },
+];
+
+// Buckets a file field can upload into (the Supabase storage bucket).
+const FILE_BUCKETS = ["logos", "founder-photos", "pitch-decks"] as const;
+
+// Which presets a stored accept map represents — a preset counts as selected
+// when all of its MIME keys are present. Lets old query-seeded fields render
+// their ticked boxes instead of looking empty.
+function acceptToPresetIds(accept: unknown): string[] {
+  if (!accept || typeof accept !== "object") return [];
+  const keys = new Set(Object.keys(accept as Record<string, unknown>));
+  return FILE_ACCEPT_PRESETS.filter((p) =>
+    Object.keys(p.accept).every((k) => keys.has(k))
+  ).map((p) => p.id);
+}
+
+// Merge the chosen presets back into one accept map (null = accept any file).
+function presetIdsToAccept(ids: string[]): Record<string, string[]> | null {
+  const chosen = FILE_ACCEPT_PRESETS.filter((p) => ids.includes(p.id));
+  if (chosen.length === 0) return null;
+  const out: Record<string, string[]> = {};
+  for (const p of chosen) {
+    for (const [mime, exts] of Object.entries(p.accept)) {
+      out[mime] = Array.from(new Set([...(out[mime] ?? []), ...exts]));
+    }
+  }
+  return out;
+}
+
 // Serialize a field's stored `options` into the textarea format: one option per
 // line, `value | label` when they differ, otherwise just the value.
 function optionsToText(options: unknown): string {
@@ -556,10 +623,15 @@ function FieldNode({
     minLength: (field.validation?.minLength as number | undefined) ?? "",
     maxLength: (field.validation?.maxLength as number | undefined) ?? "",
     pattern: (field.validation?.pattern as string | undefined) ?? "",
+    acceptIds: acceptToPresetIds(field.validation?.accept),
+    bucket: (field.validation?.bucket as string | undefined) ?? "",
+    fileMaxSizeMB:
+      field.validation?.maxSizeMB == null ? "" : String(field.validation.maxSizeMB),
   });
   const isGroup = field.input_type === InputType.GROUP;
   const isHeadingField = field.input_type === InputType.HEADING;
   const isChoice = CHOICE_TYPES.has(field.input_type);
+  const isFile = field.input_type === InputType.FILE_UPLOAD;
   // Field edits change the live application form, so the explicit "Save" button
   // routes through a confirmation modal. `pendingSave` holds the action to run
   // once the admin confirms.
@@ -651,6 +723,16 @@ function FieldNode({
         minLength: draft.minLength === "" ? undefined : Number(draft.minLength),
         maxLength: draft.maxLength === "" ? undefined : Number(draft.maxLength),
         pattern: draft.pattern || undefined,
+        // FILE_UPLOAD-only: allowed file types, storage bucket and size cap.
+        // `?? undefined` drops the key from the JSON so it's cleared when unset.
+        ...(isFile
+          ? {
+              accept: presetIdsToAccept(draft.acceptIds) ?? undefined,
+              bucket: draft.bucket || undefined,
+              maxSizeMB:
+                draft.fileMaxSizeMB === "" ? undefined : Number(draft.fileMaxSizeMB),
+            }
+          : {}),
       },
     });
 
@@ -790,6 +872,77 @@ function FieldNode({
               className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-1.5 text-xs hover:border-pasha-red hover:text-pasha-red shrink-0"
             >
               <Save className="w-3.5 h-3.5" /> Save options
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isFile && (
+        <div className="rounded-md border border-pasha-line/70 bg-white p-2.5 space-y-2.5">
+          <p className="text-[11px] text-pasha-muted">
+            <strong>File upload settings.</strong> Tick the file types applicants
+            may upload. Leave all unticked to accept any file.
+          </p>
+
+          <fieldset className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {FILE_ACCEPT_PRESETS.map((p) => {
+              const checked = draft.acceptIds.includes(p.id);
+              return (
+                <label
+                  key={p.id}
+                  className="flex items-center gap-1.5 text-[11px] text-pasha-ink"
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-pasha-red"
+                    checked={checked}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        acceptIds: e.target.checked
+                          ? [...draft.acceptIds, p.id]
+                          : draft.acceptIds.filter((id) => id !== p.id),
+                      })
+                    }
+                  />
+                  {p.label}
+                </label>
+              );
+            })}
+          </fieldset>
+
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-[11px] text-pasha-muted">
+              Storage bucket
+              <SelectMenu
+                className="mt-1 w-full min-w-[150px]"
+                value={draft.bucket || "logos"}
+                onValueChange={(v) => setDraft({ ...draft, bucket: v })}
+                options={FILE_BUCKETS.map((b) => ({ value: b, label: b }))}
+              />
+            </label>
+            <label className="text-[11px] text-pasha-muted">
+              Max size (MB)
+              <input
+                className={inputCls + " w-24"}
+                inputMode="numeric"
+                placeholder="5"
+                value={draft.fileMaxSizeMB}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    fileMaxSizeMB: e.target.value.replace(/\D/g, ""),
+                  })
+                }
+              />
+            </label>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setPendingSave(() => save)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line bg-white px-2.5 py-2 text-xs hover:border-pasha-red hover:text-pasha-red"
+            >
+              <Save className="w-3.5 h-3.5" /> Save file settings
             </button>
           </div>
         </div>
