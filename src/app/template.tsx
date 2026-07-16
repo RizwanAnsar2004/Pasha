@@ -7,9 +7,7 @@ import { motion } from "framer-motion";
 // AnimatePresence / exit / FrozenRouter / pathname-key machinery. That machinery
 // (previously in components/PageTransition.tsx) fought the App Router and caused
 // React #310 + "removeChild of null" crashes and blank redirect-target pages;
-// dropping the exit animation removes the entire failure surface. The branded
-// PageLoader (PageReadyProvider) still covers each swap, so the missing fade-out
-// isn't noticeable.
+// dropping the exit animation removes the entire failure surface.
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <motion.div

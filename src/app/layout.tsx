@@ -3,7 +3,6 @@ import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
-import { PageReadyProvider } from "@/components/PageReady";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -109,12 +108,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
-        <PageReadyProvider>
-          {/* Per-navigation enter animation lives in app/template.tsx, which Next
-              nests between this layout and the page. */}
-          {children}
-          <ChatWidget />
-        </PageReadyProvider>
+        {/* Per-navigation enter animation lives in app/template.tsx, which Next
+            nests between this layout and the page. */}
+        {children}
+        <ChatWidget />
       </body>
       {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
