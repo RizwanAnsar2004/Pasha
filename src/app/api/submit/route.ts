@@ -234,8 +234,8 @@ export async function POST(req: Request) {
       .maybeSingle<{ submission_id: string | null }>();
     const existingSubmissionId = existingDraft?.submission_id ?? null;
 
+    record.status = "submitted";
     if (existingSubmissionId) {
-      record.status = "submitted";
       record.reviewed_at = null;
     }
 
