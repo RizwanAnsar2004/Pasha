@@ -13,6 +13,7 @@
 // backfill + reconcile) is the safety net.
 
 import { after } from "next/server";
+import { RAG_URL, RAG_KEY } from "@/lib/rag-config";
 
 // Retry the notify a few times before giving up — covers a brief restart or
 // network blip so an approval isn't silently dropped from the RAG store.
@@ -20,17 +21,6 @@ const RAG_SYNC_MAX_ATTEMPTS = 4;
 const RAG_SYNC_BACKOFF_MS = [500, 2000, 5000]; // delay before attempts 2,3,4
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Target the SAME RAG service the chat proxy reads from (src/app/api/chat/
-// route.ts) using the same env vars + default, so writes (sync) and reads
-// (query) can never drift apart. RAG_SERVICE_* are accepted as fallbacks.
-const RAG_URL = (
-  process.env.RAG_API_URL ??
-  process.env.RAG_SERVICE_URL ??
-  "https://pasha-rag.hostinger.bitscollision.net"
-).replace(/\/+$/, "");
-const RAG_KEY =
-  process.env.RAG_API_KEY ?? process.env.RAG_SERVICE_API_KEY ?? "";
 
 type RagEventType = "INSERT" | "UPDATE" | "DELETE";
 

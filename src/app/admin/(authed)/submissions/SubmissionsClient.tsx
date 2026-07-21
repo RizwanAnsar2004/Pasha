@@ -503,6 +503,10 @@ function SubmissionDrawer({
     setFeaturedStatus(null);
     setFieldLabels({});
     setVerified(false);
+    // Start empty: the box composes a *new* note. The note already sent to the
+    // applicant is shown read-only in the "Sent to applicant" section instead,
+    // so re-opening a reviewed submission can't silently resend the old text.
+    setNotes("");
 
     (async () => {
       const res = await fetch(`/api/admin/submission?id=${encodeURIComponent(id)}`, {
@@ -515,7 +519,6 @@ function SubmissionDrawer({
       setFeaturedStatus(j.featured ?? null);
       setFieldLabels((j.field_labels as FieldLabelMap) ?? {});
       setVerified(Boolean(j.verified));
-      setNotes(String((j.submission as FullRow)?.reviewer_notes ?? ""));
     })();
 
     return () => {
@@ -578,6 +581,16 @@ function SubmissionDrawer({
   const status = String(row?.status ?? "pending");
   const isApproved = status === "approved";
 
+  // The note already emailed to the applicant. Rendered read-only at the end of
+  // the drawer rather than back into the compose box above.
+  const sentNote =
+    typeof row?.reviewer_notes === "string" ? row.reviewer_notes.trim() : "";
+  const reviewedAt = row?.reviewed_at ? new Date(String(row.reviewed_at)) : null;
+  const sentAt =
+    reviewedAt && !Number.isNaN(reviewedAt.getTime())
+      ? reviewedAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+      : null;
+
   const drawer = (
     <>
       <motion.div
@@ -609,9 +622,7 @@ function SubmissionDrawer({
           </button>
         </div>
         {!row ? (
-          <div className="flex-1 grid place-items-center text-pasha-muted">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
+          <DrawerSkeleton />
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8 py-6">
             <div className="flex items-start gap-4 mb-6">
@@ -902,9 +913,37 @@ function SubmissionDrawer({
                 </dl>
               </Section>
             ) : null}
+
+            {sentNote ? (
+              <Section title="Sent to applicant">
+                <div className="rounded-lg border border-pasha-line bg-white px-3 py-2.5">
+                  <p className="text-sm text-pasha-ink whitespace-pre-wrap break-words">
+                    {sentNote}
+                  </p>
+                  <p className="mt-2 border-t border-pasha-line pt-2 text-[11px] text-pasha-muted">
+                    Emailed with the &ldquo;{STAGE_META[rowStage(status)].label}&rdquo; decision
+                    {row.founder_email ? ` to ${String(row.founder_email)}` : ""}
+                    {sentAt ? ` on ${sentAt}` : ""}.
+                  </p>
+                </div>
+              </Section>
+            ) : null}
           </div>
         )}
         <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-4 sm:px-8 py-4 space-y-3">
+          {!row ? (
+            // Match the loaded footer's height so the panel doesn't resize
+            // underneath the reviewer when the fetch resolves.
+            <>
+              <div className="skeleton h-[62px] w-full rounded-lg" />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="skeleton h-8 w-24 rounded-full" />
+                <div className="skeleton h-8 w-32 rounded-full" />
+                <div className="hidden flex-1 sm:block" />
+                <div className="skeleton h-8 w-28 rounded-full" />
+              </div>
+            </>
+          ) : null}
           {!isApproved && row ? (
             <textarea
               value={notes}
@@ -914,7 +953,7 @@ function SubmissionDrawer({
               className="w-full rounded-lg border border-pasha-line bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
             />
           ) : null}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={row ? "flex flex-wrap items-center gap-2" : "hidden"}>
             {!isApproved && row ? (
               <>
                 <button
@@ -979,6 +1018,75 @@ function SubmissionDrawer({
 
   if (!mounted) return null;
   return createPortal(drawer, document.body);
+}
+
+/**
+ * Loading state for the submission drawer. Mirrors the real layout — logo,
+ * title, badge row, then the stacked sections — so the panel opens at close to
+ * its final size instead of collapsing to a header-height box around a spinner.
+ */
+function DrawerSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading submission"
+      className="min-h-0 flex-1 overflow-hidden px-4 sm:px-8 py-6"
+    >
+      <div className="mb-6 flex items-start gap-4">
+        <div className="skeleton h-16 w-16 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="skeleton h-7 w-2/3 max-w-xs rounded-md" />
+          <div className="skeleton h-3 w-40 max-w-full rounded" />
+          <div className="flex flex-wrap gap-2 pt-0.5">
+            <div className="skeleton h-5 w-28 rounded-md" />
+            <div className="skeleton h-5 w-20 rounded-md" />
+          </div>
+        </div>
+      </div>
+
+      <SkeletonSection lines={3} />
+      <SkeletonSection cols={2} rows={2} />
+      <SkeletonSection cols={2} rows={3} />
+      <SkeletonSection cols={2} rows={2} />
+    </div>
+  );
+}
+
+/** One placeholder section: a title bar, then either text lines or KV pairs. */
+function SkeletonSection({
+  lines,
+  cols = 1,
+  rows = 2,
+}: {
+  /** Render this many full-width text lines instead of KV pairs. */
+  lines?: number;
+  cols?: 1 | 2;
+  rows?: number;
+}) {
+  return (
+    <div className="mb-7">
+      <div className="skeleton mb-3 h-2.5 w-28 rounded" />
+      {lines ? (
+        <div className="space-y-2">
+          {Array.from({ length: lines }).map((_, i) => (
+            <div
+              key={i}
+              className={"skeleton h-3 rounded " + (i === lines - 1 ? "w-2/3" : "w-full")}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={cols === 2 ? "grid gap-x-8 gap-y-4 sm:grid-cols-2" : "space-y-4"}>
+          {Array.from({ length: rows * cols }).map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <div className="skeleton h-2.5 w-24 rounded" />
+              <div className="skeleton h-3.5 w-3/4 rounded" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Section({

@@ -197,10 +197,13 @@ export function DatabankClient({
             className="h-10 w-full rounded-lg border border-pasha-line bg-white pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
           />
         </div>
+        {/* Fixed widths: without them the trigger grows to fit whichever
+            option is selected, so picking a long sector reflows the toolbar. */}
         <SelectMenu
           value={sector}
           onValueChange={setSectorAndReset}
           aria-label="Filter by sector"
+          className="w-full sm:w-52"
           options={[
             { value: "all", label: "All sectors" },
             ...initial.sectors.map((s) => ({ value: s, label: s })),
@@ -210,6 +213,7 @@ export function DatabankClient({
           value={outreach}
           onValueChange={setOutreachAndReset}
           aria-label="Filter by outreach status"
+          className="w-full sm:w-44"
           options={[
             { value: "all", label: "Any outreach" },
             { value: "not_contacted", label: "Not contacted" },
@@ -223,6 +227,7 @@ export function DatabankClient({
           value={verifiedFilter}
           onValueChange={(v) => setVerifiedAndReset(v as "all" | "yes" | "no")}
           aria-label="Filter by verified status"
+          className="w-full sm:w-40"
           options={[
             { value: "all", label: "Any verified" },
             { value: "yes", label: "Verified only" },

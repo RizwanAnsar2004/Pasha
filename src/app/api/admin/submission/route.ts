@@ -198,14 +198,21 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
 
+  // Only overwrite the stored note when the reviewer actually wrote one. The
+  // drawer's compose box starts empty on every open, so a later decision made
+  // without a comment must not erase the note sent to the applicant earlier.
+  const patch: Record<string, unknown> = {
+    status,
+    reviewer_id: user.id,
+    reviewed_at: new Date().toISOString(),
+  };
+  if (reviewer_notes !== undefined) {
+    patch.reviewer_notes = reviewer_notes;
+  }
+
   const { error: updErr } = await supabase
     .from("submissions")
-    .update({
-      status,
-      reviewer_notes: reviewer_notes ?? null,
-      reviewer_id: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq("id", id);
 
   if (updErr) {
@@ -373,7 +380,8 @@ export async function PATCH(req: Request) {
       prior_status: priorRow.status,
       new_status: status,
       reviewer_notes_changed:
-        (priorRow.reviewer_notes ?? "") !== (reviewer_notes ?? ""),
+        reviewer_notes !== undefined &&
+        (priorRow.reviewer_notes ?? "") !== reviewer_notes,
     },
   });
   if (auditErr) {

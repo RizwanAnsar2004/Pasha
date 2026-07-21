@@ -87,9 +87,11 @@ function PlainSelect({
         aria-invalid={ariaInvalid}
         className={triggerClass(className)}
       >
-        <RSelect.Value placeholder={placeholder} />
-        <RSelect.Icon>
-          <ChevronDown className="h-4 w-4 text-pasha-muted" />
+        <span className="truncate">
+          <RSelect.Value placeholder={placeholder} />
+        </span>
+        <RSelect.Icon asChild>
+          <ChevronDown className="h-4 w-4 shrink-0 text-pasha-muted" />
         </RSelect.Icon>
       </RSelect.Trigger>
 
@@ -97,7 +99,7 @@ function PlainSelect({
         <RSelect.Content
           position="popper"
           sideOffset={4}
-          className="z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] max-w-[min(20rem,var(--radix-select-content-available-width))] overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
+          className="z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] max-w-[min(28rem,var(--radix-select-content-available-width))] overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
         >
           <RSelect.Viewport className="max-h-72 overflow-y-auto p-1">
             {opts.map((o) => (
@@ -205,7 +207,11 @@ function SearchableSelect({
             e.preventDefault();
             inputRef.current?.focus();
           }}
-          className="z-50 flex max-h-[var(--radix-popover-content-available-height)] w-[var(--radix-popover-trigger-width)] max-w-[min(20rem,var(--radix-popover-content-available-width))] flex-col overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
+          // Size to the widest option rather than to the trigger: filter
+          // triggers are short ("All sectors") while their options are not
+          // ("Artificial Intelligence (AI)"), and clamping to the trigger
+          // ellipsised every row. The trigger width is the floor, not the cap.
+          className="z-50 flex max-h-[var(--radix-popover-content-available-height)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(28rem,var(--radix-popover-content-available-width))] flex-col overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
         >
           <div className="flex items-center gap-2 border-b border-pasha-line px-2.5 py-2">
             <Search className="h-3.5 w-3.5 shrink-0 text-pasha-muted" />

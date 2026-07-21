@@ -3,6 +3,7 @@ import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
+import { SITE_URL } from "@/lib/site-url";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -25,8 +26,6 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const SITE_NAME = "P@SHA Startup Community";
 const SITE_DESCRIPTION =
   "Pakistan's curated network of product-native startups. Apply to join the P@SHA Startups & Entrepreneurship Committee for the directory, mentorship, and ecosystem partnerships.";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pasha-startup-platform.vercel.app";
-
 export const viewport: Viewport = {
   themeColor: "#E92127",
   width: "device-width",

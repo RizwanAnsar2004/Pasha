@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
+import { RAG_URL, RAG_KEY } from "@/lib/rag-config";
 
 // Proxies chat questions to the P@SHA RAG service. Keeping this server-side keeps
 // the RAG service key off the client and avoids CORS.
-const RAG_URL =
-  process.env.RAG_API_URL ?? "https://pasha-rag.hostinger.bitscollision.net";
-const RAG_KEY = process.env.RAG_API_KEY; // only needed if the RAG service sets SERVICE_API_KEY
 
 export async function POST(req: Request) {
   let body: { question?: unknown; top_k?: unknown };
