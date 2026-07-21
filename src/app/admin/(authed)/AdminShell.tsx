@@ -31,8 +31,7 @@ const NAV_ITEMS = [
   { href: "/admin/databank",             label: "Data Bank",           icon: Database },
   { href: "/admin/featured-startups",    label: "Featured Startups",   icon: Star },
   { href: "/admin/awards",               label: "Award Winners",       icon: Trophy },
-  // { href: "/admin/events",               label: "Events",              icon: CalendarDays },
-  // { href: "/admin/committee-activity",   label: "Committee Activity",  icon: Activity },
+  // { href: "/admin/events", label: "Events", icon: CalendarDays }, { href: "/admin/committee-activity", label: "Committee Activity", icon: Activity },
   { href: "/admin/committee-management", label: "Committee Management", icon: Users },
   { href: "/admin/forms",                label: "Form Builder",        icon: FileCode2 },
   { href: "/admin/option-lists",         label: "Option Lists",        icon: List },
@@ -42,15 +41,7 @@ const NAV_ITEMS = [
   { href: "/admin/privacy",              label: "Privacy & Terms",     icon: ShieldCheck },
 ];
 
-/**
- * Admin chrome (sidebar + top bar) with two independent layout modes:
- *  - Desktop (lg+): sidebar is always visible and can collapse between a full
- *    240px panel and a 68px icon rail via `collapsed`. A spacer reserves the
- *    same width so content sits beside it.
- *  - Mobile (<lg): sidebar becomes an off-canvas drawer toggled by `mobileOpen`
- *    (hamburger in the top bar / overlay / nav-link tap). The spacer is hidden
- *    so content uses the full width.
- */
+// Admin chrome (sidebar + top bar) with two independent layout modes:
 export function AdminShell({
   userMenu,
   children,

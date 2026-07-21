@@ -6,15 +6,10 @@ import { ArrowUpRight, Search } from "lucide-react";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { usePageReady } from "@/components/PageReady";
 import { useHomeSearch } from "./HomeSearchProvider";
-import { SECTORS, STAGES } from "@/lib/options";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const SECTOR_OPTIONS = [{ value: "all", label: "All sectors" }, ...SECTORS.map((s) => ({ value: s, label: s }))];
-const STAGE_OPTIONS = [
-  { value: "all", label: "All stages" },
-  ...STAGES.map((s) => ({ value: s.value, label: s.label.split(" — ")[0] })),
-];
+export type HeroOption = { value: string; label: string };
 
 const QUICK_FILTERS = [
   { label: "AI & data", sector: "Artificial Intelligence (AI)" },
@@ -51,11 +46,27 @@ function StatTile({
   );
 }
 
-export function Hero({ databankCount }: { databankCount: number }) {
+export function Hero({
+  databankCount,
+  sectors,
+  stages,
+}: {
+  databankCount: number;
+  // Resolved from the option_lists registry by the server — never imported
+  sectors: HeroOption[];
+  stages: HeroOption[];
+}) {
   const ready = usePageReady();
   const reduceMotion = useReducedMotion();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { keyword, sector, stage, setKeyword, setSector, setStage, submit, quickFilter, reset } = useHomeSearch();
+
+  const sectorOptions = [{ value: "all", label: "All sectors" }, ...sectors];
+  // Stage labels are "Early Stage — generating revenue…"; the compact hero
+  const stageOptions = [
+    { value: "all", label: "All stages" },
+    ...stages.map((s) => ({ value: s.value, label: s.label.split(" — ")[0] })),
+  ];
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -154,7 +165,7 @@ export function Hero({ databankCount }: { databankCount: number }) {
               <SelectMenu
                 value={sector}
                 onValueChange={setSector}
-                options={SECTOR_OPTIONS}
+                options={sectorOptions}
                 placeholder="All sectors"
                 searchable
                 className="h-auto rounded-[18px] border-0 bg-transparent px-4 py-4 text-sm font-medium text-pasha-ink hover:bg-pasha-stone [&_svg]:text-pasha-ink/50 data-[placeholder]:text-pasha-ink"
@@ -162,7 +173,7 @@ export function Hero({ databankCount }: { databankCount: number }) {
               <SelectMenu
                 value={stage}
                 onValueChange={setStage}
-                options={STAGE_OPTIONS}
+                options={stageOptions}
                 placeholder="All stages"
                 className="h-auto rounded-[18px] border-0 bg-transparent px-4 py-4 text-sm font-medium text-pasha-ink hover:bg-pasha-stone [&_svg]:text-pasha-ink/50 data-[placeholder]:text-pasha-ink"
               />
@@ -218,7 +229,7 @@ export function Hero({ databankCount }: { databankCount: number }) {
           className="mt-14 grid grid-cols-2 divide-x divide-y sm:divide-y-0 divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] lg:grid-cols-4"
         >
           <StatTile value={`${databankCount.toLocaleString()}+`} label="Member companies" href="#directory" />
-          <StatTile value={`${SECTORS.length}+`} label="Technology sectors" href="#directory" />
+          <StatTile value={`${sectors.length}+`} label="Technology sectors" href="#directory" />
           <StatTile value="Women-led" label="Founder spotlight" href="#women-led" accent />
           <StatTile value="Global" label="Award-winning startups" href="#awards" />
         </motion.div>

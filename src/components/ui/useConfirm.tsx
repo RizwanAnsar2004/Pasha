@@ -9,15 +9,7 @@ type ConfirmOptions = {
   confirmLabel?: string;
 };
 
-/**
- * Promise-based confirmation backed by the in-app ConfirmDeleteModal, so we can
- * replace the native blocking `confirm()` everywhere with one consistent modal.
- *
- * Usage:
- *   const { confirm, confirmDialog } = useConfirm();
- *   if (!(await confirm({ title: 'Delete "X"?', description: "This can’t be undone." }))) return;
- *   // …then render {confirmDialog} once in the component.
- */
+// Promise-based confirmation backed by the in-app ConfirmDeleteModal, so we can
 export function useConfirm(): {
   confirm: (opts: ConfirmOptions) => Promise<boolean>;
   confirmDialog: ReactNode;

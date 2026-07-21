@@ -19,10 +19,10 @@ COMMENT ON TABLE public.site_content IS
 INSERT INTO public.site_content (slug, title, body) VALUES
 (
   'privacy_policy',
-  'P@SHA Startup Community — Terms',
+  'P@SHA Startup Hub — Terms',
   '<p><em>Draft for review — the binding version will be issued by P@SHA legal counsel.</em></p>
 <h3>1. Acceptance of terms</h3>
-<p>By creating an account on the P@SHA Startup Community portal you confirm that you have read, understood and agree to be bound by these terms. If you are registering on behalf of a company, you confirm you are authorised to do so.</p>
+<p>By creating an account on the P@SHA Startup Hub portal you confirm that you have read, understood and agree to be bound by these terms. If you are registering on behalf of a company, you confirm you are authorised to do so.</p>
 <h3>2. Account &amp; eligibility</h3>
 <p>Accounts are intended for founders, employees, or authorised representatives of a registered or prospective Pakistani technology startup. You agree to provide accurate information and keep your contact details up to date so the committee can reach you.</p>
 <h3>3. Use of the platform</h3>

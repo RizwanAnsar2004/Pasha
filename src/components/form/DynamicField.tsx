@@ -10,10 +10,16 @@ import { CheckboxGroup, YesNo, RadioCardGroup } from "@/components/ui/RadioCard"
 import { FileUpload } from "@/components/form/FileUpload";
 import { CityField } from "@/components/form/controls/CityField";
 import { FoundersRepeater } from "@/components/form/controls/FoundersRepeater";
-import { InputType, htmlInputType } from "@/lib/form-enums";
-import { phoneRegisterProps } from "@/lib/phone";
-import { resolveOptions, type FormFieldConfig } from "@/lib/form-config";
+import { InputType, htmlInputType } from "@/lib/forms/form-enums";
+import { phoneRegisterProps } from "@/lib/validators/phone";
+import {
+  resolveOptions,
+  isOtherSelected,
+  otherFieldKey,
+  type FormFieldConfig,
+} from "@/lib/forms/form-config";
 import { useOptionRegistry } from "@/components/form/OptionListsContext";
+import { coerceOptionValue } from "@/lib/options/choice";
 
 // Read a nested error message off RHF's errors object by dotted path.
 function errorAt(errors: unknown, path: string): string | undefined {
@@ -26,14 +32,7 @@ function errorAt(errors: unknown, path: string): string | undefined {
   return typeof msg === "string" ? msg : undefined;
 }
 
-/**
- * Renders one config-defined field at the given RHF path. `namePrefix` is set
- * when the field lives inside a (possibly repeated) GROUP, e.g. "members.0".
- * GROUP fields recurse; repeatable GROUPs render an add/remove card list.
- *
- * Hooks are all called unconditionally at the top so the call order is stable
- * regardless of input_type (rules-of-hooks safe).
- */
+// Renders one config-defined field at the given RHF path. `namePrefix` is set
 export function DynamicField({
   field,
   namePrefix,
@@ -90,6 +89,26 @@ export function DynamicField({
   const hint = field.hint ?? undefined;
   const required = field.required;
 
+  // Companion free-text input, revealed when the user picks "Other" so the real
+  const otherPath = namePrefix
+    ? `${namePrefix}.${otherFieldKey(field.field_key)}`
+    : otherFieldKey(field.field_key);
+  const otherError = errorAt(form.formState.errors, otherPath);
+
+  function withOther(control: React.ReactNode) {
+    if (!isOtherSelected(value)) return control;
+    return (
+      <>
+        {control}
+        <div className="mt-3">
+          <Field label="Please specify" required error={otherError}>
+            <Input placeholder="Type your answer" maxLength={120} {...form.register(otherPath)} />
+          </Field>
+        </div>
+      </>
+    );
+  }
+
   switch (field.input_type) {
     case InputType.TEXTAREA:
       return (
@@ -106,7 +125,7 @@ export function DynamicField({
       );
 
     case InputType.SELECT:
-      return (
+      return withOther(
         <Field label={label} hint={hint} required={required} error={error}>
           <SelectField
             name={path}
@@ -117,7 +136,7 @@ export function DynamicField({
       );
 
     case InputType.MULTISELECT:
-      return (
+      return withOther(
         <Field label={label} hint={hint} required={required} error={error}>
           <CheckboxGroup
             value={(value as string[]) ?? []}
@@ -129,10 +148,10 @@ export function DynamicField({
       );
 
     case InputType.RADIO_CARDS:
-      return (
+      return withOther(
         <Field label={label} hint={hint} required={required} error={error}>
           <RadioCardGroup
-            value={value as string | undefined}
+            value={coerceOptionValue(value, resolveOptions(field, optionRegistry)) || undefined}
             onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
             options={resolveOptions(field, optionRegistry)}
             aria-label={label}
@@ -257,8 +276,7 @@ function NumberField({
   );
 }
 
-// A subsection. Non-repeatable → just its children. Repeatable → a card list
-// with Add/Remove bounded by min/max (the generic "members" repeater).
+// A subsection.
 function GroupField({ field, path }: { field: FormFieldConfig; path: string }) {
   if (!field.repeatable) {
     return (

@@ -16,19 +16,35 @@ import {
   REVENUE_MODELS,
   SECTORS,
   STAGES,
+  isOtherPicked,
 } from "@/lib/options";
+import { useOptionList } from "@/components/form/OptionListsContext";
 
-/**
- * Step 1 — Startup
- *
- * Consolidates every company-level field from the legacy 7-step wizard into
- * one long but well-sectioned page. Each sub-heading is separated by a thin
- * divider; the rhythm matches the public detail page's sidebar groups so
- * the form feels visually consistent with the directory.
- *
- * Required fields here: startup_name, website, year_founded, description,
- * hq_city (or hq_country if outside_pakistan), primary_sector, stage.
- */
+// Step 1 — Startup
+// Free-text capture shown when the paired choice is "Other", so the real answer
+function OtherInput({
+  form,
+  name,
+  label,
+}: {
+  form: StepProps["form"];
+  name: string;
+  label: string;
+}) {
+  const value = form.watch(name as never) as unknown;
+  if (!isOtherPicked(value)) return null;
+  const key = `${name}_other`;
+  const message = (form.formState.errors as Record<string, { message?: string } | undefined>)[key]
+    ?.message;
+  return (
+    <div className="mt-3">
+      <Field label={`Please specify — ${label}`} required error={message}>
+        <Input {...form.register(key as never)} placeholder="Type your answer" maxLength={120} />
+      </Field>
+    </div>
+  );
+}
+
 export function Step1Startup({ form }: StepProps) {
   const {
     register,
@@ -37,6 +53,20 @@ export function Step1Startup({ form }: StepProps) {
     formState: { errors },
   } = form;
   const v = watch();
+
+  // Single source of truth: every list below resolves from the admin-managed
+  const sectors = useOptionList("SECTORS", SECTORS);
+  const businessModels = useOptionList("BUSINESS_MODELS", BUSINESS_MODELS);
+  const stages = useOptionList("STAGES", STAGES);
+  const foundingTeamCompositions = useOptionList(
+    "FOUNDING_TEAM_COMPOSITIONS",
+    FOUNDING_TEAM_COMPOSITIONS
+  );
+  const revenueBands = useOptionList("REVENUE_BANDS", REVENUE_BANDS);
+  const fundingStages = useOptionList("FUNDING_STAGES", FUNDING_STAGES);
+  const nicCenters = useOptionList("NIC_CENTERS", NIC_CENTERS);
+  // CheckboxGroup stores plain strings, so pass values only.
+  const revenueModels = useOptionList("REVENUE_MODELS", REVENUE_MODELS).map((o) => o.value);
 
   return (
     <div className="space-y-10">
@@ -149,8 +179,9 @@ export function Step1Startup({ form }: StepProps) {
             <SelectField
               name="primary_sector"
               placeholder="Select primary sector"
-              options={[...SECTORS]}
+              options={sectors}
             />
+            <OtherInput form={form} name="primary_sector" label="primary sector" />
           </Field>
           <Field label="Secondary sector">
             <Input
@@ -162,8 +193,9 @@ export function Step1Startup({ form }: StepProps) {
             <SelectField
               name="business_model"
               placeholder="Select business model"
-              options={[...BUSINESS_MODELS]}
+              options={businessModels}
             />
+            <OtherInput form={form} name="business_model" label="business model" />
           </Field>
           <Field
             label="Current stage"
@@ -173,8 +205,9 @@ export function Step1Startup({ form }: StepProps) {
             <SelectField
               name="stage"
               placeholder="Select stage"
-              options={STAGES.map((s) => ({ value: s.value, label: s.label }))}
+              options={stages}
             />
+            <OtherInput form={form} name="stage" label="stage" />
           </Field>
         </div>
         <Field
@@ -186,9 +219,10 @@ export function Step1Startup({ form }: StepProps) {
             onChange={(arr) =>
               setValue("revenue_models", arr, { shouldValidate: true })
             }
-            options={REVENUE_MODELS}
+            options={revenueModels}
             aria-label="Revenue models"
           />
+          <OtherInput form={form} name="revenue_models" label="revenue model" />
         </Field>
       </Section>
 
@@ -232,7 +266,7 @@ export function Step1Startup({ form }: StepProps) {
           <SelectField
             name="founding_team_composition"
             placeholder="Select composition"
-            options={[...FOUNDING_TEAM_COMPOSITIONS]}
+            options={foundingTeamCompositions}
           />
         </Field>
         <Field label="Registered with FBR?">
@@ -273,7 +307,7 @@ export function Step1Startup({ form }: StepProps) {
           <SelectField
             name="revenue_band"
             placeholder="Select range"
-            options={[...REVENUE_BANDS]}
+            options={revenueBands}
           />
         </Field>
 
@@ -291,8 +325,9 @@ export function Step1Startup({ form }: StepProps) {
             <SelectField
               name="funding_stage"
               placeholder="Select stage"
-              options={[...FUNDING_STAGES]}
+              options={fundingStages}
             />
+            <OtherInput form={form} name="funding_stage" label="funding stage" />
           </Field>
         )}
         <Field label="Currently raising?">
@@ -351,8 +386,9 @@ export function Step1Startup({ form }: StepProps) {
               <SelectField
                 name="nic_name"
                 placeholder="Select center"
-                options={[...NIC_CENTERS]}
+                options={nicCenters}
               />
+              <OtherInput form={form} name="nic_name" label="incubation center" />
             </Field>
             <Field label="Cohort">
               <Input {...register("nic_cohort")} placeholder="e.g. Cohort 12" />

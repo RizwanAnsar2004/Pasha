@@ -7,13 +7,12 @@ import { Sparkles, Mail, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PillButton } from "@/components/landing/shared/PillButton";
-import { funnel } from "@/lib/analytics";
+import { funnel } from "@/lib/utils/analytics";
 
 export function SuccessContent() {
   const searchParams = useSearchParams();
 
-  // Landing here means the submission succeeded — fire the funnel end event
-  // once, with the server-assigned tier/score carried in the URL.
+  // Landing here means the submission succeeded — fire the funnel end event once, with the server-assigned tier/score carried in the URL.
   useEffect(() => {
     const tier = searchParams.get("tier") ?? undefined;
     const scoreRaw = searchParams.get("score");

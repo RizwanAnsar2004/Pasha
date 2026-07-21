@@ -9,7 +9,7 @@ import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
-import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/utils/csv";
 
 export type ActivityType =
   | "verification"

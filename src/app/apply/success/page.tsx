@@ -4,7 +4,7 @@ import { SuccessContent } from "./SuccessContent";
 
 export const metadata: Metadata = {
   title: "Application submitted",
-  description: "Your application has been submitted to the P@SHA Startup Community.",
+  description: "Your application has been submitted to the P@SHA Startup Hub.",
   alternates: { canonical: "/apply/success" },
   robots: { index: false, follow: false },
 };

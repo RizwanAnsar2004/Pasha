@@ -18,7 +18,7 @@ import { cn, initials } from "@/lib/utils";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
-import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/utils/csv";
 import { useConfirm } from "@/components/ui/useConfirm";
 
 type DatabankSummary = {
@@ -175,7 +175,6 @@ export function FeaturedStartupsClient({
 
   // Server-side filtering — render as-is.
   const filtered = entries;
-
 
   const openAdd = () => {
     setEditing(null);
@@ -482,35 +481,7 @@ export function FeaturedStartupsClient({
         />
       </div>
 
-      {/* <section className="rounded-2xl border border-pasha-line bg-white p-6">
-        <h2 className="text-base font-semibold text-pasha-ink">Featured Settings</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <SettingToggle
-            label="Auto-rotate featured startups"
-            checked={settings.auto_rotate}
-            disabled={busy}
-            onChange={(v) => updateSetting("auto_rotate", v)}
-          />
-          <SettingToggle
-            label="Show on homepage"
-            checked={settings.show_on_homepage}
-            disabled={busy}
-            onChange={(v) => updateSetting("show_on_homepage", v)}
-          />
-          <SettingToggle
-            label="Show on startup directory"
-            checked={settings.show_on_directory}
-            disabled={busy}
-            onChange={(v) => updateSetting("show_on_directory", v)}
-          />
-          <SettingToggle
-            label="Show in search results"
-            checked={settings.show_in_search}
-            disabled={busy}
-            onChange={(v) => updateSetting("show_in_search", v)}
-          />
-        </div>
-      </section> */}
+      {/* <section className="rounded-2xl border border-pasha-line bg-white p-6"> */}
 
       <AnimatePresence>
         {showModal && (

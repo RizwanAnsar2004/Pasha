@@ -2,9 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   clearAdminSessionCookie,
   makeAdminSessionCookie,
-} from "@/lib/admin-session";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { provisionSupabaseAuthUser } from "@/lib/admin-auth-provision";
+} from "@/lib/auth/admin/admin-session";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { provisionSupabaseAuthUser } from "@/lib/auth/admin/admin-auth-provision";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 export async function POST(req: NextRequest) {
@@ -18,11 +18,7 @@ export async function POST(req: NextRequest) {
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
 
-  // ── Forgot password ─────────────────────────────────────────────────────
-  // Only allowlisted committee emails get a reset link; everyone else gets the
-  // same generic "no account" response. Committee members always have a
-  // Supabase Auth account (provisioned on invite / first sign-in), so the
-  // recovery email is delivered.
+  // ── Forgot password ───────────────────────────────────────────────────── Only allowlisted committee emails get a reset link; everyone else gets.
   if (body.action === "forgot") {
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -43,8 +39,7 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-    // Return the PKCE code_verifier cookie so the callback can exchange the
-    // recovery code later; without it the reset link reads as expired.
+    // Return the PKCE code_verifier cookie so the callback can exchange the recovery code later; without it the reset link reads as expired.
     return applyCookies(NextResponse.json({ ok: true }));
   }
 
@@ -63,8 +58,7 @@ export async function POST(req: NextRequest) {
 
   let { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
 
-  // First sign-in for an allowlisted admin added only to admin_users: create the
-  // Supabase Auth account with the password they chose, then sign in again.
+  // First sign-in for an allowlisted admin added only to admin_users: create the Supabase Auth account with the password they chose, then sign in again.
   if (signInErr) {
     const created = await provisionSupabaseAuthUser(email, password);
     if (created) {

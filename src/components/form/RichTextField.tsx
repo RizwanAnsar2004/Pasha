@@ -11,10 +11,7 @@ const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
   ),
 });
 
-/**
- * react-hook-form adapter around the shared CKEditor. Stores the field value as
- * an HTML string. Pairs with input_type RICH_TEXT in the dynamic form renderer.
- */
+// react-hook-form adapter around the shared CKEditor. Stores the field value as
 export function RichTextField({ name }: { name: string }) {
   const { control } = useFormContext();
   const { field } = useController({ name, control });

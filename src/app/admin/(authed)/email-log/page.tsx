@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { format, parseISO } from "date-fns";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
 import { Pagination } from "../_components/Pagination";
 
 export const dynamic = "force-dynamic";

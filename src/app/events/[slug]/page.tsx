@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDetailContent } from "@/components/events/EventContent";
-import { getEventBySlug, getRelatedEvents } from "@/lib/events.server";
-import { eventSlug } from "@/lib/slug";
+import { getEventBySlug, getRelatedEvents } from "@/lib/events/events.server";
+import { eventSlug } from "@/lib/utils/slug";
 
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;

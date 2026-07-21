@@ -5,7 +5,7 @@ import { CommitteeContent } from "@/components/committee/CommitteeContent";
 import {
   getCommitteeMembers,
   getPublishedCommitteeActivities,
-} from "@/lib/committee.server";
+} from "@/lib/committee/committee.server";
 
 export const metadata: Metadata = {
   title: "Committee",
@@ -13,11 +13,11 @@ export const metadata: Metadata = {
     "The P@SHA Startups & Entrepreneurship Committee brings together Pakistan's top founders, investors, corporates, and government leaders to grow, connect, and support the national startup ecosystem.",
   alternates: { canonical: "/committee" },
   openGraph: {
-    title: "Committee · P@SHA Startup Community",
+    title: "Committee · P@SHA Startup Hub",
     url: "/committee",
   },
   twitter: {
-    title: "Committee · P@SHA Startup Community",
+    title: "Committee · P@SHA Startup Hub",
   },
 };
 

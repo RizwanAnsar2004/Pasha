@@ -6,26 +6,14 @@ import { cn } from "@/lib/utils";
 
 type Tab = "overview" | "form";
 
-// Lets server-rendered overview children (passed in as nodes) switch to the
-// form tab instantly instead of soft-navigating. A client child anywhere in the
-// overview subtree can call `usePortalTabs().goToForm()`.
+// Lets server-rendered overview children (passed in as nodes) switch to the form tab instantly instead of soft-navigating.
 const PortalTabsContext = createContext<{ goToForm: () => void } | null>(null);
 
 export function usePortalTabs() {
   return useContext(PortalTabsContext);
 }
 
-/**
- * Client-side tab shell for the applicant portal. Overview and the application
- * form are both rendered on the server and passed in as nodes; this component
- * just toggles which one is visible with local state, so switching tabs is
- * instant (no server navigation) and the form keeps its in-progress state while
- * the applicant peeks at the overview.
- *
- * Replaces the old two-route split (/apply + /apply/form), where each tab click
- * was a full server round-trip that re-fetched the same form config, draft and
- * option lists.
- */
+// Client-side tab shell for the applicant portal. Overview and the application
 export function PortalTabs({
   overview,
   form,
@@ -33,9 +21,9 @@ export function PortalTabs({
   initialTab,
 }: {
   overview: React.ReactNode;
-  /** The application form node — omitted (null) once the draft is submitted. */
+  // The application form node — omitted (null) once the draft is submitted.
   form: React.ReactNode;
-  /** False once submitted: only the overview tab exists. */
+  // False once submitted: only the overview tab exists.
   formAvailable: boolean;
   initialTab: Tab;
 }) {
@@ -89,8 +77,7 @@ export function PortalTabs({
       </nav>
 
       <div className="mt-6">
-        {/* Both panels stay mounted; we only hide the inactive one so the form
-            preserves its state and switching is instant. */}
+        {/* Both panels stay mounted; we only hide the inactive one so the form */}
         <div hidden={tab !== "overview"}>{overview}</div>
 
         {formAvailable && (

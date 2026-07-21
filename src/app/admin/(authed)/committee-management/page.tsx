@@ -1,8 +1,8 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CommitteeManagementClient } from "./CommitteeManagementClient";
-import { parsePagination } from "@/lib/pagination";
-import { readAdminSession } from "@/lib/admin-session";
-import type { CommitteeMemberType } from "@/lib/committee";
+import { parsePagination } from "@/lib/utils/pagination";
+import { readAdminSession } from "@/lib/auth/admin/admin-session";
+import type { CommitteeMemberType } from "@/lib/committee/committee";
 
 export const dynamic = "force-dynamic";
 
@@ -85,10 +85,9 @@ export default async function CommitteeManagementPage({
   );
 }
 
-/** Only admins and chairmen may add/edit/remove members (mirrors the API). */
+// Only admins and chairmen may add/edit/remove members (mirrors the API).
 async function viewerCanOperate(): Promise<boolean> {
-  // Committee members sign in via Supabase Auth; the legacy psec_admin cookie is
-  // only set for the ADMIN_EMAIL login. Check both so either session works.
+  // Committee members sign in via Supabase Auth; the legacy psec_admin cookie is only set for the ADMIN_EMAIL login.
   let email: string | null = null;
   try {
     const session = await createClient();

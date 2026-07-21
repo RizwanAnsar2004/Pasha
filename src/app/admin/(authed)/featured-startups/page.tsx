@@ -1,9 +1,9 @@
-import { getFeaturedSettings, getFeaturedForAdmin } from "@/lib/featured-startups.server";
+import { getFeaturedSettings, getFeaturedForAdmin } from "@/lib/startups/directory/featured-startups.server";
 import {
   FeaturedStartupsClient,
   type FeaturedEntry,
 } from "./FeaturedStartupsClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
 
 export const dynamic = "force-dynamic";
 

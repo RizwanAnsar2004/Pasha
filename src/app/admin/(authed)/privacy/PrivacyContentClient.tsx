@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
 import { Check, Eye, Loader2, Save } from "lucide-react";
 import { RichText } from "@/components/ui/RichText";
-import type { SiteContentSlug } from "@/lib/site-content";
+import type { SiteContentSlug } from "@/lib/content/site-content";
 
 // CKEditor touches `window` at import time → load client-only.
 const RichTextEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {

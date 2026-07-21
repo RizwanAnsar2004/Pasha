@@ -1,6 +1,14 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { DatabankClient } from "./DatabankClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
+import {
+  matchingOptionIds,
+  optionFilterValues,
+  optionIdFor,
+  resolveOptionLabel,
+} from "@/lib/options/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -16,20 +24,38 @@ async function load(
   filters: Filters
 ) {
   const supabase = createServiceClient();
+  const optionIndex = await getOptionIndex();
   const FULL =
     "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,current_revenue,investment_raised,total_employees,website,pasha_verified";
   const LEGACY = FULL.replace(",pasha_verified", "");
 
   const runQuery = async (cols: string) => {
     let q = supabase.from("databank").select(cols, { count: "exact" });
-    const needle = filters.q.trim();
+    const needle = filters.q.trim().replace(/[%,()]/g, " ").trim();
     if (needle.length >= 1) {
       const pattern = `%${needle}%`;
+      const idMatches = matchingOptionIds(optionIndex, needle).map(
+        (id) => `primary_industry_id.eq.${id}`
+      );
       q = q.or(
-        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+        [
+          `startup_name.ilike.${pattern}`,
+          `contact_email.ilike.${pattern}`,
+          `contact_person.ilike.${pattern}`,
+          `primary_industry.ilike.${pattern}`,
+          ...idMatches,
+        ].join(",")
       );
     }
-    if (filters.sector && filters.sector !== "all") q = q.eq("primary_industry", filters.sector);
+    if (filters.sector && filters.sector !== "all") {
+      const id = optionIdFor(optionIndex, "SECTORS", filters.sector);
+      if (id) {
+        q = q.eq("primary_industry_id", id);
+      } else {
+        const values = optionFilterValues(optionIndex, "SECTORS", filters.sector);
+        q = values.length > 1 ? q.in("primary_industry", values) : q.eq("primary_industry", filters.sector);
+      }
+    }
     if (filters.outreach && filters.outreach !== "all") q = q.eq("outreach_status", filters.outreach);
     if (filters.verified === "yes") q = q.eq("pasha_verified", true);
     if (filters.verified === "no") q = q.or("pasha_verified.is.null,pasha_verified.eq.false");
@@ -53,18 +79,18 @@ async function load(
       count = res.count ?? null;
     }
   }
-  const { data: industries } = await supabase
-    .from("databank")
-    .select("primary_industry")
-    .not("primary_industry", "is", null);
-
-  const sectorSet = new Set<string>();
-  (industries ?? []).forEach((r) => r.primary_industry && sectorSet.add(r.primary_industry));
+  // Dropdown values are option ids, so picking a sector filters the *_id column.
+  const registry = await getFormOptionRegistry();
+  const sectors = (registry.SECTORS ?? []).map((o) => ({ value: o.value, label: o.label }));
 
   return {
-    rows: data ?? [],
+    rows: (data ?? []).map((r) => ({
+      ...r,
+      primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry as string | null),
+      city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city as string | null),
+    })),
     total: count ?? 0,
-    sectors: Array.from(sectorSet).sort(),
+    sectors,
     page: range.page,
     pageSize: range.pageSize,
     filters,
@@ -96,7 +122,7 @@ export default async function DatabankPage({
         data as unknown as {
           rows: Parameters<typeof DatabankClient>[0]["initial"]["rows"];
           total: number;
-          sectors: string[];
+          sectors: { value: string; label: string }[];
           page: number;
           pageSize: number;
           filters: Filters;

@@ -1,19 +1,10 @@
-// Schema unit tests for the v2 (3-step) form. Node built-in test runner.
-// Run: pnpm test:schema
-//
-// The v2 schema reshapes founders into a JSONB array and makes
-// website / primary_sector / stage / year_founded required. Tests below
-// reflect both the new shape and the original XSS / Unicode / type-coercion
-// regression cases.
+// Schema unit tests for the v2 (3-step) form.
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { submissionSchema } from "../schema";
+import { submissionSchema } from "../forms/schema";
 
-// Minimum payload that should always parse. The founders array carries the
-// "primary submitter" identity; the four newly-required top-level fields
-// (website, primary_sector, stage, year_founded) live alongside the
-// original required four (startup_name, hq_city, description).
+// Minimum payload that should always parse.
 const REQUIRED_ONLY = {
   startup_name: "BearPlex",
   website: "https://bearplex.com",
@@ -21,7 +12,7 @@ const REQUIRED_ONLY = {
   description: "x".repeat(50),
   hq_city: "Lahore",
   primary_sector: "Artificial Intelligence (AI)",
-  stage: "growth",
+  stage: "Growth (Series B,C)",
   founders: [
     {
       name: "Hamad Pervaiz",
@@ -281,6 +272,67 @@ describe("submissionSchema v2 — city / country branch", () => {
       const paths = r.error.issues.map((i) => i.path.join("."));
       assert.ok(paths.includes("hq_other"));
     }
+  });
+});
+
+describe("submissionSchema v2 — \"Other\" free-text capture", () => {
+  it("primary_sector='Other' + primary_sector_other passes", () => {
+    const r = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      primary_sector: "Other",
+      primary_sector_other: "Quantum Computing",
+    });
+    assert.equal(r.success, true);
+  });
+
+  it("primary_sector='Other' with no text fails on the _other path", () => {
+    const r = submissionSchema.safeParse({ ...REQUIRED_ONLY, primary_sector: "Other" });
+    assert.equal(r.success, false);
+    if (!r.success) {
+      const paths = r.error.issues.map((i) => i.path.join("."));
+      assert.ok(paths.includes("primary_sector_other"));
+    }
+  });
+
+  it("whitespace-only text is rejected", () => {
+    const r = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      primary_sector: "Other",
+      primary_sector_other: "   ",
+    });
+    assert.equal(r.success, false);
+  });
+
+  it("a normal sector does not require the _other text", () => {
+    const r = submissionSchema.safeParse({ ...REQUIRED_ONLY, primary_sector: "Fintech" });
+    assert.equal(r.success, true);
+  });
+
+  it("multi-select revenue_models containing 'Other' requires the text", () => {
+    const missing = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      revenue_models: ["Subscription", "Other"],
+    });
+    assert.equal(missing.success, false);
+    if (!missing.success) {
+      const paths = missing.error.issues.map((i) => i.path.join("."));
+      assert.ok(paths.includes("revenue_models_other"));
+    }
+
+    const filled = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      revenue_models: ["Subscription", "Other"],
+      revenue_models_other: "Revenue share",
+    });
+    assert.equal(filled.success, true);
+  });
+
+  it("multi-select without 'Other' does not require the text", () => {
+    const r = submissionSchema.safeParse({
+      ...REQUIRED_ONLY,
+      revenue_models: ["Subscription", "Freemium"],
+    });
+    assert.equal(r.success, true);
   });
 });
 

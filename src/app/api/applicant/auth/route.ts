@@ -1,33 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { clearAdminSessionCookie } from "@/lib/admin-session";
+import { clearAdminSessionCookie } from "@/lib/auth/admin/admin-session";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { registerApplicant, seedApplicantDraft } from "@/lib/applicant-auth";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { registerApplicant, seedApplicantDraft } from "@/lib/auth/applicant/applicant-auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getRegistrationConfig } from "@/lib/form-config.server";
-import { buildZodSchema } from "@/lib/form-config";
+import { getRegistrationConfig } from "@/lib/forms/form-config.server";
+import { buildZodSchema } from "@/lib/forms/form-config";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import {
   applicantEmailError,
   applicantPasswordError,
-} from "@/lib/applicant-password";
+} from "@/lib/auth/applicant/applicant-password";
 
-// Bump when the terms / privacy / data-usage agreement changes (spec §3 asks us
-// to record which policy version the applicant consented to).
+// Bump when the terms / privacy / data-usage agreement changes (spec §3 asks us to record which policy version the applicant consented to).
 const CONSENT_VERSION = "2026-06-16";
 
-/**
- * Applicant sign-up / sign-in. Separate from the committee portal
- * (`/api/admin/auth`): these accounts are never added to `admin_users`, and
- * admin emails are refused here so the two audiences never overlap.
- *
- * Body: { action: "register" | "login" | "resend", email, password?, profile? }
- *
- * Registration goes through Supabase `signUp` so the account must be verified
- * by email before it can sign in (when "Confirm email" is enabled on the
- * project). The §3 profile fields the admin configured are validated against
- * the registration form schema and seeded into the applicant's draft so they
- * prefill the full application later.
- */
+// Applicant sign-up / sign-in. Separate from the committee portal
 export async function POST(req: NextRequest) {
   let body: {
     action?: string;
@@ -65,9 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
 
-  // Admins belong in the committee portal — keep the audiences separate. (Skip
-  // for "forgot": an admin email simply isn't an applicant, so the existence
-  // check below returns the same generic "no account" result.)
+  // Admins belong in the committee portal — keep the audiences separate.
   if (action !== "forgot" && (await isAdminEmail(email))) {
     return NextResponse.json(
       { error: "Invalid Email And Password." },
@@ -75,9 +61,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Email existence check (signup step 1) ──────────────────────────────────
-  // Lets the UI flag an already-registered email before the applicant fills out
-  // the whole form. Fails open (exists:false) so a hiccup never blocks signup.
+  // ── Email existence check (signup step 1) ────────────────────────────────── Lets the UI flag an already-registered email before the applicant.
   if (action === "check") {
     try {
       const admin = createServiceClient();
@@ -89,18 +73,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Forgot password ─────────────────────────────────────────────────────
-  // Only send a reset link to a real applicant account; otherwise tell the UI
-  // no account was found. (Admin emails were already excluded above, so they
-  // fall through to the same "no account" response.)
+  // ── Forgot password ───────────────────────────────────────────────────── Only send a reset link to a real applicant account; otherwise tell the UI.
   if (action === "forgot") {
     let exists = false;
     try {
       const admin = createServiceClient();
       const { data, error } = await admin.rpc("applicant_email_exists", { p_email: email });
-      // A committee/admin email has a Supabase auth user too, so the existence
-      // RPC alone would match it — exclude admins here so applicant reset is
-      // only ever sent to real applicant accounts. (Admins reset via /admin.)
+      // A committee/admin email has a Supabase auth user too, so the existence RPC alone would match it — exclude admins here so applicant reset is only.
       exists = !error && Boolean(data) && !(await isAdminEmail(email));
     } catch {
       exists = false;
@@ -121,8 +100,7 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-    // Return the PKCE code_verifier cookie so the callback can exchange the
-    // recovery code later; without it the reset link reads as expired.
+    // Return the PKCE code_verifier cookie so the callback can exchange the recovery code later; without it the reset link reads as expired.
     return applyCookies(NextResponse.json({ ok: true }));
   }
 
@@ -151,10 +129,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: passwordErr }, { status: 400 });
     }
 
-    // Validate the admin-configured §3 profile fields (when a registration form
-    // exists). Pre-migration / pre-seed there's no config — skip validation.
+    // Validate the admin-configured §3 profile fields (when a registration form exists).
     const profile = body.profile ?? {};
-    const config = await getRegistrationConfig();
+    const [config] = await Promise.all([getRegistrationConfig(), getFormOptionRegistry()]);
     let validatedProfile: Record<string, unknown> = profile;
     if (config && config.length > 0) {
       const parsed = buildZodSchema(config).safeParse(profile);
@@ -214,10 +191,7 @@ export async function POST(req: NextRequest) {
       res.cookies.set(clearAdminSessionCookie());
       return res;
     }
-    // Normal path: must verify email before logging in. Persist the PKCE
-    // code_verifier cookie that signUp set on `supabase` — the email-link
-    // callback needs it to exchange the `?code=` for a session. Without
-    // applyCookies the verifier is lost and every fresh link reads as expired.
+    // Normal path: must verify email before logging in.
     return applyCookies(NextResponse.json({ ok: true, needsVerification: true }));
   }
 
@@ -244,7 +218,7 @@ export async function POST(req: NextRequest) {
   return res;
 }
 
-/** Sign out the applicant. */
+// Sign out the applicant.
 export async function DELETE(req: NextRequest) {
   const { supabase, applyCookies } = createRouteHandlerClient(req);
   await supabase.auth.signOut();

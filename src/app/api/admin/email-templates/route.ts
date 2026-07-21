@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { parsePagination } from "@/lib/pagination";
-import { EMAIL_TEMPLATE_COLS } from "@/lib/email-templates";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { parsePagination } from "@/lib/utils/pagination";
+import { EMAIL_TEMPLATE_COLS } from "@/lib/email/email-templates";
 
-// placeholders: object mapping token -> sample value, e.g. { "{{first_name}}": "Recipient first name" }
+// placeholders: object mapping token -> sample value, e.g.
 const placeholdersSchema = z.record(z.string(), z.string().max(500)).default({});
 
 const templateFieldsSchema = z.object({

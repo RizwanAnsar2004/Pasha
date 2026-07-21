@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useTransition } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, Coins, Calendar, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
-import { startupSlug } from "@/lib/slug";
+import { startupSlug } from "@/lib/utils/slug";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
-import { FUNDING_AMOUNT_RANGES } from "@/lib/options";
+import { EMPTY_OPTION_INDEX, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
 
 export type DirectoryRow = {
   id: string;
@@ -41,19 +41,17 @@ export type DirectoryRow = {
   founder_photo_url?: string | null;
   founder_role?: string | null;
   company_linkedin?: string | null;
-  // Dynamic form answers — used to fall back to range-band text for new
-  // records that store revenue / funding as select bands, not numeric columns.
+  // Dynamic form answers — used to fall back to range-band text for new records that store revenue / funding as select bands, not numeric columns.
   answers?: Record<string, unknown> | null;
 };
 
-// value→label maps for the form's range bands, so a card can show a readable
-// range (e.g. "$250K – $1M") when the numeric column is empty.
-const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
-  FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
-);
+// Prefer the user's free text when the stored choice is the "Other"
+function resolveOther(value: string | null, custom: unknown): string | null {
+  if (value !== "Other") return value;
+  return typeof custom === "string" && custom.trim() ? custom.trim() : value;
+}
 
-// Resolve a stored band code to a short label (drops the "/ year" suffix and
-// skips non-informative values). Returns null when nothing useful to show.
+// Resolve a stored band code to a short label (drops the "/ year" suffix and skips non-informative values).
 function bandLabel(code: unknown, map: Record<string, string>): string | null {
   if (typeof code !== "string" || !code || code === "na") return null;
   const label = map[code];
@@ -64,8 +62,14 @@ function bandLabel(code: unknown, map: Record<string, string>): string | null {
 // Internal alias so the existing presentational components keep using `Row`.
 type Row = DirectoryRow;
 
-// Filter state — the server owns this (read from the URL); the client only
-// writes back to the URL when a control changes.
+// Filter state — the server owns this (read from the URL); the client only writes back to the URL when a control changes.
+export type FilterOption = { value: string; label: string };
+
+// Display label for a filter value, resolving option ids before falling back to the raw value.
+function labelOf(options: FilterOption[], value: string, index: OptionIndex, type: string): string {
+  return options.find((o) => o.value === value)?.label ?? resolveOptionLabel(index, type, value) ?? value;
+}
+
 export type DirectoryFilters = {
   q: string;
   sector: string; // "all" or a sector value
@@ -78,8 +82,7 @@ export type DirectoryFilters = {
   sort: string; // "featured" | "az" | "newest" | "oldest"
 };
 
-// Small directory badge pills (women-led / hiring / fundraising). Verified
-// keeps its own dedicated <VerifiedBadge>. All use pasha theme tokens.
+// Small directory badge pills (women-led / hiring / fundraising).
 const NEUTRAL_BADGE_CLS = "bg-pasha-ink/[0.05] text-pasha-ink/65 border-pasha-ink/10";
 const DIR_BADGE: Record<"women_led" | "hiring" | "fundraising", { label: string; cls: string }> = {
   women_led: { label: "Women-led", cls: NEUTRAL_BADGE_CLS },
@@ -105,7 +108,6 @@ function DirectoryBadges({ r, className }: { r: Row; className?: string }) {
 }
 
 // Source data sometimes has the literal string "NULL" for missing values.
-// Treat these as nullish.
 function clean(s?: string | null): string | null {
   if (!s) return null;
   const v = String(s).trim();
@@ -114,7 +116,6 @@ function clean(s?: string | null): string | null {
 }
 
 // business_types is a "|"/";"/","-delimited multi-select string (e.g.
-// "B2B|B2C") — same parsing convention as the detail page's splitMulti().
 function splitMulti(v?: string | null): string[] {
   if (!v) return [];
   return String(v)
@@ -123,8 +124,7 @@ function splitMulti(v?: string | null): string[] {
     .filter((s) => s && s.toUpperCase() !== "NULL");
 }
 
-// Inline brand glyph — lucide 1.x dropped brand icons, so LinkedIn is kept as
-// a local SVG (same pattern as the detail page's LinkedInGlyph).
+// Inline brand glyph — lucide 1.x dropped brand icons, so LinkedIn is kept as a local SVG (same pattern as the detail page's LinkedInGlyph).
 function LinkedInGlyph({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
@@ -145,7 +145,7 @@ function isSafeUrl(u?: string | null): u is string {
   }
 }
 
-// Revenue values are PKR in the source data. Show as PKR, abbreviated.
+// Revenue values are PKR in the source data.
 function formatPKR(n: number | null | undefined): string | null {
   if (!n || n <= 0) return null;
   if (n >= 1_00_00_00_000) return `Rs ${(n / 1_00_00_00_000).toFixed(1)} bn`;
@@ -154,8 +154,7 @@ function formatPKR(n: number | null | undefined): string | null {
   return `Rs ${n.toLocaleString("en-PK")}`;
 }
 
-// All logos are self-hosted on our Supabase Storage bucket. Filter the
-// literal "NULL" string and gate on http(s) to defend against bad rows.
+// All logos are self-hosted on our Supabase Storage bucket.
 function safeLogoUrl(url?: string | null): string | null {
   if (!url) return null;
   const v = String(url).trim();
@@ -169,8 +168,7 @@ function safeLogoUrl(url?: string | null): string | null {
   }
 }
 
-// Sector theme — bundle stripe / badge / logo-bg colours so each industry
-// has a consistent identity across the entire card.
+// Sector theme — bundle stripe / badge / logo-bg colours so each industry has a consistent identity across the entire card.
 type SectorTheme = {
   stripe: string;   // top accent bar
   badge: string;    // sector pill
@@ -187,8 +185,7 @@ const DEFAULT_THEME: SectorTheme = {
   gradient: "from-pasha-stone/30",
 };
 
-// Cycling pastel identities (mirrors the accent palette used across the site's
-// bento cards) so cards in a page of results read as visually distinct.
+// Cycling pastel identities (mirrors the accent palette used across the site's bento cards) so cards in a page of results read as visually distinct.
 const ACCENT_THEMES: SectorTheme[] = [
   { stripe: "bg-gradient-to-r from-accent-coral to-accent-coral", badge: "bg-accent-coral/[0.12] text-[#a64043] border-accent-coral/20", logoBg: "bg-accent-coral/[0.18]", logoText: "text-[#a64043]", gradient: "from-accent-coral/[0.08]" },
   { stripe: "bg-gradient-to-r from-accent-yellow to-accent-yellow", badge: "bg-accent-yellow/[0.18] text-[#8a6200] border-accent-yellow/25", logoBg: "bg-accent-yellow/[0.22]", logoText: "text-[#8a6200]", gradient: "from-accent-yellow/[0.10]" },
@@ -209,10 +206,7 @@ function compact(n: number): string {
   return n.toLocaleString("en-PK");
 }
 
-// ---------------------------------------------------------------------------
-// LogoTile — 80px company logo with state-driven fallback. Avoids the broken
-// image / alt-text-overflow artefact when an external logo CDN 404s.
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- ListCard — horizontal compact card for list-view mode.
 function LogoTile({
   src,
   name,
@@ -252,12 +246,8 @@ function LogoTile({
   );
 }
 
-// ---------------------------------------------------------------------------
-// FilterDropdown — compact pill-style native select with icon prefix.
-// ---------------------------------------------------------------------------
-/* ─────────────────────────────────────────────────────────────────
-   Pagination — numbered page bar with prev/next and smart ellipsis.
-   ───────────────────────────────────────────────────────────────── */
+// --------------------------------------------------------------------------- ListCard — horizontal compact card for list-view mode.
+// ─────────────────────────────────────────────────────────────────
 function Pagination({
   page,
   totalPages,
@@ -479,10 +469,7 @@ function ActiveChip({ onClick, children }: { onClick: () => void; children: Reac
   );
 }
 
-// ---------------------------------------------------------------------------
-// ListCard — horizontal compact card for list-view mode.
-// Shows: logo · name+sector+city · tagline · stats · actions
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- ListCard — horizontal compact card for list-view mode.
 type ListCardProps = {
   row: Row;
   index: number;
@@ -683,18 +670,25 @@ export function DirectoryClient({
   sectors,
   cities,
   stages,
+  fundingBands,
+  optionIndex = EMPTY_OPTION_INDEX,
   filters,
   page,
   pageSize = PAGE_SIZE,
 }: {
   rows: Row[];
-  /** Total rows matching the active filters (for pagination + result count). */
+  // Total rows matching the active filters (for pagination + result count).
   total: number;
-  /** Unfiltered total (for the "of N" context). */
+  // Unfiltered total (for the "of N" context).
   totalAll: number;
-  sectors: string[];
-  cities: string[];
-  stages: string[];
+  // Canonical choice lists resolved from the `option_lists` registry — the
+  sectors: FilterOption[];
+  cities: FilterOption[];
+  stages: FilterOption[];
+  // FUNDING_AMOUNT_RANGES from the registry — used only to render a stored
+  fundingBands: FilterOption[];
+  // id→label lookup so a stored option_id renders as text, not a raw UUID.
+  optionIndex?: OptionIndex;
   filters: DirectoryFilters;
   page: number;
   pageSize?: number;
@@ -704,15 +698,18 @@ export function DirectoryClient({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
+  // value→label map for the funding range bands, so a card can show a readable
+  const raisedBandLabel = useMemo(
+    () => Object.fromEntries(fundingBands.map((o) => [o.value, o.label])),
+    [fundingBands]
+  );
+
   const [view, setView] = useState<"grid" | "list">("grid");
-  // On mobile the filter controls collapse behind a "Filters" toggle; on sm+
-  // they're always visible (this flag only affects the small-screen layout).
+  // On mobile the filter controls collapse behind a "Filters" toggle; on sm+ they're always visible (this flag only affects the small-screen layout).
   const [filtersOpen, setFiltersOpen] = useState(false);
-  // Local mirror of the search box so typing stays instant; it's pushed to the
-  // URL (which triggers the server refetch) after a short debounce.
+  // Local mirror of the search box so typing stays instant; it's pushed to the URL (which triggers the server refetch) after a short debounce.
   const [searchInput, setSearchInput] = useState(filters.q);
-  // Re-sync the box during render when the URL's q changes from elsewhere
-  // (Reset, browser back/forward) — React's recommended pattern over an effect.
+  // Re-sync the box during render when the URL's q changes from elsewhere (Reset, browser back/forward) — React's recommended pattern over an effect.
   const [prevQ, setPrevQ] = useState(filters.q);
   if (filters.q !== prevQ) {
     setPrevQ(filters.q);
@@ -722,7 +719,6 @@ export function DirectoryClient({
   const ready = usePageReady();
 
   // Write a set of param changes to the URL and refetch the page server-side.
-  // Empty / falsy values are dropped so the URL stays clean.
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -763,8 +759,7 @@ export function DirectoryClient({
     filters.hiring ||
     filters.fundraising;
 
-  // Count of active filters (search excluded — it has its own always-visible
-  // box) for the mobile "Filters" toggle badge.
+  // Count of active filters (search excluded — it has its own always-visible box) for the mobile "Filters" toggle badge.
   const activeFilterCount = [
     filters.sector !== "all",
     filters.city !== "all",
@@ -791,9 +786,7 @@ export function DirectoryClient({
 
   return (
     <>
-      {/* ───────────────────────────────────────────────────────
-          SEARCH + FILTER PANEL — sticky white rounded card
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       <div className="sticky top-[112px] z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
         {/* Search */}
         <div className="relative flex h-11 items-center gap-2.5 rounded-[14px] border border-pasha-ink/10 bg-pasha-stone px-3.5">
@@ -817,9 +810,7 @@ export function DirectoryClient({
           )}
         </div>
 
-        {/* Mobile "Filters" toggle — collapses the controls below into a
-            hamburger-style panel on small screens. Hidden from sm+ where the
-            filters are always shown. */}
+        {/* Mobile "Filters" toggle — collapses the controls below into a */}
         <button
           type="button"
           onClick={() => setFiltersOpen((o) => !o)}
@@ -846,19 +837,19 @@ export function DirectoryClient({
             label="Sector"
             value={filters.sector}
             onChange={(v) => updateParams({ sector: v === "all" ? null : v, page: null })}
-            options={[{ value: "all", label: "All sectors" }, ...sectors.map((s) => ({ value: s, label: s }))]}
+            options={[{ value: "all", label: "All sectors" }, ...sectors]}
           />
           <PillFilter
             label="Location"
             value={filters.city}
             onChange={(v) => updateParams({ city: v === "all" ? null : v, page: null })}
-            options={[{ value: "all", label: "All cities" }, ...cities.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: "All cities" }, ...cities]}
           />
           <PillFilter
             label="Stage"
             value={filters.stage}
             onChange={(v) => updateParams({ stage: v === "all" ? null : v, page: null })}
-            options={[{ value: "all", label: "All stages" }, ...stages.map((s) => ({ value: s, label: s }))]}
+            options={[{ value: "all", label: "All stages" }, ...stages]}
           />
           <button
             type="button"
@@ -956,13 +947,19 @@ export function DirectoryClient({
       {hasFilters && (
         <div className="flex items-center gap-2 flex-wrap -mt-3 mb-6">
           {filters.sector !== "all" && (
-            <ActiveChip onClick={() => updateParams({ sector: null, page: null })}>Sector: {filters.sector}</ActiveChip>
+            <ActiveChip onClick={() => updateParams({ sector: null, page: null })}>
+              Sector: {labelOf(sectors, filters.sector, optionIndex, "SECTORS")}
+            </ActiveChip>
           )}
           {filters.city !== "all" && (
-            <ActiveChip onClick={() => updateParams({ city: null, page: null })}>Location: {filters.city}</ActiveChip>
+            <ActiveChip onClick={() => updateParams({ city: null, page: null })}>
+              Location: {labelOf(cities, filters.city, optionIndex, "HQ_CITIES")}
+            </ActiveChip>
           )}
           {filters.stage !== "all" && (
-            <ActiveChip onClick={() => updateParams({ stage: null, page: null })}>Stage: {filters.stage}</ActiveChip>
+            <ActiveChip onClick={() => updateParams({ stage: null, page: null })}>
+              Stage: {labelOf(stages, filters.stage, optionIndex, "STAGES")}
+            </ActiveChip>
           )}
           {filters.q && (
             <ActiveChip
@@ -990,8 +987,12 @@ export function DirectoryClient({
       >
         {rows.map((r, i) => {
           const tagline = clean(r.tagline);
-          const sectorLabel = clean(r.primary_industry);
-          const city = clean(r.city);
+          // "Other" is a placeholder — show the free text the user actually
+          const sectorLabel = resolveOther(
+            resolveOptionLabel(optionIndex, "SECTORS", clean(r.primary_industry)),
+            (r.answers as Record<string, unknown> | null)?.primary_sector_other
+          );
+          const city = resolveOptionLabel(optionIndex, "HQ_CITIES", clean(r.city));
           const website = isSafeUrl(r.website) ? r.website : null;
           const logoUrl = safeLogoUrl(r.logo_url);
 
@@ -1006,13 +1007,12 @@ export function DirectoryClient({
             ? new Date(r.founded_date).getFullYear() : null;
           const displayTagline = clean(r.tagline) ?? clean(r.startup_idea);
 
-          // For new records revenue / raised come in as form select-bands (not
-          // numeric columns), so fall back to the readable range text.
+          // For new records revenue / raised come in as form select-bands (not numeric columns), so fall back to the readable range text.
           const a = (r.answers ?? {}) as Record<string, unknown>;
           const raisedDisplay = investment
             ? investment.replace("Rs ", "")
-            : bandLabel(a.total_funding_raised, RAISED_BAND_LABEL);
-          const productStage = clean(r.product_stage);
+            : bandLabel(a.total_funding_raised, raisedBandLabel);
+          const productStage = resolveOptionLabel(optionIndex, "STAGES", clean(r.product_stage));
           const teamSize = r.total_employees && r.total_employees > 0 ? compact(r.total_employees) : null;
           const businessModel = splitMulti(r.business_types).join(" · ") || null;
           const linkedin = isSafeUrl(r.company_linkedin) ? r.company_linkedin : null;

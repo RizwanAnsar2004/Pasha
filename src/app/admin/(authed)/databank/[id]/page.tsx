@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getDatabankDynamicFields } from "@/lib/form-config.server";
+import { getDatabankDynamicFields } from "@/lib/forms/form-config.server";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { EditDatabankClient, type DatabankRow } from "./EditDatabankClient";
 
 export const dynamic = "force-dynamic";
@@ -22,21 +23,20 @@ export default async function EditDatabankPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [row, dynamicFields] = await Promise.all([
+  const [row, dynamicFields, optionLists] = await Promise.all([
     load(id),
     getDatabankDynamicFields(),
+    getFormOptionRegistry(),
   ]);
   if (!row) notFound();
-  // Legacy/imported records (startupconnect, ignite, etc.) carry a source_id
-  // linking back to their import source; new apply-form records don't set one.
-  // Legacy records expose their static column editors so imported data can be
-  // updated; new records are edited through the dynamic fields alone.
+  // Legacy/imported records (startupconnect, ignite, etc.) carry a source_id linking back to their import source; new apply-form records don't set one.
   const isLegacy = !!(row as { source_id?: string | null }).source_id;
   return (
     <EditDatabankClient
       initial={row}
       dynamicFields={dynamicFields}
       showStaticFields={isLegacy}
+      optionLists={optionLists}
     />
   );
 }

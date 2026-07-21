@@ -1,8 +1,8 @@
-import { getOptionListsForAdmin } from "@/lib/option-lists.server";
+import { getOptionListsForAdmin } from "@/lib/options/registry.server";
 import { OptionListsClient } from "./OptionListsClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
 
-// Admin manager for reusable option lists. Auth enforced by the (authed) layout.
+// Admin manager for reusable option lists.
 export const dynamic = "force-dynamic";
 
 export default async function OptionListsPage({
@@ -11,9 +11,7 @@ export default async function OptionListsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  // The list is a small, merged (code + DB) set assembled in memory, so we
-  // paginate by slicing the resolved array rather than a SQL range — but the
-  // page/pageSize still flow through the URL for the shared <Pagination>.
+  // The list is a small, merged (code + DB) set assembled in memory, so we paginate by slicing the resolved array rather than a SQL range — but the.
   const all = await getOptionListsForAdmin();
   const pagination = parsePagination(sp, { defaultPageSize: 25 });
   const rows = all.slice(pagination.from, pagination.to + 1);

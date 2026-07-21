@@ -15,12 +15,12 @@ import {
 } from "lucide-react";
 import { cn, formatNumber, formatCurrency } from "@/lib/utils";
 import { SelectMenu } from "@/components/ui/SelectMenu";
-import { htmlToText } from "@/lib/sanitize-html";
+import { htmlToText } from "@/lib/validators/sanitize-html";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
-import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/utils/csv";
 
 type Row = {
   id: string;
@@ -47,7 +47,7 @@ export function DatabankClient({
   initial: {
     rows: Row[];
     total: number;
-    sectors: string[];
+    sectors: { value: string; label: string }[];
     page: number;
     pageSize: number;
     filters: Filters;
@@ -55,18 +55,14 @@ export function DatabankClient({
 }) {
   const { isPending, setParams } = useListNav();
 
-  // Local mirror of the search box so typing feels instant; we debounce the
-  // URL update to avoid a server round-trip per keystroke.
+  // Local mirror of the search box so typing feels instant; we debounce the URL update to avoid a server round-trip per keystroke.
   const [q, setQ] = useState(initial.filters.q);
   const [rowsState, setRowsState] = useState<Row[]>(initial.rows);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   // Row queued for deletion — drives the confirm modal (null = closed).
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
-  // Whenever the server returns a fresh page (URL change), sync the local
-  // row state. Without this, optimistic updates would survive page changes.
-  // Done during render (not in an effect) per the React "adjust state on prop
-  // change" pattern.
+  // Whenever the server returns a fresh page (URL change), sync the local row state.
   const [prevRows, setPrevRows] = useState(initial.rows);
   if (prevRows !== initial.rows) {
     setPrevRows(initial.rows);
@@ -142,8 +138,7 @@ export function DatabankClient({
     }
   }
 
-  // All search/filtering is server-side via URL params. The table renders
-  // exactly what the server returned.
+  // All search/filtering is server-side via URL params.
   function setQAndReset(v: string) { setQ(v); }
   function setSectorAndReset(v: string) { setParams({ sector: v === "all" ? null : v, page: 1 }); }
   function setOutreachAndReset(v: string) { setParams({ outreach: v === "all" ? null : v, page: 1 }); }
@@ -154,8 +149,7 @@ export function DatabankClient({
 
   const [exporting, setExporting] = useState(false);
 
-  // Export every row matching the current filters — not just the page on
-  // screen — by re-querying the list API with `all=1`.
+  // Export every row matching the current filters — not just the page on screen — by re-querying the list API with `all=1`.
   const exportCSV = async () => {
     const cols = [
       "startup_name",
@@ -197,8 +191,7 @@ export function DatabankClient({
             className="h-10 w-full rounded-lg border border-pasha-line bg-white pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
           />
         </div>
-        {/* Fixed widths: without them the trigger grows to fit whichever
-            option is selected, so picking a long sector reflows the toolbar. */}
+        {/* Fixed widths: without them the trigger grows to fit whichever */}
         <SelectMenu
           value={sector}
           onValueChange={setSectorAndReset}
@@ -206,7 +199,7 @@ export function DatabankClient({
           className="w-full sm:w-52"
           options={[
             { value: "all", label: "All sectors" },
-            ...initial.sectors.map((s) => ({ value: s, label: s })),
+            ...initial.sectors,
           ]}
         />
         <SelectMenu

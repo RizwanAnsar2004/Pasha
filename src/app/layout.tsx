@@ -3,7 +3,7 @@ import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ChatWidget } from "@/components/ChatWidget";
-import { SITE_URL } from "@/lib/site-url";
+import { SITE_URL } from "@/lib/utils/site-url";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -19,11 +19,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-// Google Analytics 4 measurement ID (G-XXXXXXXXXX). When unset, GA is skipped
-// entirely — keeps local dev and previews out of the production property.
+// Google Analytics 4 measurement ID (G-XXXXXXXXXX).
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-const SITE_NAME = "P@SHA Startup Community";
+const SITE_NAME = "P@SHA Startup Hub";
 const SITE_DESCRIPTION =
   "Pakistan's curated network of product-native startups. Apply to join the P@SHA Startups & Entrepreneurship Committee for the directory, mentorship, and ecosystem partnerships.";
 export const viewport: Viewport = {
@@ -71,7 +70,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1500,
         height: 375,
-        alt: "P@SHA Startup Community — EOI Join the P@SHA Startup Community",
+        alt: "P@SHA Startup Hub — EOI Join the P@SHA Startup Hub",
         type: "image/png",
       },
     ],
@@ -95,8 +94,7 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  // Next.js auto-discovers src/app/icon.png, src/app/apple-icon.png, src/app/favicon.ico
-  // No manual icons array needed — overriding here would suppress that auto-discovery.
+  // Next.js auto-discovers src/app/icon.png, src/app/apple-icon.png, src/app/favicon.ico No manual icons array needed — overriding here would suppress.
 };
 
 export default function RootLayout({
@@ -107,8 +105,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
-        {/* Per-navigation enter animation lives in app/template.tsx, which Next
-            nests between this layout and the page. */}
+        {/* Per-navigation enter animation lives in app/template.tsx, which Next */}
         {children}
         <ChatWidget />
       </body>

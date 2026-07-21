@@ -10,9 +10,7 @@ type Props = {
   page: number;
   pageSize: number;
   pageSizeOptions?: number[];
-  // Optional: when provided, Pagination uses the parent's nav hook so the
-  // parent's isPending flips for page/pageSize changes too. If omitted,
-  // Pagination falls back to its own local hook.
+  // Optional: when provided, Pagination uses the parent's nav hook so the parent's isPending flips for page/pageSize changes too.
   setParams?: (patch: Record<string, string | number | null | undefined>) => void;
   isPending?: boolean;
 };

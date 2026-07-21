@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { readAdminSession } from "@/lib/admin-session";
+import { readAdminSession } from "@/lib/auth/admin/admin-session";
 import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import { AdminShell } from "./AdminShell";
 import { AdminUserMenu } from "./AdminUserMenu";

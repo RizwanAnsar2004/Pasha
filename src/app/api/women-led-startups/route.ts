@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWomenLedStartups } from "@/lib/women-led.server";
+import { getWomenLedStartups } from "@/lib/startups/directory/women-led.server";
 
 export const dynamic = "force-dynamic";
 

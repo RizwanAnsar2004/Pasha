@@ -5,33 +5,24 @@ import { Field } from "@/components/form/Field";
 import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/form/SelectField";
 import { YesNo } from "@/components/ui/RadioCard";
-import { HQ_CITIES } from "@/lib/options";
-import { COUNTRIES } from "@/lib/countries";
-import type { SubmissionInput } from "@/lib/schema";
+import { HQ_CITIES, isOtherChoice } from "@/lib/options";
+import { useOptionList } from "@/components/form/OptionListsContext";
+import { COUNTRIES } from "@/lib/constants/countries";
+import type { SubmissionInput } from "@/lib/forms/schema";
 
-/**
- * Composite location control for the apply form.
- *
- * State machine:
- *   outside_pakistan = false  → show city dropdown
- *                              ↳ if "Other" picked, show hq_other text input
- *   outside_pakistan = true   → hide city dropdown, show country dropdown
- *
- * Writes to: hq_city, hq_other, outside_pakistan, hq_country.
- *
- * The schema's superRefine enforces the right field is filled per branch
- * so users can't accidentally submit a row with both city + country set.
- */
+// Composite location control for the apply form.
 export function CityField() {
   const form = useFormContext<SubmissionInput>();
+  // Single source of truth: the admin-managed HQ_CITIES list, with the code
+  const cities = useOptionList("HQ_CITIES", HQ_CITIES);
+  const countries = useOptionList("COUNTRIES", COUNTRIES);
   const errors = form.formState.errors;
   const outsidePakistan = useWatch({ control: form.control, name: "outside_pakistan" }) as boolean | undefined;
   const hqCity = useWatch({ control: form.control, name: "hq_city" }) as string | undefined;
 
   return (
     <div className="space-y-4">
-      {/* Inline Yes/No for "Outside Pakistan?" — same chrome as every other
-          boolean field in the form, per the v2 design. */}
+      {/* Inline Yes/No for "Outside Pakistan?" — same chrome as every other */}
       <Field
         label="Outside Pakistan?"
         hint="Toggle on if your HQ is in another country."
@@ -62,10 +53,10 @@ export function CityField() {
             <SelectField
               name="hq_city"
               placeholder="Select your city"
-              options={[...HQ_CITIES]}
+              options={cities}
             />
           </Field>
-          {hqCity === "Other" && (
+          {isOtherChoice(hqCity) && (
             <Field
               label="Which city?"
               required
@@ -84,7 +75,7 @@ export function CityField() {
           <SelectField
             name="hq_country"
             placeholder="Select country"
-            options={[...COUNTRIES]}
+            options={countries}
           />
         </Field>
       )}

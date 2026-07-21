@@ -1,10 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { getOptionListsForAdmin } from "@/lib/option-lists.server";
+import { getOptionListsForAdmin } from "@/lib/options/registry.server";
 import { FormBuilderClient, type SectionRow, type FieldRow } from "./FormBuilderClient";
 
-// Admin form builder — define the public apply form's sections, fields, input
-// types, validations, and repeatable subsections. Auth is enforced by the
-// parent (authed) layout.
+// Admin form builder — define the public apply form's sections, fields, input types, validations, and repeatable subsections.
 export const dynamic = "force-dynamic";
 
 export default async function FormsPage() {

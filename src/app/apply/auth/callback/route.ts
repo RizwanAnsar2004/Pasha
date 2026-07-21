@@ -1,31 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { clearAdminSessionCookie } from "@/lib/admin-session";
+import { clearAdminSessionCookie } from "@/lib/auth/admin/admin-session";
 
-/**
- * Applicant email-verification callback. Supabase sends the signup confirmation
- * link here (emailRedirectTo). We exchange the code / verify the token to
- * establish a session, then drop the applicant into their portal. Mirrors
- * src/app/admin/callback/route.ts.
- */
+// Applicant email-verification callback. Supabase sends the signup confirmation
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const token_hash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  // Recovery (password reset) links pass an explicit redirect; email-signup
-  // verification doesn't, so it lands on the dedicated "Email verified" page.
+  // Recovery (password reset) links pass an explicit redirect; email-signup verification doesn't, so it lands on the dedicated "Email verified" page.
   const redirect = url.searchParams.get("redirect") ?? "/apply/verified";
-  // Supabase can bounce here with an error (e.g. an expired/used link) instead
-  // of a code — forward that to the verified page so it can show an error state.
+  // Supabase can bounce here with an error (e.g.
   const linkError =
     url.searchParams.get("error") ?? url.searchParams.get("error_code");
 
   const verifiedUrl = (failed: boolean) =>
     new URL(failed ? "/apply/verified?error=1" : redirect, url.origin);
 
-  // Default to the success destination; downgrade to the error page if the
-  // exchange/verify fails below.
+  // Default to the success destination; downgrade to the error page if the exchange/verify fails below.
   const response = NextResponse.redirect(verifiedUrl(Boolean(linkError)));
 
   const supabase = createServerClient(

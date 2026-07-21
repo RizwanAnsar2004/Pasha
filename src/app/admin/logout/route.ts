@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { clearAdminSessionCookie } from "@/lib/admin-session";
+import { clearAdminSessionCookie } from "@/lib/auth/admin/admin-session";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 export async function POST(request: NextRequest) {

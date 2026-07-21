@@ -1,16 +1,13 @@
 "use client";
 
-// Password input with a show/hide (eye) toggle. Drop-in replacement for a
-// plain <input type="password"> — forwards all the usual input props and adds
-// the toggle button on the right. The `pr-10` is appended automatically so the
-// text never sits under the icon.
+// Password input with a show/hide (eye) toggle.
 
 import { forwardRef, useState, type InputHTMLAttributes } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
-  /** Classes for the wrapping element (e.g. margins) — keeps the toggle aligned. */
+  // Classes for the wrapping element (e.g. margins) — keeps the toggle aligned.
   wrapperClassName?: string;
 };
 

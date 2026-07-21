@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // Per-bucket security profile.
-// NOTE on size limits: Vercel serverless function body cap is ~4.5MB for FormData
-// uploads on most plans. We cap at 4MB here to give the user a clean app-level
-// error rather than Vercel's generic 413. Larger files would need direct-to-
-// Supabase signed-upload URLs.
 const FOUR_MB = 4 * 1024 * 1024;
 
 // WEBP needs a special check — RIFF (bytes 0-3) is shared with AVI/WAV/ANI.
-// True WEBP also has "WEBP" at bytes 8-11.
 function isWebpHeader(head: Uint8Array): boolean {
   if (head.length < 12) return false;
   return (
@@ -55,8 +50,7 @@ const BUCKETS = {
   "pitch-decks": {
     public: false,
     maxBytes: FOUR_MB,
-    // PDF only. PPT/PPTX were originally allowed but the schema rendering
-    // attack surface is much higher; we'll keep this PDF-only for now.
+    // PDF only.
     allowedMime: new Set(["application/pdf"]),
     allowedExt: new Set(["pdf"]),
     magicBytes: [
@@ -146,8 +140,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Force server-controlled MIME to prevent client lying about Content-Type
-    // (e.g., uploading .exe with claimed image/png).
+    // Force server-controlled MIME to prevent client lying about Content-Type (e.g., uploading .exe with claimed image/png).
     let serverContentType: string;
     if (bucketName === "pitch-decks") {
       serverContentType = "application/pdf";

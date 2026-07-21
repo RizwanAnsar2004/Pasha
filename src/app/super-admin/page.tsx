@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { readSuperAdminSession } from "@/lib/super-admin";
+import { readSuperAdminSession } from "@/lib/auth/admin/super-admin";
 import { createServiceClient } from "@/lib/supabase/server";
 import { AdminsManager, type AdminRow } from "./AdminsManager";
 

@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { sendTemplate, type MailRecipient } from "@/lib/mailer";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { sendTemplate, type MailRecipient } from "@/lib/email/mailer";
 
 // Recipient scopes for a manual broadcast.
-//   custom         — admin pastes emails and/or picks user ids
-//   applicants     — everyone who has submitted an application (founder_email)
-//   approved       — founders of approved submissions
-//   databank       — public directory contacts
-//   all_profiles   — every profile with an email
 const schema = z.object({
   templateId: z.string().trim().min(1),
   scope: z.enum(["custom", "applicants", "approved", "databank", "all_profiles"]),

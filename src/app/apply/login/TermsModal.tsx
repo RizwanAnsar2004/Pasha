@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { RichText } from "@/components/ui/RichText";
-import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
+import { DEFAULT_SITE_CONTENT } from "@/lib/content/site-content";
 
 export function TermsModal({
   open,
@@ -15,7 +15,7 @@ export function TermsModal({
 }: {
   open: boolean;
   onClose: () => void;
-  /** Admin-editable content (from site_content). Falls back to the built-in default. */
+  // Admin-editable content (from site_content). Falls back to the built-in default.
   title?: string;
   body?: string;
 }) {

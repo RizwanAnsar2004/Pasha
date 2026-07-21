@@ -1,8 +1,6 @@
 "use client";
 
-// Floating chat widget wired to the P@SHA RAG assistant (/api/chat). The
-// conversation is persisted in the browser's localStorage so it survives
-// reloads and is restored when the widget is reopened.
+// Floating chat widget wired to the P@SHA RAG assistant (/api/chat).
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";

@@ -31,9 +31,7 @@ export function HomeSearchProvider({ children }: { children: React.ReactNode }) 
   const [sector, setSector] = useState("all");
   const [stage, setStage] = useState("all");
 
-  // The homepage search bar is just an entry point — it hands off to the full
-  // /directory listing (query carried over as URL params) rather than
-  // filtering the small on-page bento preview.
+  // The homepage search bar is just an entry point — it hands off to the full /directory listing (query carried over as URL params) rather than.
   const goToDirectory = useCallback(
     (overrides?: { sector?: string }) => {
       const params = new URLSearchParams();

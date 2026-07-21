@@ -1,5 +1,5 @@
-import { getAwardsForAdmin } from "@/lib/awards.server";
-import { parsePagination } from "@/lib/pagination";
+import { getAwardsForAdmin } from "@/lib/startups/awards/awards.server";
+import { parsePagination } from "@/lib/utils/pagination";
 import { AwardsClient } from "./AwardsClient";
 
 export const dynamic = "force-dynamic";

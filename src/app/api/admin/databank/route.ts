@@ -1,12 +1,4 @@
-// Admin CRUD for the databank table. Edit + delete only — creation goes
-// through the public /api/submit pipeline (founder submits → admin approves
-// in /api/admin/submission → row gets materialised into databank).
-//
-// Auth:
-//   - Authenticated Supabase session via cookie.
-//   - Email in the admin allowlist (domain + bootstrap list).
-//
-// Every PATCH and DELETE writes an audit_log entry.
+// Admin CRUD for the databank table.
 
 import { NextResponse } from "next/server";
 import {
@@ -14,14 +6,19 @@ import {
   createServiceClient,
 } from "@/lib/supabase/server";
 import { z } from "zod";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { parsePagination } from "@/lib/pagination";
-import { fetchAllRowsBatched } from "@/lib/csv";
-import { notifyRagDatabank } from "@/lib/rag-sync";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { parsePagination } from "@/lib/utils/pagination";
+import { fetchAllRowsBatched } from "@/lib/utils/csv";
+import { notifyRagDatabank } from "@/lib/ai/rag-sync";
+import { getOptionIndex } from "@/lib/options/index.server";
+import {
+  matchingOptionIds,
+  optionFilterValues,
+  optionIdFor,
+  resolveOptionLabel,
+} from "@/lib/options/resolve";
 
-// Whitelist of columns an admin can edit. Anything not on this list is
-// silently dropped from the payload so a malformed/attacker-shaped body
-// can't smuggle in writes to vetting_score, source_id, created_at, etc.
+// Whitelist of columns an admin can edit.
 const EDITABLE_COLUMNS = new Set([
   // identity / branding
   "startup_name",
@@ -64,10 +61,7 @@ const EDITABLE_COLUMNS = new Set([
   "sdgs",
   "video_pitch",
 
-  // recognition / audit
-  // NOTE: `awards` is intentionally NOT editable here — awards are managed
-  // exclusively in Admin → Award Winners (startup_awards table). The applicant's
-  // submitted awards text is synced in on approval; edits happen in that tab.
+  // recognition / audit NOTE: `awards` is intentionally NOT editable here — awards are managed exclusively in Admin → Award Winners (startup_awards.
   "certifications",
   "pasha_verified",
 
@@ -126,18 +120,36 @@ export async function GET(req: Request) {
   const all = url.searchParams.get("all") === "1";
   const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
+  const optionIndex = await getOptionIndex();
+  const term = q.replace(/[%,()]/g, " ").trim();
 
-  // Fresh, filtered query each call — the builder can't be reused once awaited,
-  // and the export path needs to run it for several row ranges.
+  // Fresh, filtered query each call — the builder can't be reused once awaited, and the export path needs to run it for several row ranges.
   const buildQuery = () => {
     let query = supabase.from("databank").select(LIST_COLS, { count: "exact" });
-    if (q.length >= 1) {
-      const pattern = `%${q}%`;
+    if (term.length >= 1) {
+      const pattern = `%${term}%`;
+      const idMatches = matchingOptionIds(optionIndex, term).map(
+        (id) => `primary_industry_id.eq.${id}`
+      );
       query = query.or(
-        `startup_name.ilike.${pattern},contact_email.ilike.${pattern},contact_person.ilike.${pattern},primary_industry.ilike.${pattern}`
+        [
+          `startup_name.ilike.${pattern}`,
+          `contact_email.ilike.${pattern}`,
+          `contact_person.ilike.${pattern}`,
+          `primary_industry.ilike.${pattern}`,
+          ...idMatches,
+        ].join(",")
       );
     }
-    if (sector && sector !== "all") query = query.eq("primary_industry", sector);
+    if (sector && sector !== "all") {
+      const id = optionIdFor(optionIndex, "SECTORS", sector);
+      if (id) {
+        query = query.eq("primary_industry_id", id);
+      } else {
+        const values = optionFilterValues(optionIndex, "SECTORS", sector);
+        query = values.length > 1 ? query.in("primary_industry", values) : query.eq("primary_industry", sector);
+      }
+    }
     if (outreach && outreach !== "all") query = query.eq("outreach_status", outreach);
     if (verified === "yes") query = query.eq("pasha_verified", true);
     if (verified === "no") query = query.or("pasha_verified.is.null,pasha_verified.eq.false");
@@ -146,13 +158,21 @@ export async function GET(req: Request) {
       .order("current_revenue", { ascending: false, nullsFirst: false });
   };
 
+  // Choice columns may hold option ids, so present their labels to the client.
+  const withLabels = (rows: Record<string, unknown>[]) =>
+    rows.map((r) => ({
+      ...r,
+      primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry as string | null),
+      city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city as string | null),
+    }));
+
   if (all) {
     // Batch past PostgREST's 1000-row cap to export the whole filtered set.
     try {
       const { rows, total } = await fetchAllRowsBatched<Record<string, unknown>>((f, t) =>
         buildQuery().range(f, t)
       );
-      return NextResponse.json({ rows, total, page, pageSize });
+      return NextResponse.json({ rows: withLabels(rows), total, page, pageSize });
     } catch (e) {
       return NextResponse.json(
         { error: e instanceof Error ? e.message : "Export failed" },
@@ -198,7 +218,7 @@ export async function PATCH(req: Request) {
 
   const supabase = createServiceClient();
 
-  // Capture prior state for the audit log. We only diff the changed keys.
+  // Capture prior state for the audit log.
   const { data: prior } = await supabase
     .from("databank")
     .select(Array.from(EDITABLE_COLUMNS).join(","))
@@ -209,8 +229,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Row not found" }, { status: 404 });
   }
 
-  // If pasha_verified is being flipped to true and there's no prior
-  // verification timestamp, stamp it now. Same for unflipping → null both.
+  // If pasha_verified is being flipped to true and there's no prior verification timestamp, stamp it now.
   if ("pasha_verified" in sanitised) {
     const v = sanitised.pasha_verified;
     sanitised.pasha_verified_at = v === true ? new Date().toISOString() : null;

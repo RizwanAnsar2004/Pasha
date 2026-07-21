@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { eventSlug } from "@/lib/slug";
+import { eventSlug } from "@/lib/utils/slug";
 import {
   AGENDA_TAGS,
   EVENT_FORMATS,
@@ -31,13 +31,13 @@ import {
   type EventType,
   type RegistrationStatus,
   type Speaker,
-} from "@/lib/events";
+} from "@/lib/events/events";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
-import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/csv";
+import { toCsv, downloadCsv, fetchAllForExport } from "@/lib/utils/csv";
 
 export type EventListRow = EventRow;
 
@@ -212,9 +212,7 @@ export function EventsClient({
     }
   }, []);
 
-  // Two explicit actions — "Save as draft" and "Publish" — each set the status
-  // on save, so admins control visibility with a clear button rather than a
-  // dropdown.
+  // Two explicit actions — "Save as draft" and "Publish" — each set the status on save, so admins control visibility with a clear button rather than a.
   const save = (status: EventStatus) => {
     setSavingAs(status);
     return run(

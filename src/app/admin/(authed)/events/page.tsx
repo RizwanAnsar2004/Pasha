@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { EventsClient, type EventListRow } from "./EventsClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
 
 export const dynamic = "force-dynamic";
 

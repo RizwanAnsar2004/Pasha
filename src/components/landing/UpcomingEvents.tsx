@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { ArrowUpRight, Clock, MapPin, Users } from "lucide-react";
-import { eventSlug } from "@/lib/slug";
-import { eventTypeLabel, formatLabel, type EventRow } from "@/lib/events";
+import { eventSlug } from "@/lib/utils/slug";
+import { eventTypeLabel, formatLabel, type EventRow } from "@/lib/events/events";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
 

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { initials, formatNumber } from "@/lib/utils";
-import { safeImageSrc } from "@/lib/safe-url";
+import { safeImageSrc } from "@/lib/validators/safe-url";
 import { RichText } from "@/components/ui/RichText";
 import { Kicker } from "./shared/Kicker";
 import { PillButton } from "./shared/PillButton";
 import { Reveal } from "./shared/Reveal";
-import type { WomenLedStartup } from "@/lib/women-led";
+import type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 
 export type WomenFounderStartup = WomenLedStartup;
 
@@ -75,9 +75,7 @@ export function WomenFounders({
   if (startups.length === 0) return null;
 
   const shown = startups.slice(0, 4);
-  // Keep the 2x2 grid shape (matches the reference design); unfilled slots
-  // just render as blank space rather than a placeholder card, and never get
-  // padded with real startups that aren't actually women-led.
+  // Keep the 2x2 grid shape (matches the reference design); unfilled slots just render as blank space rather than a placeholder card, and never get.
   const emptySlots = Math.max(0, 4 - shown.length);
 
   return (

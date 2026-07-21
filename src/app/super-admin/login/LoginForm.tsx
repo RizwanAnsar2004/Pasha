@@ -43,7 +43,7 @@ export function SuperAdminLoginForm() {
             Super admin
           </h1>
           <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
-            Manage the admin allowlist for the P@SHA Startup Directory. This
+            Manage the admin allowlist for the P@SHA Startup Hub. This
             account is hardcoded — no magic links, no recovery flow.
           </p>
           <form onSubmit={submit} className="mt-6 space-y-4">

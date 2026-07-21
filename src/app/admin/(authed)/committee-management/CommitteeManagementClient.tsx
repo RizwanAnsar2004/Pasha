@@ -13,7 +13,7 @@ import {
   COMMITTEE_MEMBER_TYPES,
   committeeMemberTypeLabel,
   type CommitteeMemberType,
-} from "@/lib/committee";
+} from "@/lib/committee/committee";
 
 const TYPE_BADGE: Record<CommitteeMemberType, string> = {
   chairman: "bg-pasha-red/8 text-pasha-red border-pasha-red/20",
@@ -27,8 +27,7 @@ const TYPE_OPTIONS = COMMITTEE_MEMBER_TYPES.map((t) => ({
   label: t.label,
 }));
 
-// Shared field style for the edit dialog. Matches the "Add committee member"
-// form so both paths feel like the same control set.
+// Shared field style for the edit dialog.
 const fieldCls =
   "h-11 w-full min-w-0 rounded-lg border border-pasha-line bg-white px-3.5 text-sm text-pasha-ink focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15";
 
@@ -57,9 +56,7 @@ export function CommitteeManagementClient({
     return () => clearTimeout(t);
   }, [q, initialQ, setParams]);
   const [rows, setRows] = useState<MemberRow[]>(initial);
-  // Sync local row state when the server returns a fresh page — React's
-  // "adjust state when a prop changes" pattern (set during render, not in an
-  // effect) so it doesn't clobber on an extra render pass.
+  // Sync local row state when the server returns a fresh page — React's "adjust state when a prop changes" pattern (set during render, not in an.
   const [syncedInitial, setSyncedInitial] = useState(initial);
   if (syncedInitial !== initial) {
     setSyncedInitial(initial);
@@ -108,8 +105,7 @@ export function CommitteeManagementClient({
     setSuccess(null);
   }
 
-  // Only close — the field values are re-seeded by startEdit on every open, so
-  // clearing them here would blank the dialog mid exit-animation.
+  // Only close — the field values are re-seeded by startEdit on every open, so clearing them here would blank the dialog mid exit-animation.
   function cancelEdit() {
     setEditingEmail(null);
   }
@@ -164,8 +160,7 @@ export function CommitteeManagementClient({
       if (j.emailed) {
         setSuccess(`Added ${j.email}. Their login email, role, and password have been emailed to them.`);
       } else if (j.password) {
-        // Email couldn't be sent — show the password so the admin can share it
-        // manually (otherwise the new member can't sign in).
+        // Email couldn't be sent — show the password so the admin can share it manually (otherwise the new member can't sign in).
         setSuccess(
           `Added ${j.email}, but the invite email could not be sent. Share these credentials manually — password: ${j.password}`
         );
@@ -210,8 +205,7 @@ export function CommitteeManagementClient({
     }
   }
 
-  // The member being edited. Null while the dialog is closed — AnimatePresence
-  // keeps the previous contents mounted for the exit animation.
+  // The member being edited.
   const editingRow =
     editingEmail === null ? null : rows.find((r) => r.email === editingEmail) ?? null;
 

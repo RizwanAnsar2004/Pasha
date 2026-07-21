@@ -1,17 +1,10 @@
 // Super-admin CRUD for the admin_users allowlist.
-//
-// GET    → list all admins
-// POST   → add an admin (also pre-creates the Supabase auth user with
-//          email_confirm=true so their first magic-link sign-in works)
-// DELETE → remove an admin (does NOT delete the Supabase auth user;
-//          revoking allowlist membership is enough — they'll be locked
-//          out of /admin even if their session cookie is still around)
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
-import { readSuperAdminSession } from "@/lib/super-admin";
-import { bustAdminAllowlistCache } from "@/lib/admin-allowlist";
+import { readSuperAdminSession } from "@/lib/auth/admin/super-admin";
+import { bustAdminAllowlistCache } from "@/lib/auth/admin/admin-allowlist";
 
 const addSchema = z.object({
   email: z.string().email(),
@@ -77,9 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insErr.message }, { status: 500 });
   }
 
-  // 2. Pre-create their Supabase Auth user with email_confirm=true so the
-  //    very first magic-link sign-in works without an extra confirm step.
-  //    If the user already exists, the create call 4xx's and we ignore it.
+  // 2. Pre-create their Supabase Auth user with email_confirm=true so the very first magic-link sign-in works without an extra confirm step.
   try {
     await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users`,
@@ -101,7 +92,7 @@ export async function POST(req: Request) {
     console.warn("auth user precreate failed (non-fatal):", e);
   }
 
-  // 3. Audit log entry. Best-effort.
+  // 3. Audit log entry.
   await supabase
     .from("audit_log")
     .insert({

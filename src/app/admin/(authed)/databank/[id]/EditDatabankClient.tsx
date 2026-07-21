@@ -16,13 +16,22 @@ import {
   HQ_CITIES,
   NIC_CENTERS,
   SECTORS,
+  STAGES,
   FOUNDER_GENDERS,
+  coerceOptionValue,
+  normalizeOptions,
+  type OptionList,
 } from "@/lib/options";
-import { COUNTRIES } from "@/lib/countries";
-import { InputType, htmlInputType } from "@/lib/form-enums";
-import type { DynamicFieldDef } from "@/lib/form-config";
+import {
+  OptionListsProvider,
+  useOptionList,
+  type OptionRegistry,
+} from "@/components/form/OptionListsContext";
+import { COUNTRIES } from "@/lib/constants/countries";
+import { InputType, htmlInputType } from "@/lib/forms/form-enums";
+import type { DynamicFieldDef } from "@/lib/forms/form-config";
 
-// CKEditor touches `window`; load it client-only. Props: { value, onChange }.
+// CKEditor touches `window`; load it client-only.
 const TaglineEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
   ssr: false,
   loading: () => (
@@ -30,9 +39,7 @@ const TaglineEditor = dynamic(() => import("@/components/ui/RichTextEditor"), {
   ),
 });
 
-// All editable columns. Matches the EDITABLE_COLUMNS set in
-// /api/admin/databank/route.ts — the API will silently drop anything else
-// out of paranoia.
+// All editable columns.
 export type DatabankRow = {
   id: string;
   source: string | null;
@@ -97,7 +104,7 @@ type KeyPerson = {
   is_primary?: boolean;
 };
 
-// "" / number sentinel for input wiring. We convert to null for the PATCH.
+// "" / number sentinel for input wiring.
 type Edits = Partial<DatabankRow>;
 
 function asNumber(v: string): number | null {
@@ -106,28 +113,38 @@ function asNumber(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// A legacy column "has data" when it isn't null/undefined/blank. Used to hide
-// empty legacy field editors (a 0 or false still counts as data).
+// A legacy column "has data" when it isn't null/undefined/blank.
 function has(v: unknown): boolean {
   return v !== null && v !== undefined && v !== "";
 }
 
-// Render a section's children only when at least one of the given column values
-// has data — so a fully-empty legacy section disappears entirely.
+// Render a section's children only when at least one of the given column values has data — so a fully-empty legacy section disappears entirely.
 function anyHas(...vals: unknown[]): boolean {
   return vals.some(has);
+}
+
+// Resolve a named list from the registry passed down by the server, falling
+function pickList(
+  registry: OptionRegistry | undefined,
+  name: string,
+  fallback: OptionList
+): { value: string; label: string }[] {
+  const fromDb = registry?.[name];
+  return fromDb?.length ? fromDb : normalizeOptions(fallback);
 }
 
 export function EditDatabankClient({
   initial,
   dynamicFields = [],
-  // This page now renders ONLY the admin-defined dynamic form fields. The
-  // hardcoded column editors are gated off; flip to true to bring them back.
+  // This page now renders ONLY the admin-defined dynamic form fields.
   showStaticFields = false,
+  optionLists,
 }: {
   initial: DatabankRow;
   dynamicFields?: DynamicFieldDef[];
   showStaticFields?: boolean;
+  // Resolved `option_lists` registry — the single source of truth for the
+  optionLists?: OptionRegistry;
 }) {
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirm();
@@ -137,8 +154,15 @@ export function EditDatabankClient({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // What changed from initial? PATCH only diffed keys to avoid clobbering
-  // columns we didn't touch on the form.
+  // Single source of truth for the static column editors below.
+  const cityOptions = pickList(optionLists, "HQ_CITIES", HQ_CITIES);
+  const countryOptions = pickList(optionLists, "COUNTRIES", COUNTRIES);
+  const sectorOptions = pickList(optionLists, "SECTORS", SECTORS);
+  const businessModelOptions = pickList(optionLists, "BUSINESS_MODELS", BUSINESS_MODELS);
+  const nicCenterOptions = pickList(optionLists, "NIC_CENTERS", NIC_CENTERS);
+  const stageOptions = pickList(optionLists, "STAGES", STAGES);
+
+  // What changed from initial?
   const diff = useMemo(() => {
     const out: Edits = {};
     for (const k of Object.keys(row) as (keyof DatabankRow)[]) {
@@ -219,8 +243,7 @@ export function EditDatabankClient({
     }
   }
 
-  // Year derived from founded_date for the editor; on save we re-emit a
-  // {year}-01-01 date so the column stays a DATE.
+  // Year derived from founded_date for the editor; on save we re-emit a {year}-01-01 date so the column stays a DATE.
   const yearFromFounded = (() => {
     if (!row.founded_date) return "";
     const m = String(row.founded_date).match(/^(\d{4})/);
@@ -228,6 +251,7 @@ export function EditDatabankClient({
   })();
 
   return (
+    <OptionListsProvider value={optionLists ?? {}}>
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <Link
@@ -414,10 +438,10 @@ export function EditDatabankClient({
           <Field label="HQ city (or 'Other' for write-in)">
             <SelectMenu
               className="w-full"
-              value={row.city ?? ""}
+              value={coerceOptionValue(row.city ?? "", cityOptions)}
               onValueChange={(v) => update("city", v || null)}
               placeholder="Select city"
-              options={[...HQ_CITIES]}
+              options={cityOptions}
             />
           </Field>
           )}
@@ -425,10 +449,10 @@ export function EditDatabankClient({
           <Field label="Country (if outside Pakistan)">
             <SelectMenu
               className="w-full"
-              value={row.hq_country ?? ""}
+              value={coerceOptionValue(row.hq_country ?? "", countryOptions)}
               onValueChange={(v) => update("hq_country", v || null)}
               placeholder="Select country"
-              options={[...COUNTRIES]}
+              options={countryOptions}
             />
           </Field>
           )}
@@ -436,10 +460,10 @@ export function EditDatabankClient({
           <Field label="Primary industry">
             <SelectMenu
               className="w-full"
-              value={row.primary_industry ?? ""}
+              value={coerceOptionValue(row.primary_industry ?? "", sectorOptions)}
               onValueChange={(v) => update("primary_industry", v || null)}
               placeholder="Select primary industry"
-              options={[...SECTORS]}
+              options={sectorOptions}
             />
           </Field>
           )}
@@ -461,15 +485,18 @@ export function EditDatabankClient({
               value={row.business_types ?? ""}
               onValueChange={(v) => update("business_types", v || null)}
               placeholder="Select business model"
-              options={[...BUSINESS_MODELS]}
+              options={businessModelOptions}
             />
           </Field>
           )}
           {has(row.product_stage) && (
           <Field label="Product stage">
-            <Input
-              value={row.product_stage ?? ""}
-              onChange={(e) => update("product_stage", e.target.value || null)}
+            <SelectMenu
+              className="w-full"
+              value={coerceOptionValue(row.product_stage ?? "", stageOptions)}
+              onValueChange={(v) => update("product_stage", v || null)}
+              placeholder="Select product stage"
+              options={stageOptions}
             />
           </Field>
           )}
@@ -487,7 +514,7 @@ export function EditDatabankClient({
               value={row.nic_name ?? ""}
               onValueChange={(v) => update("nic_name", v || null)}
               placeholder="Select center"
-              options={[...NIC_CENTERS]}
+              options={nicCenterOptions}
             />
           </Field>
           )}
@@ -808,9 +835,7 @@ export function EditDatabankClient({
                 <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted border-t border-pasha-line/60 pt-4 first:border-t-0 first:pt-0">
                   {sectionTitle}
                 </h4>
-                {/* Two columns above md, three above lg; wide controls
-                    (long text, rich text, uploads, choice groups) span the
-                    full row so they keep room to breathe. */}
+                {/* Two columns above md, three above lg; wide controls */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5">
                   {defs.map((def, i) => (
                     <Field
@@ -843,10 +868,7 @@ export function EditDatabankClient({
         </Section>
       )}
 
-      {/* Founders / key persons live in the key_persons column for both legacy
-          and new records (founders → key_persons on approval). The form's
-          founders GROUP field is skipped from the dynamic section, so this is
-          the only editor for them — show it for every record. */}
+      {/* Founders / key persons live in the key_persons column for both legacy */}
       <Section
         title="Key persons"
         subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
@@ -888,6 +910,7 @@ export function EditDatabankClient({
 
       {confirmDialog}
     </div>
+    </OptionListsProvider>
   );
 }
 
@@ -917,11 +940,7 @@ function Section({
   );
 }
 
-// ---------------------------------------------------------------------------
-// DynamicFieldControl — editable control for an admin-defined answers-bag field,
-// chosen by its input_type. Mirrors the public DynamicField renderer so e.g.
-// cover_image edits with a file upload, selects with a dropdown, etc.
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- DynamicFieldControl — editable control for an admin-defined.
 function DynamicFieldControl({
   def,
   value,
@@ -1020,11 +1039,7 @@ function DynamicFieldControl({
   );
 }
 
-/**
- * Inline editor for the key_persons JSONB column. Mirrors the public form's
- * FoundersRepeater but operates on a plain controlled value (no react-hook-
- * form context).
- */
+// Inline editor for the key_persons JSONB column. Mirrors the public form's
 function KeyPersonsEditor({
   persons,
   onChange,
@@ -1032,6 +1047,9 @@ function KeyPersonsEditor({
   persons: KeyPerson[];
   onChange: (next: KeyPerson[]) => void;
 }) {
+  // Reads the registry supplied by EditDatabankClient's OptionListsProvider.
+  const genderOptions = useOptionList("FOUNDER_GENDERS", FOUNDER_GENDERS);
+
   function patch(i: number, change: Partial<KeyPerson>) {
     const next = [...persons];
     next[i] = { ...next[i], ...change };
@@ -1136,7 +1154,7 @@ function KeyPersonsEditor({
                 value={p.gender ?? ""}
                 onValueChange={(v) => patch(idx, { gender: v })}
                 placeholder="Select gender"
-                options={[...FOUNDER_GENDERS]}
+                options={genderOptions}
               />
             </Field>
             <Field label="Primary contact">
@@ -1263,18 +1281,7 @@ function CustomLinksEditor({
 
 // ---------- helpers ----------
 
-/** Column span for a field inside the responsive grid.
- *
- * The grid is 1 col on mobile, 2 cols at md, and 6 cols at lg. The 6-col
- * track at lg lets us mix densities cleanly:
- *   - normal scalar field → 2 of 6 (3 per row)
- *   - file upload run      → 3 of 6 (2 per row)
- *   - wide field           → full row
- *
- * Long/rich text and choice groups (checkboxes / radio cards) always read
- * poorly squeezed into a column, so they're always full width. A *run* of
- * consecutive file uploads packs two per row, but a lone upload sitting on
- * its own looks stranded, so it spans full width too. */
+// Column span for a field inside the responsive grid.
 function fieldSpan(
   def: DynamicFieldDef,
   i: number,
@@ -1283,10 +1290,7 @@ function fieldSpan(
   const t = def.input_type;
   const full = "md:col-span-2 lg:col-span-6";
 
-  // Base span per field category:
-  //   choice (checkboxes / yes-no / dropdown) → 3 per row (2 of 6)
-  //   text / long text                        → 2 per row (3 of 6)
-  //   file run → 2 per row; lone file / radio cards → full width
+  // Base span per field category: choice (checkboxes / yes-no / dropdown) → 3 per row (2 of 6) text / long text → 2 per row (3 of 6) file run → 2 per.
   let span: string;
   if (isChoiceField(t)) {
     span = "lg:col-span-2";
@@ -1310,16 +1314,14 @@ function fieldSpan(
     span = full; // radio cards, group, etc.
   }
 
-  // Start a new row whenever this field's category differs from the field
-  // before it — fields only share a row with same-category neighbours.
+  // Start a new row whenever this field's category differs from the field before it — fields only share a row with same-category neighbours.
   const startNew =
     i === 0 || fieldCategory(t) !== fieldCategory(defs[i - 1].input_type);
 
   return span + (startNew ? " lg:col-start-1" : "");
 }
 
-/** Checkbox group, yes/no, and single-select dropdown — compact choice
- * controls that read well three-up. */
+// Checkbox group, yes/no, and single-select dropdown — compact choice
 function isChoiceField(t: number | undefined): boolean {
   return (
     t === InputType.MULTISELECT ||
@@ -1328,8 +1330,7 @@ function isChoiceField(t: number | undefined): boolean {
   );
 }
 
-/** Coarse layout category — fields only share a grid row with neighbours of
- * the same category, so a datatype change forces a new row. */
+// Coarse layout category — fields only share a grid row with neighbours of
 function fieldCategory(t: number): string {
   if (isChoiceField(t)) return "choice";
   if (t === InputType.TEXTAREA || t === InputType.RICH_TEXT) return "longtext";
@@ -1347,9 +1348,7 @@ function fieldCategory(t: number): string {
   return "other";
 }
 
-/** Strip HTML tags from incoming text so the textarea shows plain text.
- * On save, the user's plain-text edit replaces the column wholesale —
- * the public detail page sanitises before render anyway. */
+// Strip HTML tags from incoming text so the textarea shows plain text.
 function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim();
 }

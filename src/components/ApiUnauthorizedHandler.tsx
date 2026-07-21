@@ -7,14 +7,11 @@ import {
   requestMethod,
   requestUrl,
   shouldLogoutOn401,
-} from "@/lib/api-unauthorized";
+} from "@/lib/auth/api-unauthorized";
 
 let loggingOut = false;
 
-/**
- * Intercepts `fetch` in authenticated shells. On API 401 (session expired or
- * invalid), signs the user out and sends them to the portal login page.
- */
+// Intercepts `fetch` in authenticated shells. On API 401 (session expired or
 export function ApiUnauthorizedHandler({ realm }: { realm: AuthRealm }) {
   useEffect(() => {
     const original = window.fetch.bind(window);

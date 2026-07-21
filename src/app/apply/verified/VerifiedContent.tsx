@@ -13,18 +13,12 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PillButton } from "@/components/landing/shared/PillButton";
 
-/**
- * Landing page the applicant reaches after clicking the email-verification link.
- * The callback (src/app/apply/auth/callback/route.ts) establishes the session
- * and redirects here on success, or here with `?error=1` when the link is
- * expired/invalid. Mirrors the visual language of the submission success page.
- */
+// Landing page the applicant reaches after clicking the email-verification link.
 export function VerifiedContent() {
   const sp = useSearchParams();
   const failed = sp.get("error") != null;
 
-  // Celebrate a successful verification with the same confetti burst the
-  // submission-success page uses — only when the link actually worked.
+  // Celebrate a successful verification with the same confetti burst the submission-success page uses — only when the link actually worked.
   useEffect(() => {
     if (failed) return;
     let cancelled = false;
@@ -111,8 +105,7 @@ export function VerifiedContent() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Big, unmistakable success mark — concentric green rings with an
-                animated badge so "verified" reads at a glance. */}
+            {/* Big, unmistakable success mark — concentric green rings with an */}
             <div className="relative mx-auto mb-8 w-28 h-28 sm:w-32 sm:h-32">
               <motion.span
                 initial={{ scale: 0.6, opacity: 0 }}

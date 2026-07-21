@@ -1,14 +1,8 @@
-/**
- * Workflow logic tests (run: `npx tsx scripts/workflow-tests.ts`).
- *
- * Exercises the pure decision engines behind the app's workflows — profile
- * completion ladder + 50% submit gate, the 6-state review workflow, and badge
- * earning — with no DB/browser needed. These are the rules users actually hit.
- */
-import { computeCompletion, computeFormModules } from "../src/lib/profile-completion";
-import { deriveStage } from "../src/lib/workflow";
-import { deriveBadges, earnedBadges, isYes } from "../src/lib/badges";
-import type { FormConfig } from "../src/lib/form-config";
+// Workflow logic tests (run: `npx tsx scripts/workflow-tests.ts`).
+import { computeCompletion, computeFormModules } from "../src/lib/forms/profile-completion";
+import { deriveStage } from "../src/lib/startups/vetting/workflow";
+import { deriveBadges, earnedBadges, isYes } from "../src/lib/startups/vetting/badges";
+import type { FormConfig } from "../src/lib/forms/form-config";
 
 let pass = 0;
 let fail = 0;
@@ -29,7 +23,7 @@ function section(t: string) {
 const registrationOnly = {
   startup_name: "Acme",
   primary_sector: "Fintech",
-  stage: "early",
+  stage: "Series A",
   hq_city: "Karachi",
   tagline: "We do X",
 };
@@ -62,7 +56,7 @@ const investorReady = {
   contact_preference: "contact_form",
 };
 
-// ---- 1. Completion ladder + submit gate -------------------------------------
+// ---- 1.
 section("Workflow: profile completion ladder + 50% submit gate");
 check("empty draft → 0%, gate closed", (() => {
   const c = computeCompletion({});
@@ -90,7 +84,7 @@ check("nextLevel hint points to Public Profile Ready at 25%", (() => {
   return computeCompletion(registrationOnly).nextLevel?.key === "public_ready";
 })());
 
-// ---- 2. Review workflow (6-state derivation) --------------------------------
+// ---- 2.
 section("Workflow: 6-state review stage derivation");
 check("not submitted → draft", deriveStage({ submitted: false }) === "draft");
 check("legacy 'pending' → submitted", deriveStage({ submitted: true, status: "pending" }) === "submitted");
@@ -101,7 +95,7 @@ check("approved (plain) → approved", deriveStage({ submitted: true, status: "a
 check("approved + verified → verified", deriveStage({ submitted: true, status: "approved", pashaVerified: true }) === "verified");
 check("approved + featured → featured (beats verified)", deriveStage({ submitted: true, status: "approved", pashaVerified: true, featuredActive: true }) === "featured");
 
-// ---- 3. Badge earning workflow ----------------------------------------------
+// ---- 3.
 section("Workflow: badge earning");
 check("isYes truthy forms", isYes(true) && isYes("yes") && isYes("true"));
 check("isYes falsy forms", !isYes(false) && !isYes("no") && !isYes(undefined) && !isYes(""));
@@ -126,7 +120,7 @@ check("locked badges carry a how-to hint", (() => {
   return deriveBadges({}).every((b) => typeof b.howTo === "string" && b.howTo.length > 0);
 })());
 
-// ---- 4. Dashboard step modules mirror the form ------------------------------
+// ---- 4.
 section("Workflow: dashboard step modules mirror the form config");
 const cfg: FormConfig = [
   {
@@ -161,12 +155,12 @@ check("filled count reflects data", (() => {
 })());
 check("step index is 0-based for ?step= deep link", computeFormModules(cfg, {})[1].step === 1);
 
-// ---- 5. EDGE CASES -----------------------------------------------------------
+// ---- 5.
 section("Edge cases: completion engine robustness");
 check("computeCompletion(null) → 0%, no crash", computeCompletion(null).percent === 0);
 check("computeCompletion(undefined) → 0%, no crash", computeCompletion(undefined).percent === 0);
 check("location any-of: hq_country only (no hq_city) still satisfies Draft", (() => {
-  const c = computeCompletion({ startup_name: "A", primary_sector: "F", stage: "early", hq_country: "UK", tagline: "t" });
+  const c = computeCompletion({ startup_name: "A", primary_sector: "F", stage: "Series A", hq_country: "UK", tagline: "t" });
   return c.percent === 25;
 })());
 check("cumulative gate: all public fields but missing a Draft field (tagline) → gate CLOSED", (() => {
@@ -180,7 +174,7 @@ check("presence-based: a too-short description still counts for completion (leng
 })());
 check("falsy values don't count: empty string / [] / false / whitespace are unfilled", (() => {
   // tagline whitespace, sector empty → Draft not met → < 25%
-  const c = computeCompletion({ startup_name: "A", primary_sector: "", stage: "early", hq_city: "K", tagline: "   " });
+  const c = computeCompletion({ startup_name: "A", primary_sector: "", stage: "Series A", hq_city: "K", tagline: "   " });
   return c.percent === 0;
 })());
 check("100% data is idempotent (recompute equal)", (() => {

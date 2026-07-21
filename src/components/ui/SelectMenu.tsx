@@ -13,11 +13,11 @@ interface SelectMenuProps {
   onValueChange: (value: string) => void;
   options: readonly (string | SelectMenuOption)[];
   placeholder?: string;
-  /** Show an in-menu search box. Auto-enables for long lists when undefined. */
+  // Show an in-menu search box. Auto-enables for long lists when undefined.
   searchable?: boolean;
   disabled?: boolean;
   className?: string;
-  /** Trigger id, so a <label htmlFor> can point at it (Field integration). */
+  // Trigger id, so a <label htmlFor> can point at it (Field integration).
   id?: string;
   onBlur?: () => void;
   "aria-label"?: string;
@@ -31,17 +31,7 @@ function normalize(
   return options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
 }
 
-/**
- * Styled, accessible select — the React-native replacement for jQuery Select2.
- *
- * Two implementations behind one API:
- *  - Non-searchable: Radix Select (native-like, ideal for short lists).
- *  - Searchable: a Popover-based combobox. Radix Select cannot host a focusable
- *    text input on mobile — focusing it opens the Android keyboard, which
- *    resizes the viewport and Radix Select reads that (plus the resulting
- *    scroll) as "interact outside" and dismisses. Popover has none of those
- *    dismiss triggers, so the search box and scrolling behave on Android/iOS.
- */
+// Styled, accessible select — the React-native replacement for jQuery Select2.
 export function SelectMenu(props: SelectMenuProps) {
   const opts = useMemo(() => normalize(props.options), [props.options]);
   const showSearch = props.searchable ?? opts.length > 8;
@@ -54,9 +44,9 @@ export function SelectMenu(props: SelectMenuProps) {
 
 type InnerProps = SelectMenuProps & { opts: SelectMenuOption[] };
 
-/* ------------------------------------------------------------------ */
-/* Non-searchable: Radix Select                                        */
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
+// Non-searchable: Radix Select
+// ------------------------------------------------------------------
 
 function PlainSelect({
   value,
@@ -122,9 +112,9 @@ function PlainSelect({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Searchable: Popover combobox                                        */
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
+// Searchable: Popover combobox
+// ------------------------------------------------------------------
 
 function SearchableSelect({
   value,
@@ -207,10 +197,7 @@ function SearchableSelect({
             e.preventDefault();
             inputRef.current?.focus();
           }}
-          // Size to the widest option rather than to the trigger: filter
-          // triggers are short ("All sectors") while their options are not
-          // ("Artificial Intelligence (AI)"), and clamping to the trigger
-          // ellipsised every row. The trigger width is the floor, not the cap.
+          // Size to the widest option rather than to the trigger: filter triggers are short ("All sectors") while their options are not ("Artificial.
           className="z-50 flex max-h-[var(--radix-popover-content-available-height)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(28rem,var(--radix-popover-content-available-width))] flex-col overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
         >
           <div className="flex items-center gap-2 border-b border-pasha-line px-2.5 py-2">
@@ -256,8 +243,7 @@ function SearchableSelect({
                     aria-selected={isSelected}
                     title={o.label}
                     onPointerEnter={() => setActive(i)}
-                    // Select on pointerdown so the tap lands before the input's
-                    // blur can close the popover on mobile.
+                    // Select on pointerdown so the tap lands before the input's blur can close the popover on mobile.
                     onPointerDown={(e) => {
                       e.preventDefault();
                       commit(o.value);
@@ -286,9 +272,9 @@ function SearchableSelect({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Shared styling                                                      */
-/* ------------------------------------------------------------------ */
+// ------------------------------------------------------------------
+// Shared styling
+// ------------------------------------------------------------------
 
 function triggerClass(className?: string) {
   return cn(

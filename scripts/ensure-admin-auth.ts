@@ -1,11 +1,7 @@
-/**
- * One-time: create the Supabase Auth user for ADMIN_EMAIL (must be in admin_users).
- *
- *   pnpm tsx scripts/ensure-admin-auth.ts
- */
+// One-time: create the Supabase Auth user for ADMIN_EMAIL (must be in admin_users).
 import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
-import { provisionSupabaseAuthUser, setSupabaseAuthPassword } from "../src/lib/admin-auth-provision";
+import { provisionSupabaseAuthUser, setSupabaseAuthPassword } from "../src/lib/auth/admin/admin-auth-provision";
 import { createClient } from "@supabase/supabase-js";
 
 loadEnv({ path: resolve(process.cwd(), ".env.local") });

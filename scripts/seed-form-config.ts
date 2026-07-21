@@ -1,18 +1,4 @@
-/**
- * Seed the form-builder tables (form_sections / form_fields) so the dynamic
- * apply form reproduces the original hard-coded form exactly. Run once after
- * applying supabase/migrations/20260615_form_builder.sql.
- *
- * Run:
- *   pnpm tsx scripts/seed-form-config.ts            # seed only if empty
- *   pnpm tsx scripts/seed-form-config.ts --force    # wipe + reseed to defaults
- *
- * Idempotent: without --force it refuses to run when sections already exist
- * (so it never clobbers admin customizations). --force resets to defaults.
- *
- * Every seeded field carries column_map = its existing submissions column, so
- * core data still lands where vetting + the public databank expect it.
- */
+// Seed the form-builder tables (form_sections / form_fields) so the dynamic
 import { createClient } from "@supabase/supabase-js";
 import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
@@ -30,8 +16,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
-// Mirror of src/lib/form-enums.ts InputType (inlined so the script has no
-// alias/runtime import dependencies).
+// Mirror of src/lib/form-enums.ts InputType (inlined so the script has no alias/runtime import dependencies).
 const T = {
   TEXT: 0,
   EMAIL: 1,
@@ -83,11 +68,7 @@ const heading = (key: string, label: string): FieldSeed => ({
   column_map: null,
 });
 
-// ---------------------------------------------------------------------------
-// The current form, expressed as config. SECTION = STEP (one section per step).
-// Visual sub-groups (Basics, Location, …) are HEADING dividers; value fields
-// stay flat so routing to columns + vetting is unchanged. Order == render order.
-// ---------------------------------------------------------------------------
+// --------------------------------------------------------------------------- The current form, expressed as config.
 const SECTIONS: SectionSeed[] = [
   // ===== Step 1 — Startup =====
   {

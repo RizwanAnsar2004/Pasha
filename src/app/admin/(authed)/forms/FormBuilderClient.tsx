@@ -12,13 +12,11 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { InputType, INPUT_TYPE_LABELS } from "@/lib/form-enums";
+import { InputType, INPUT_TYPE_LABELS } from "@/lib/forms/form-enums";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 
-// Available option-list names (code + admin-managed DB lists), provided by the
-// page and surfaced as a dropdown so admins can discover/pick them instead of
-// typing a magic string that silently yields an empty field on a typo.
+// Available option-list names (code + admin-managed DB lists), provided by the page and surfaced as a dropdown so admins can discover/pick them.
 const OptionNamesContext = createContext<string[]>([]);
 
 export type FormKey = "application" | "registration";
@@ -69,10 +67,7 @@ const CHOICE_TYPES = new Set<number>([
   InputType.RADIO_CARDS,
 ]);
 
-// FILE_UPLOAD "accept" presets. `accept` is react-dropzone's MIME→extensions
-// map; editing that raw JSON is admin-hostile, so we expose it as tick-boxes
-// and store the merge of the chosen presets. Previously this was only settable
-// by hand-writing the validation JSON via a SQL query.
+// FILE_UPLOAD "accept" presets.
 const FILE_ACCEPT_PRESETS: {
   id: string;
   label: string;
@@ -112,9 +107,7 @@ const FILE_ACCEPT_PRESETS: {
 // Buckets a file field can upload into (the Supabase storage bucket).
 const FILE_BUCKETS = ["logos", "founder-photos", "pitch-decks"] as const;
 
-// Which presets a stored accept map represents — a preset counts as selected
-// when all of its MIME keys are present. Lets old query-seeded fields render
-// their ticked boxes instead of looking empty.
+// Which presets a stored accept map represents — a preset counts as selected when all of its MIME keys are present.
 function acceptToPresetIds(accept: unknown): string[] {
   if (!accept || typeof accept !== "object") return [];
   const keys = new Set(Object.keys(accept as Record<string, unknown>));
@@ -136,8 +129,7 @@ function presetIdsToAccept(ids: string[]): Record<string, string[]> | null {
   return out;
 }
 
-// Serialize a field's stored `options` into the textarea format: one option per
-// line, `value | label` when they differ, otherwise just the value.
+// Serialize a field's stored `options` into the textarea format: one option per line, `value | label` when they differ, otherwise just the value.
 function optionsToText(options: unknown): string {
   if (!Array.isArray(options)) return "";
   return options
@@ -155,8 +147,7 @@ function optionsToText(options: unknown): string {
     .join("\n");
 }
 
-// Parse the textarea back into a {value,label}[] array (or null when empty, so
-// the field falls back to options_source / no options).
+// Parse the textarea back into a {value,label}[] array (or null when empty, so the field falls back to options_source / no options).
 function textToOptions(text: string): { value: string; label: string }[] | null {
   const lines = text
     .split("\n")
@@ -199,11 +190,9 @@ export function FormBuilderClient({
   const [fields, setFields] = useState(initialFields);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  // Which form is being edited. The same builder drives both the post-login
-  // application form and the sign-up registration form (scoped by form_key).
+  // Which form is being edited.
   const [activeForm, setActiveForm] = useState<FormKey>("application");
-  // The step just created via "Add step" — it mounts expanded; all others
-  // start collapsed so the builder is compact on load.
+  // The step just created via "Add step" — it mounts expanded; all others start collapsed so the builder is compact on load.
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -245,8 +234,7 @@ export function FormBuilderClient({
       await api("PATCH", { type: "section", id, updates });
     }, "Saved");
 
-  // Sections belonging to the form currently being edited. Rows without a
-  // form_key are legacy application sections (column added in 20260618).
+  // Sections belonging to the form currently being edited.
   const visibleSections = useMemo(
     () => sections.filter((s) => (s.form_key ?? "application") === activeForm),
     [sections, activeForm]
@@ -257,8 +245,7 @@ export function FormBuilderClient({
     [visibleSections]
   );
 
-  // Each section IS a step. "Add step" appends a new section at step = max+1
-  // within the active form, then scrolls the freshly-created card into view.
+  // Each section IS a step.
   const addStep = () =>
     run(async () => {
       const nextStep = (steps[steps.length - 1] ?? 0) + 1;
@@ -285,8 +272,7 @@ export function FormBuilderClient({
       }
     });
 
-  // Reorder a step by swapping its `step` with the neighbour in `dir`
-  // (within the active form only).
+  // Reorder a step by swapping its `step` with the neighbour in `dir` (within the active form only).
   const moveStep = (sectionId: string, dir: -1 | 1) =>
     run(async () => {
       const ordered = [...visibleSections].sort((a, b) => a.step - b.step);
@@ -632,9 +618,7 @@ function FieldNode({
   const isHeadingField = field.input_type === InputType.HEADING;
   const isChoice = CHOICE_TYPES.has(field.input_type);
   const isFile = field.input_type === InputType.FILE_UPLOAD;
-  // Field edits change the live application form, so the explicit "Save" button
-  // routes through a confirmation modal. `pendingSave` holds the action to run
-  // once the admin confirms.
+  // Field edits change the live application form, so the explicit "Save" button routes through a confirmation modal.
   const [pendingSave, setPendingSave] = useState<(() => void) | null>(null);
   const confirmModal = (
     <ConfirmDeleteModal
@@ -651,8 +635,7 @@ function FieldNode({
     />
   );
   const optionListNames = useContext(OptionNamesContext);
-  // Show the saved source even if it's not in the available list (e.g. a list
-  // that was later deleted) so the admin can see/fix it.
+  // Show the saved source even if it's not in the available list (e.g.
   const listNames =
     field.options_source && !optionListNames.includes(field.options_source)
       ? [...optionListNames, field.options_source]
@@ -724,7 +707,6 @@ function FieldNode({
         maxLength: draft.maxLength === "" ? undefined : Number(draft.maxLength),
         pattern: draft.pattern || undefined,
         // FILE_UPLOAD-only: allowed file types, storage bucket and size cap.
-        // `?? undefined` drops the key from the JSON so it's cleared when unset.
         ...(isFile
           ? {
               accept: presetIdsToAccept(draft.acceptIds) ?? undefined,

@@ -1,18 +1,4 @@
-/**
- * Apply one or more SQL migration files to the Supabase Postgres DB.
- *
- * supabase-js can't run DDL, so this connects directly with `pg` using a
- * Postgres connection URI. Add it to .env.local from the Supabase dashboard:
- *   Project Settings → Database → Connection string → URI
- * as one of: SUPABASE_DB_URL | DATABASE_URL | POSTGRES_URL (incl. the password).
- *
- * Run:
- *   pnpm tsx scripts/run-migration.ts supabase/migrations/20260615_form_builder.sql
- *   pnpm tsx scripts/run-migration.ts            # defaults to the form_builder migration
- *
- * The whole file runs in a single transaction; idempotent migrations (IF NOT
- * EXISTS / ADD COLUMN IF NOT EXISTS) are safe to re-run.
- */
+// Apply one or more SQL migration files to the Supabase Postgres DB.
 import { Client } from "pg";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";

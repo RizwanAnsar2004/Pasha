@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { Share2, Check } from "lucide-react";
 
-/**
- * Copies the current page URL to the clipboard. Falls back to no-op if the
- * clipboard API is unavailable (older browsers / non-secure contexts) —
- * the button just won't show the "copied" state in that case.
- */
+// Copies the current page URL to the clipboard. Falls back to no-op if the
 export function ShareProfileButton({ className }: { className?: string }) {
   const [copied, setCopied] = useState(false);
 

@@ -1,18 +1,18 @@
 import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { sendTemplate, firstNameOf } from "@/lib/mailer";
-import { submissionSchema, type Founder } from "@/lib/schema";
-import { scoreVetting } from "@/lib/vetting";
-import { getFormConfig } from "@/lib/form-config.server";
-import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/form-config";
-import { getApplicantUser } from "@/lib/applicant-auth";
-import { computeCompletion, fieldLabelMap } from "@/lib/profile-completion";
-import { requestOrigin } from "@/lib/site-url";
+import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
+import { submissionSchema, OTHER_TEXT_FIELDS, type Founder } from "@/lib/forms/schema";
+import { scoreVetting } from "@/lib/startups/vetting/vetting";
+import { getFormConfig } from "@/lib/forms/form-config.server";
+import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/forms/form-config";
+import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
+import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
+import { emailOrigin } from "@/lib/utils/site-url";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
 
 export async function POST(req: Request) {
   try {
-    // The apply form lives behind the applicant auth wall — an application is
-    // always tied to the signed-in user who created it.
+    // The apply form lives behind the applicant auth wall — an application is always tied to the signed-in user who created it.
     const user = await getApplicantUser();
     if (!user) {
       return NextResponse.json(
@@ -31,16 +31,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // The form structure may be admin-defined. When a config exists we validate
-    // against the schema built from it and route values to their mapped columns
-    // (+ an `answers` JSONB bag for admin-added fields). Without a config we use
-    // the original static schema — values are already keyed by column name.
-    const config = await getFormConfig();
+    // The form structure may be admin-defined; loading the registry also teaches the schema which ids mean "Other".
+    const [config] = await Promise.all([getFormConfig(), getFormOptionRegistry()]);
     const labelMap = config ? buildFieldLabelMap(config) : {};
     let cols: Record<string, unknown>;
     let answers: Record<string, unknown> = {};
-    // Field-key-keyed values (before column routing) — what the §12 completion
-    // engine reads.
+    // Field-key-keyed values (before column routing) — what the §12 completion engine reads.
     let formData: Record<string, unknown>;
 
     if (config && config.length > 0) {
@@ -55,13 +51,16 @@ export async function POST(req: Request) {
       if (!parsed.success) return validationError(parsed.error.issues, labelMap);
       cols = parsed.data as unknown as Record<string, unknown>;
       formData = cols;
+      // The `${field}_other` free text has no column of its own, so lift it out
+      for (const key of OTHER_TEXT_FIELDS) {
+        const otherKey = `${key}_other`;
+        const text = cols[otherKey];
+        if (typeof text === "string" && text.trim()) answers[otherKey] = text.trim();
+        delete cols[otherKey];
+      }
     }
 
-    // Submission is gated solely by the schema validation above — which is built
-    // from each field's admin `required` flag (buildZodSchema). A field the admin
-    // left optional never blocks submission, keeping the * markers, per-step
-    // Continue, and this gate in agreement. The §12 completion ladder below is
-    // computed only for the progress score / dashboard tiers — it does NOT gate.
+    // Submission is gated solely by the schema validation above — which is built from each field's admin `required` flag (buildZodSchema).
     const completion = computeCompletion(
       formData,
       config && config.length > 0 ? fieldLabelMap(config) : undefined
@@ -71,8 +70,7 @@ export async function POST(req: Request) {
     const col = (k: string) => (cols[k] === undefined ? null : cols[k]);
     const founders = (cols.founders as Founder[] | undefined) ?? [];
 
-    // Primary founder populates the legacy flat founder_* columns so existing
-    // admin tooling keeps working.
+    // Primary founder populates the legacy flat founder_* columns so existing admin tooling keeps working.
     const primary = founders.find((f) => f.is_primary) ?? founders[0];
     const totalFoundersDerived = founders.length || undefined;
     const femaleFoundersDerived =
@@ -85,12 +83,7 @@ export async function POST(req: Request) {
       founder_name: primary?.name,
       founder_email: primary?.email,
       description: cols.description as string | undefined,
-      stage: cols.stage as
-        | "ideation"
-        | "dev_launch"
-        | "early"
-        | "growth"
-        | undefined,
+      stage: cols.stage as string | undefined,
       revenue_band: cols.revenue_band as string | undefined,
       raised_funding: cols.raised_funding as boolean | undefined,
       funding_stage: cols.funding_stage as string | undefined,
@@ -114,9 +107,7 @@ export async function POST(req: Request) {
 
     const supabase = createServiceClient();
 
-    // Columns that may not exist if a migration hasn't been applied yet. On a
-    // "column X does not exist" error we strip X and retry (deploy/migration
-    // handoff window). `answers` is here for the form-builder migration too.
+    // Columns that may not exist if a migration hasn't been applied yet.
     const V2_COLUMNS = [
       "founders",
       "company_linkedin",
@@ -224,9 +215,7 @@ export async function POST(req: Request) {
       user_agent: ua,
     };
 
-    // Resubmission: if this applicant already has a submission (e.g. after a
-    // "Needs Update"), update that row in place and move it back to
-    // "submitted" — don't create a duplicate. First-time submitters insert.
+    // Resubmission: if this applicant already has a submission (e.g.
     const { data: existingDraft } = await supabase
       .from("application_drafts")
       .select("submission_id")
@@ -254,9 +243,7 @@ export async function POST(req: Request) {
 
     let { data: row, error } = await persist(record);
 
-    // Strip missing columns and retry (bounded). Two error shapes:
-    //   PG direct:  `column "X" of relation "submissions" does not exist`
-    //   PostgREST:  `Could not find the 'X' column of 'submissions' in the schema cache`
+    // Strip missing columns and retry (bounded).
     let safetyLoops = V2_COLUMNS.length + 4;
     while (error && safetyLoops-- > 0) {
       const pg = error.message.match(/column "([^"]+)" of relation/);
@@ -271,8 +258,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
     }
 
-    // Finalise the applicant's draft: link it to the new submission and stamp
-    // it so the apply page shows the submitted state instead of the wizard.
+    // Finalise the applicant's draft: link it to the new submission and stamp it so the apply page shows the submitted state instead of the wizard.
     await supabase
       .from("application_drafts")
       .update({ submission_id: row.id, submitted_at: new Date().toISOString() })
@@ -291,7 +277,7 @@ export async function POST(req: Request) {
               values: {
                 "{{first_name}}": firstNameOf(primary?.name),
                 "{{startup_name}}": String(cols.startup_name ?? "your startup"),
-                "{{link}}": `${requestOrigin(req)}/apply`,
+                "{{link}}": `${emailOrigin()}/apply`,
               },
             },
           ],

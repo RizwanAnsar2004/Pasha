@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventsList } from "@/components/events/EventContent";
-import { getPublishedEvents } from "@/lib/events.server";
+import { getPublishedEvents } from "@/lib/events/events.server";
 import { EventsHero } from "@/components/events/EventsHero";
-
 
 export const metadata: Metadata = {
   title: "Events",

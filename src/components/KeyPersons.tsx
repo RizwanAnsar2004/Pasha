@@ -1,11 +1,8 @@
 import { Star } from "lucide-react";
-import { safeHref } from "@/lib/safe-url";
+import { safeHref } from "@/lib/validators/safe-url";
 import { initials } from "@/lib/utils";
 
-/**
- * One row in databank.key_persons (mirrors submissions.founders). The detail
- * page renders an array of these as a Y Combinator-style grid.
- */
+// One row in databank.key_persons (mirrors submissions.founders). The detail
 export type KeyPerson = {
   name?: string;
   role?: string;
@@ -21,17 +18,7 @@ export type KeyPerson = {
   is_primary?: boolean;
 };
 
-/**
- * Render the "Key Persons" section on a startup detail page. Designed to
- * gracefully no-op when the array is empty or missing.
- *
- * Grid rules:
- *  - 1 column under 640px (mobile). Horizontal compact cards.
- *  - 2 columns from 640px upward. Detail-page main column tops out around
- *    700px on desktop because of the 280px sidebar; 2-up keeps each card
- *    wide enough to breathe (~330px). A 3-up layout was tested and made
- *    each card claustrophobic at desktop widths.
- */
+// Render the "Key Persons" section on a startup detail page. Designed to
 export function KeyPersons({ persons }: { persons?: KeyPerson[] | null }) {
   if (!persons || !Array.isArray(persons) || persons.length === 0) return null;
 
@@ -54,8 +41,7 @@ function PersonCard({ person }: { person: KeyPerson }) {
   if (!name) return null;
   const role = (person.role ?? "").trim();
 
-  // Build the list of social links. Icon-only — labels live in title attrs
-  // + aria-labels. Keeps cards uncluttered when a founder has 4-5 socials.
+  // Build the list of social links.
   const socials: { label: string; href: string; glyph: React.ReactNode }[] = [];
   function push(label: string, raw: string | null | undefined, glyph: React.ReactNode) {
     if (!raw) return;
@@ -74,9 +60,7 @@ function PersonCard({ person }: { person: KeyPerson }) {
 
   return (
     <li className="group rounded-xl border border-pasha-line bg-white p-4 sm:p-5 flex items-start gap-4 transition-all hover:border-pasha-ink/20 hover:shadow-sm">
-      {/* Avatar — 56px on mobile, 64px from sm up. Circular to read as a
-          "person", with a subtle border so it doesn't blend into the card
-          when the photo is dark or fully white. */}
+      {/* Avatar — 56px on mobile, 64px from sm up. Circular to read as a */}
       <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-pasha-line bg-pasha-stone/50 grid place-items-center overflow-hidden">
         {person.photo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -131,9 +115,7 @@ function PersonCard({ person }: { person: KeyPerson }) {
   );
 }
 
-// ---- Inline brand glyphs. lucide 1.x dropped brand icons; keeping these
-// inline so we don't pull a second icon dep. All monochrome → inherit
-// currentColor from the hover-tinted anchor.
+// ---- Inline brand glyphs.
 
 function LinkedInGlyph({ className }: { className?: string }) {
   return (

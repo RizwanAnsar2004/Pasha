@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle } from "lucide-react";
-import type { VettingResult } from "@/lib/vetting";
-import { tierLabel } from "@/lib/vetting";
+import type { VettingResult } from "@/lib/startups/vetting/vetting";
+import { tierLabel } from "@/lib/startups/vetting/vetting";
 
 export function TierPreview({ result }: { result: VettingResult | null }) {
   if (!result) return null;

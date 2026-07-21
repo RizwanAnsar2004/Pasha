@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { SubmissionsClient } from "./SubmissionsClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { matchingOptionIds, resolveOptionLabel } from "@/lib/options/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +20,23 @@ async function load(
       { count: "exact" }
     );
 
+  const index = await getOptionIndex();
+
   if (filters.q.length >= 1) {
     const p = `%${filters.q}%`;
+    const idMatches = matchingOptionIds(index, filters.q).flatMap((id) => [
+      `primary_sector_id.eq.${id}`,
+      `stage_id.eq.${id}`,
+      `hq_city_id.eq.${id}`,
+    ]);
     query = query.or(
-      `startup_name.ilike.${p},founder_name.ilike.${p},founder_email.ilike.${p},primary_sector.ilike.${p}`
+      [
+        `startup_name.ilike.${p}`,
+        `founder_name.ilike.${p}`,
+        `founder_email.ilike.${p}`,
+        `primary_sector.ilike.${p}`,
+        ...idMatches,
+      ].join(",")
     );
   }
   if (filters.status && filters.status !== "all") {
@@ -31,7 +46,13 @@ async function load(
   const { data, count } = await query
     .order("created_at", { ascending: false })
     .range(range.from, range.to);
-  return { rows: data ?? [], total: count ?? 0 };
+  const rows = (data ?? []).map((r) => ({
+    ...r,
+    primary_sector: resolveOptionLabel(index, "SECTORS", r.primary_sector),
+    hq_city: resolveOptionLabel(index, "HQ_CITIES", r.hq_city),
+    stage: resolveOptionLabel(index, "STAGES", r.stage),
+  }));
+  return { rows, total: count ?? 0 };
 }
 
 function pickOne(sp: Record<string, string | string[] | undefined>, k: string): string {

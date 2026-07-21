@@ -1,14 +1,4 @@
-/**
- * Retry pass for migrate-logos.failed.json.
- *
- * For each prior failure:
- *  - HEAD the URL once.
- *  - If 200, run the same migration logic (download, upload, update DB).
- *  - If 404 or other non-200, set databank.logo_url = NULL so the directory
- *    falls back to an initials avatar rather than rendering a broken image.
- *
- * Run: pnpm tsx scripts/migrate-logos-retry.ts
- */
+// Retry pass for migrate-logos.failed.json.
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";

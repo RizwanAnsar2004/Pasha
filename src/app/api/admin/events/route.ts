@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { parsePagination } from "@/lib/pagination";
-import { fetchAllRowsBatched } from "@/lib/csv";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { parsePagination } from "@/lib/utils/pagination";
+import { fetchAllRowsBatched } from "@/lib/utils/csv";
 
 const audienceItemSchema = z.object({
   title: z.string().trim().min(1).max(120),

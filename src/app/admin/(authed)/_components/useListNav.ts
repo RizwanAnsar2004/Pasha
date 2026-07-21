@@ -1,8 +1,6 @@
 "use client";
 
-// Shared navigation hook for admin listing pages. Wraps router.replace in a
-// transition so we get an isPending flag — pages use that to render a shimmer
-// over the table while the server re-fetches the new page / search results.
+// Shared navigation hook for admin listing pages.
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";

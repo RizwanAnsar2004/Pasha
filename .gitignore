@@ -145,3 +145,14 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Markdown docs / notes
+*.md
+docs/
+*.pdf
+bash.exe.stackdump
+tsconfig.tsbuildinfo
+
+# Local-only helper scripts (not deployed)
+scripts/options/
+deploy/

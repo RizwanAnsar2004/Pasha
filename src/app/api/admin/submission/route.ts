@@ -1,24 +1,20 @@
 // Admin-only endpoint for moderating submissions.
-// Requires:
-// - Authenticated session (Supabase cookie)
-// - Email in the admin allowlist (server-side check via is_admin() RLS predicate)
-//
-// Writes the status change + an audit_log entry in a single transaction.
 
 import { NextResponse, after } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { sendTemplate, firstNameOf } from "@/lib/mailer";
+import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
 import { z } from "zod";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
-import { getFieldLabelMap } from "@/lib/form-config.server";
-import { isYes } from "@/lib/badges";
-import { requestOrigin } from "@/lib/site-url";
-import { notifyRagDatabank } from "@/lib/rag-sync";
-import { syncAwardsFromText, syncAwardsFromStructured } from "@/lib/awards-sync.server";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured-startups.server";
+import { getFieldLabelMap } from "@/lib/forms/form-config.server";
+import { isYes } from "@/lib/startups/vetting/badges";
+import { emailOrigin } from "@/lib/utils/site-url";
+import { notifyRagDatabank } from "@/lib/ai/rag-sync";
+import { syncAwardsFromText, syncAwardsFromStructured } from "@/lib/startups/awards/awards-sync.server";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 
-// Coerce an answers-bag value to a finite number, else null. Used to fill the
-// numeric databank metric columns from the form's number fields.
+// Coerce an answers-bag value to a finite number, else null.
 function toNum(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = typeof v === "number" ? v : Number(v);
@@ -32,8 +28,7 @@ const updateSchema = z.object({
   reviewer_notes: z.string().max(2000).optional(),
 });
 
-// "Verify" toggles the P@SHA verified badge on the published databank row
-// (spec §12 — Verified state). Separate from the review status.
+// "Verify" toggles the P@SHA verified badge on the published databank row (spec §12 — Verified state).
 const verifySchema = z.object({
   id: z.string().uuid(),
   action: z.literal("verify"),
@@ -198,9 +193,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
 
-  // Only overwrite the stored note when the reviewer actually wrote one. The
-  // drawer's compose box starts empty on every open, so a later decision made
-  // without a comment must not erase the note sent to the applicant earlier.
+  // Only overwrite the stored note when the reviewer actually wrote one.
   const patch: Record<string, unknown> = {
     status,
     reviewer_id: user.id,
@@ -219,9 +212,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: updErr.message }, { status: 500 });
   }
 
-  // 3a. On "Needs Update", reopen the applicant's draft so they can edit and
-  // resubmit (clears submitted_at; the submission row is updated in place on
-  // resubmit). The reviewer_notes above carry the committee's comments.
+  // 3a. On "Needs Update", reopen the applicant's draft so they can edit and resubmit (clears submitted_at; the submission row is updated in place on.
   if (status === "needs_update" && priorRow.user_id) {
     const { error: reopenErr } = await supabase
       .from("application_drafts")
@@ -230,16 +221,7 @@ export async function PATCH(req: Request) {
     if (reopenErr) console.error("reopen draft failed:", reopenErr.message);
   }
 
-  // 3b. On approval, materialise the submission into the public databank
-  // table so it appears on /directory.
-  //
-  // Two cases:
-  //   (a) A databank row already exists for this startup (matched by
-  //       case-insensitive name). Update the enrichment fields in place.
-  //   (b) No matching databank row — create a new one with all the
-  //       directory-visible columns populated from the submission. This
-  //       is what was missing: previously approval was a no-op for any
-  //       startup that hadn't been scraped from StartupConnect.
+  // 3b. On approval, materialise the submission into the public databank table so it appears on /directory.
   if (status === "approved") {
     const { data: full } = await supabase
       .from("submissions")
@@ -251,15 +233,16 @@ export async function PATCH(req: Request) {
 
     if (full?.startup_name) {
       const founded_date = full.year_founded ? `${full.year_founded}-01-01` : null;
+      // hq_city may be an option id, so compare on the resolved label, not the raw value.
+      const optionIndex = await getOptionIndex();
+      const cityLabel = resolveOptionLabel(optionIndex, "HQ_CITIES", full.hq_city);
       const city = full.outside_pakistan
         ? null
-        : full.hq_city === "Other"
+        : cityLabel === "Other"
           ? full.hq_other ?? null
           : full.hq_city ?? null;
 
-      // §13 badge flags. women_led / currently_hiring are admin-added form
-      // fields → they live in submissions.answers (JSONB); currently_raising is
-      // a real column.
+      // §13 badge flags.
       const answers = (full.answers ?? {}) as Record<string, unknown>;
 
       const databankRow = {
@@ -280,8 +263,7 @@ export async function PATCH(req: Request) {
         contact_email: full.founder_email ?? null,
         total_employees: full.total_employees ?? null,
         female_employees: full.female_employees ?? null,
-        // Monthly active users is the only numeric metric in the form, so it
-        // fills the numeric customers/users column the directory tiles read.
+        // Monthly active users is the only numeric metric in the form, so it fills the numeric customers/users column the directory tiles read.
         number_of_customers: toNum(answers.monthly_active_users),
         logo_url: full.logo_url ?? null,
         startup_idea: full.description ?? null,
@@ -298,16 +280,12 @@ export async function PATCH(req: Request) {
         women_led: isYes(answers.women_led),
         hiring: isYes(answers.currently_hiring),
         fundraising: full.currently_raising ?? isYes(answers.currently_raising),
-        // Dynamic form fields (problem, solution, USP, traction, market, …)
-        // mirrored from the submission so the public profile can show them.
+        // Dynamic form fields (problem, solution, USP, traction, market, …) mirrored from the submission so the public profile can show them.
         answers,
         updated_at: new Date().toISOString(),
       };
 
       // Upsert the public row: update by source_id, else by name, else insert.
-      // Strip-and-retry on a missing column so a not-yet-applied migration
-      // (e.g. answers / badge columns) degrades gracefully instead of dropping
-      // the entire publish.
       const writeOnce = async (rec: Record<string, unknown>): Promise<{ error: { message: string } | null }> => {
         const { data: bySource } = await supabase
           .from("databank")
@@ -344,8 +322,7 @@ export async function PATCH(req: Request) {
       if (dbErr) {
         console.error("databank publish failed:", dbErr.message);
       } else {
-        // Published successfully — resolve the row id and (re-)ingest it into
-        // the RAG vector store (covers both the insert and update cases).
+        // Published successfully — resolve the row id and (re-)ingest it into the RAG vector store (covers both the insert and update cases).
         const publishedId = await resolveDatabankId(
           supabase,
           full.id,
@@ -353,11 +330,7 @@ export async function PATCH(req: Request) {
         );
         if (publishedId) {
           notifyRagDatabank("UPDATE", publishedId);
-          // Mirror the applicant's awards into structured startup_awards rows
-          // (source='submission') so approved awards surface on the profile +
-          // homepage. New submissions carry a structured title/year/description
-          // array in answers.awards; older ones only have the legacy text blob.
-          // Best-effort; never blocks the publish.
+          // Mirror the applicant's awards into structured startup_awards rows (source='submission') so approved awards surface on the profile + homepage.
           const structuredAwards = (answers as Record<string, unknown>).awards;
           if (Array.isArray(structuredAwards) && structuredAwards.length > 0) {
             await syncAwardsFromStructured(supabase, publishedId, structuredAwards);
@@ -369,7 +342,7 @@ export async function PATCH(req: Request) {
     }
   }
 
-  // 4. Write audit entry. Don't fail the request if audit insert fails — log it.
+  // 4. Write audit entry.
   const { error: auditErr } = await supabase.from("audit_log").insert({
     actor_id: user.id,
     actor_email: user.email,
@@ -420,7 +393,7 @@ export async function PATCH(req: Request) {
               "{{first_name}}": firstNameOf(priorRow.founder_name),
               "{{startup_name}}": priorRow.startup_name ?? "your startup",
               "{{reviewer_notes}}": reviewer_notes ?? "",
-              "{{link}}": `${requestOrigin(req)}/apply`,
+              "{{link}}": `${emailOrigin()}/apply`,
             },
           },
         ],

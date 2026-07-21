@@ -19,20 +19,16 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { ShareProfileButton } from "@/components/ShareProfileButton";
-import { earnedBadges } from "@/lib/badges";
-import { getFormConfig } from "@/lib/form-config.server";
-import { getAwardEntriesForDatabank, type AwardEntry } from "@/lib/awards.server";
-import { parseAwardsText } from "@/lib/awards-sync.server";
-import { fieldLabelMap } from "@/lib/profile-completion";
+import { earnedBadges } from "@/lib/startups/vetting/badges";
+import { getFormConfig } from "@/lib/forms/form-config.server";
+import { getAwardEntriesForDatabank, type AwardEntry } from "@/lib/startups/awards/awards.server";
+import { parseAwardsText } from "@/lib/startups/awards/awards-sync.server";
+import { fieldLabelMap } from "@/lib/forms/profile-completion";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 
-// Dynamic-form fields that are SAFE to show on the public profile. Excludes
-// investor-only / sensitive answers (market notes, financials, competitors,
-// office address, women-ownership) and all verification documents (CNIC,
-// NTN, registration cert, authorization letter, pitch deck).
-// TAM / SAM / SOM are all public — see the Market Opportunity section below.
+// Dynamic-form fields that are SAFE to show on the public profile.
 const PUBLIC_ANSWER_KEYS = [
   "problem_statement",
   "solution_statement",
@@ -48,9 +44,7 @@ const PUBLIC_ANSWER_KEYS = [
   "play_store_url",
 ] as const;
 const ANSWER_URL_KEYS = new Set(["demo_video_url", "app_store_url", "play_store_url"]);
-// Problem / solution / TAM / SAM / SOM get dedicated hero-story treatment
-// further down the page, so they're excluded from the generic "Business
-// profile" list to avoid showing the same answer twice.
+// Problem / solution / TAM / SAM / SOM get dedicated hero-story treatment further down the page, so they're excluded from the generic "Business.
 const DEDICATED_ANSWER_KEYS = new Set([
   "problem_statement",
   "solution_statement",
@@ -65,20 +59,23 @@ const PUBLIC_ANSWER_LABEL_OVERRIDES: Record<string, string> = {
 };
 import type { KeyPerson } from "@/components/KeyPersons";
 import { createServiceClient } from "@/lib/supabase/server";
-import { idPrefixFromSlug, startupSlug } from "@/lib/slug";
-import { sanitizeHtml, hasContent, htmlToText } from "@/lib/sanitize-html";
+import { idPrefixFromSlug, startupSlug } from "@/lib/utils/slug";
+import { sanitizeHtml, hasContent, htmlToText } from "@/lib/validators/sanitize-html";
 import { RichText as AutoRichText } from "@/components/ui/RichText";
-import { safeHref, safeImageSrc } from "@/lib/safe-url";
+import { safeHref, safeImageSrc } from "@/lib/validators/safe-url";
 import { cn, initials } from "@/lib/utils";
-import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
-import { FUNDING_AMOUNT_RANGES } from "@/lib/options";
+import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
+import { getOptionItems } from "@/lib/options/registry.server";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 
-// value→label maps for the form's range bands. New records store revenue /
-// funding as select bands (not numeric columns), so the profile falls back to
-// the readable range when the numeric column is empty.
-const RAISED_BAND_LABEL: Record<string, string> = Object.fromEntries(
-  FUNDING_AMOUNT_RANGES.map((o) => [o.value, o.label])
-);
+// New records store revenue / funding as select bands (not numeric columns), so
+// Prefer the user's free text when the stored choice is the "Other"
+function resolveOther(value: string | null, custom: unknown): string | null {
+  if (value !== "Other") return value;
+  return typeof custom === "string" && custom.trim() ? custom.trim() : value;
+}
+
 function bandLabel(code: unknown, map: Record<string, string>): string | null {
   if (typeof code !== "string" || !code || code === "na") return null;
   const label = map[code];
@@ -92,10 +89,7 @@ export const dynamicParams = true;
 
 type Row = {
   id: string;
-  // Origin signal — "submission" means this came through the apply form
-  // (the founder has already claimed the profile). Anything else (e.g.
-  // "startupconnect") means we scraped or imported it, and the founder
-  // hasn't claimed it yet — we show them a "claim this profile" banner.
+  // Origin signal — "submission" means this came through the apply form (the founder has already claimed the profile).
   source: string | null;
   startup_name: string;
   company_name: string | null;
@@ -131,9 +125,7 @@ type Row = {
   hiring?: boolean | null;
   fundraising?: boolean | null;
   answers?: Record<string, unknown> | null;
-  // v2 additions — present only after the 20260521 migration runs. The
-  // defensive select falls back to the legacy column list when these are
-  // missing, so the page renders fine on pre-migration prod data.
+  // v2 additions — present only after the 20260521 migration runs.
   key_persons: KeyPerson[] | null;
   company_linkedin: string | null;
   company_x: string | null;
@@ -148,17 +140,13 @@ type Row = {
 async function getStartup(slug: string): Promise<Row | null> {
   const prefix = idPrefixFromSlug(slug);
   if (!prefix) return null;
-  // UUIDs are lexicographically sortable in PG. Prefix match is a range query:
-  // id ∈ [prefix-0000-…, nextPrefix-0000-…). The `.like("id", "X%")` form
-  // would error since UUID has no LIKE operator without an explicit cast.
+  // UUIDs are lexicographically sortable in PG.
   const lower = `${prefix}-0000-0000-0000-000000000000`;
   const upperPrefix = nextHex(prefix);
   if (!upperPrefix) return null;
   const upper = `${upperPrefix}-0000-0000-0000-000000000000`;
   const supabase = createServiceClient();
-  // Defensive select chain: try the full (post-v2-migration) column list, then
-  // fall back step-by-step. Once the v2 migration runs in prod, the FULL path
-  // always succeeds; the fallbacks exist for the brief in-between deploy state.
+  // Defensive select chain: try the full (post-v2-migration) column list, then fall back step-by-step.
   const V2_ADDITIONS =
     "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising, answers";
   const LEGACY_NO_PASHA =
@@ -237,7 +225,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   return data as unknown as Row;
 }
 
-/** Increment an 8-char hex string by one. Returns null if it overflows. */
+// Increment an 8-char hex string by one. Returns null if it overflows.
 function nextHex(hex: string): string | null {
   const n = parseInt(hex, 16);
   if (!Number.isFinite(n)) return null;
@@ -267,12 +255,7 @@ type RelatedStartup = {
 const RELATED_COLS =
   "id,startup_name,tagline,primary_industry,city,logo_url,product_stage,founded_date,website,company_linkedin,pasha_verified,created_at,total_employees,business_types,women_led,hiring,fundraising";
 
-/**
- * Other startups a visitor browsing this profile might want to see next —
- * same sector first, topped up with the most recently added listings if the
- * sector doesn't have enough. Real rows only, same top-up pattern used for
- * the homepage watchlist (never fabricated).
- */
+// Other startups a visitor browsing this profile might want to see next —
 async function getRelatedStartups(currentId: string, sector: string | null, limit = 3): Promise<RelatedStartup[]> {
   const supabase = createServiceClient();
   const picked: RelatedStartup[] = [];
@@ -318,16 +301,18 @@ export async function generateMetadata({
     return { title: "Startup not found" };
   }
   const cleanTagline = htmlToText(row.tagline) || null;
-  const fallback = `${row.primary_industry ?? "Pakistan startup"}${row.city ? ` based in ${row.city}` : ""}.`;
+  const index = await getOptionIndex();
+  const metaSector = resolveOptionLabel(index, "SECTORS", row.primary_industry);
+  const metaCity = resolveOptionLabel(index, "HQ_CITIES", row.city);
+  const fallback = `${metaSector ?? "Pakistan startup"}${metaCity ? ` based in ${metaCity}` : ""}.`;
   const description = cleanTagline ?? fallback;
-  // The root layout already appends "· P@SHA Startup Community" via its
-  // title template, so we only need the startup-level prefix here.
+  // The root layout already appends "· P@SHA Startup Hub" via its
   return {
     title: row.startup_name,
     description,
     alternates: { canonical: `/directory/${startupSlug(row.startup_name, row.id)}` },
     openGraph: {
-      title: `${row.startup_name} · P@SHA Startup Directory`,
+      title: `${row.startup_name} · P@SHA Startup Hub`,
       description,
       url: `/directory/${startupSlug(row.startup_name, row.id)}`,
       images: row.logo_url ? [{ url: row.logo_url }] : undefined,
@@ -418,21 +403,36 @@ export default async function StartupDetailPage({
   const row = await getStartup(slug);
   if (!row) notFound();
 
-  // Awards are curated in Admin → Award Winners (startup_awards) — structured
-  // with year + description. Prefer those; fall back to parsing the legacy
-  // databank.awards free-text blob when none are curated.
+  // Awards are curated in Admin → Award Winners (startup_awards) — structured with year + description.
+  const raisedBandLabel: Record<string, string> = Object.fromEntries(
+    (await getOptionItems("FUNDING_AMOUNT_RANGES")).map((o) => [o.value, o.label])
+  );
+
   const curatedAwards = await getAwardEntriesForDatabank(row.id);
   const awardEntries: AwardEntry[] =
     curatedAwards.length > 0
       ? curatedAwards
       : parseAwardsText(cleanText(row.awards)).map((a) => ({ title: a.title, year: a.year, description: null }));
 
+  const answers = (row.answers && typeof row.answers === "object" ? row.answers : {}) as Record<
+    string,
+    unknown
+  >;
+
+  const optionIndex = await getOptionIndex();
   const tagline = cleanText(row.tagline);
-  const sector = cleanText(row.primary_industry);
-  const cityRaw = cleanText(row.city);
-  const country = cleanText(row.hq_country);
+  // A stored value of "Other" is a placeholder — the real answer lives in the
+  const sector = resolveOther(
+    resolveOptionLabel(optionIndex, "SECTORS", cleanText(row.primary_industry)),
+    answers.primary_sector_other
+  );
+  const cityRaw = resolveOptionLabel(optionIndex, "HQ_CITIES", cleanText(row.city));
+  const country = resolveOptionLabel(optionIndex, "COUNTRIES", cleanText(row.hq_country));
   const city = cityRaw ?? country;
-  const stage = cleanText(row.product_stage);
+  const stage = resolveOther(
+    resolveOptionLabel(optionIndex, "STAGES", cleanText(row.product_stage)),
+    answers.stage_other
+  );
   const founded = formatDate(row.founded_date);
   const teamSizeDisplay =
     row.total_employees && row.total_employees > 0 ? `${row.total_employees.toLocaleString()} people` : null;
@@ -447,7 +447,6 @@ export default async function StartupDetailPage({
 
   const formConfig = await getFormConfig();
   const answerLabels = formConfig ? fieldLabelMap(formConfig) : {};
-  const answers = (row.answers && typeof row.answers === "object" ? row.answers : {}) as Record<string, unknown>;
   const businessItems = PUBLIC_ANSWER_KEYS.filter((k) => !DEDICATED_ANSWER_KEYS.has(k))
     .map((key) => {
       const value = answers[key];
@@ -460,9 +459,7 @@ export default async function StartupDetailPage({
         !(Array.isArray(it.value) && it.value.length === 0)
     );
 
-  // Dedicated Problem / Solution / Market Opportunity fields — pulled straight
-  // from the answers bag rather than the generic list above so they can get
-  // their own story-section treatment further down the page.
+  // Dedicated Problem / Solution / Market Opportunity fields — pulled straight from the answers bag rather than the generic list above so they can get.
   const problemText = typeof answers.problem_statement === "string" ? answers.problem_statement.trim() : "";
   const solutionText = typeof answers.solution_statement === "string" ? answers.solution_statement.trim() : "";
   const tamRaw = answers.tam_amount;
@@ -474,8 +471,7 @@ export default async function StartupDetailPage({
   const somRaw = answers.som_amount;
   const somNum = typeof somRaw === "number" ? somRaw : typeof somRaw === "string" ? Number(somRaw) : NaN;
   const somDisplay = Number.isFinite(somNum) && somNum > 0 ? formatUSDCompact(somNum) : null;
-  // Relative bar width for the market-size visualization — scaled against the
-  // largest of the three real values present (never fabricated).
+  // Relative bar width for the market-size visualization — scaled against the largest of the three real values present (never fabricated).
   const marketMax = Math.max(
     Number.isFinite(tamNum) ? tamNum : 0,
     Number.isFinite(samNum) ? samNum : 0,
@@ -521,7 +517,7 @@ export default async function StartupDetailPage({
       ? formatPKR(row.investment_raised)
       : row.investment_raised === 1
         ? "Disclosed"
-        : null) ?? bandLabel(answers.total_funding_raised, RAISED_BAND_LABEL);
+        : null) ?? bandLabel(answers.total_funding_raised, raisedBandLabel);
 
   const secondaries = splitMulti(row.secondary_industries);
   const bizTypes = splitMulti(row.business_types);
@@ -543,10 +539,15 @@ export default async function StartupDetailPage({
     { label: "Primary market", value: city },
   ].filter((t): t is { label: string; value: string } => !!t.value);
 
-  const related = await getRelatedStartups(row.id, sector);
+  // Match on the raw stored value (text today, id after backfill), then label for display.
+  const related = (await getRelatedStartups(row.id, cleanText(row.primary_industry))).map((r) => ({
+    ...r,
+    primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry),
+    product_stage: resolveOptionLabel(optionIndex, "STAGES", r.product_stage),
+    city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city),
+  }));
 
-  // Section numbering is computed up front (not hardcoded) so the "01 / 02 …"
-  // labels stay contiguous even when a startup is missing some optional data.
+  // Section numbering is computed up front (not hardcoded) so the "01 / 02 …" labels stay contiguous even when a startup is missing some optional data.
   const hasProblem = problemText.length > 0;
   const hasSolution = solutionText.length > 0;
   const hasMarket = !!tamDisplay || !!samDisplay || !!somDisplay;
@@ -596,17 +597,17 @@ export default async function StartupDetailPage({
               <div className="mb-8 rounded-2xl border border-pasha-red/30 bg-pasha-red/[0.08] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-white/85">
                 <p className="leading-relaxed">
                   <strong className="font-semibold text-white">Is this your company?</strong>{" "}
-                  This profile was imported from a public source. To claim it
-                  and keep the information current, email{" "}
+                  This profile was imported from a public source. To claim
+                  ownership and keep the information up to date, please email{" "}
                   <a
-                    href={`mailto:support@pasha.org.pk?subject=${encodeURIComponent(
+                    href={`mailto:startups@pasha.org.pk?subject=${encodeURIComponent(
                       `Claim profile: ${row.startup_name}`
                     )}`}
                     className="text-white font-semibold underline underline-offset-2 hover:text-pasha-red-light"
                   >
-                    support@pasha.org.pk
+                    startups@pasha.org.pk
                   </a>{" "}
-                  from a company-domain address.
+                  from your company&rsquo;s email address.
                 </p>
               </div>
             )}
@@ -1184,8 +1185,7 @@ const RELATED_TINTS = [
   },
 ];
 
-// Women-led / Hiring / Fundraising badge pills — same neutral pill style used
-// on the directory listing grid cards (DirectoryClient.tsx's DirectoryBadges).
+// Women-led / Hiring / Fundraising badge pills — same neutral pill style used on the directory listing grid cards (DirectoryClient.tsx's.
 const RELATED_BADGE_CLS = "bg-pasha-ink/[0.05] text-pasha-ink/65 border-pasha-ink/10";
 const RELATED_BADGE_LABEL: Record<"women_led" | "hiring" | "fundraising", string> = {
   women_led: "Women-led",
@@ -1210,8 +1210,7 @@ function RelatedBadges({ startup }: { startup: RelatedStartup }) {
   );
 }
 
-// Numbered editorial section — the big "01 / 02 …" label column paired with
-// content, matching the reference's story-section rhythm.
+// Numbered editorial section — the big "01 / 02 …" label column paired with content, matching the reference's story-section rhythm.
 function StorySection({
   number,
   label,
@@ -1257,9 +1256,7 @@ function ProblemSolutionCard({
         <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-white ${iconColor}`}>{icon}</span>
       </div>
       <small className="relative block text-base font-bold uppercase tracking-[2px] text-pasha-ink/60 mb-4">{label}</small>
-      {/* The founder's real problem / solution statement — the card's hero copy
-          (no generic template headline). Sized to stay prominent yet wrap a
-          full paragraph gracefully. */}
+      {/* The founder's real problem / solution statement — the card's hero copy */}
       <p className="relative text-[13px] leading-[1.45] tracking-tight text-pasha-ink font-regular max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
         {body}
       </p>
@@ -1454,9 +1451,7 @@ function RichText({ html }: { html: string }) {
   );
 }
 
-// ---- Inline brand glyphs. lucide 1.x dropped brand icons; keeping these
-// inline (same pattern as CompanySocials.tsx / KeyPersons.tsx) so we don't
-// pull a second icon dep.
+// ---- Inline brand glyphs.
 
 function LinkedInGlyph({ className }: { className?: string }) {
   return (
@@ -1509,8 +1504,7 @@ function YouTubeGlyph({ className }: { className?: string }) {
   );
 }
 
-// SidebarSocialRow — "Connect with the company" icon row at the bottom of the
-// At a glance card (website + whichever social links the startup has set).
+// SidebarSocialRow — "Connect with the company" icon row at the bottom of the At a glance card (website + whichever social links the startup has set).
 function SidebarSocialRow({
   row,
   websiteHref,

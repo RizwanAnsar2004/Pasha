@@ -1,5 +1,5 @@
-import { getSiteContent } from "@/lib/site-content.server";
-import { SITE_CONTENT_META } from "@/lib/site-content";
+import { getSiteContent } from "@/lib/content/site-content.server";
+import { SITE_CONTENT_META } from "@/lib/content/site-content";
 import { PrivacyContentClient } from "./PrivacyContentClient";
 
 export const dynamic = "force-dynamic";

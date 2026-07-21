@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { readAdminSession } from "@/lib/admin-session";
-import { isAdminEmail } from "@/lib/admin-allowlist";
+import { readAdminSession } from "@/lib/auth/admin/admin-session";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { createClient } from "@/lib/supabase/server";
 import { AdminLoginForm } from "./LoginForm";
 
@@ -13,8 +13,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
 
-  // Middleware sent us here after rejecting the current Supabase session — never
-  // bounce back to /admin based on a stale committee cookie.
+  // Middleware sent us here after rejecting the current Supabase session — never bounce back to /admin based on a stale committee cookie.
   if (params.error === "unauthorized_email") {
     return <AdminLoginForm />;
   }

@@ -12,23 +12,20 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { DynamicField } from "@/components/form/DynamicField";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { OptionListsProvider, type OptionRegistry } from "@/components/form/OptionListsContext";
-import { buildZodSchema, buildDefaultValues, buildDevPrefill, type FormConfig, type FormFieldConfig } from "@/lib/form-config";
-import { InputType } from "@/lib/form-enums";
+import { buildZodSchema, buildDefaultValues, buildDevPrefill, type FormConfig, type FormFieldConfig } from "@/lib/forms/form-config";
+import { InputType } from "@/lib/forms/form-enums";
 import {
   APPLICANT_MIN_PASSWORD_LENGTH,
   applicantEmailError,
   applicantPasswordError,
-} from "@/lib/applicant-password";
+} from "@/lib/auth/applicant/applicant-password";
 import { cn } from "@/lib/utils";
 
 type Values = Record<string, unknown>;
 
-// Local-testing only: prefill the account fields so you can register without
-// typing. Stripped from production builds via the NODE_ENV guard.
+// Local-testing only: prefill the account fields so you can register without typing.
 const DEV_PREFILL = process.env.NODE_ENV === "development";
-// Fixed disposable inbox for local testing (open mail at yopmail.com). NOTE:
-// because it's fixed, the first run registers it and later runs will hit
-// "account already exists" — switch to Sign in (password below) after that.
+// Fixed disposable inbox for local testing (open mail at yopmail.com).
 const devEmail = () => "dev-test-pasha@yopmail.com";
 
 function AuthInner({
@@ -66,8 +63,7 @@ function AuthInner({
       : null
   );
 
-  // RHF form for the admin-configured §3 registration fields (step 2). Hooks
-  // run unconditionally; the form is simply unused in login mode / step 1.
+  // RHF form for the admin-configured §3 registration fields (step 2).
   const schema = useMemo(
     () => (hasRegForm ? buildZodSchema(registrationConfig!) : null),
     [hasRegForm, registrationConfig]
@@ -140,8 +136,6 @@ function AuthInner({
   }
 
   // Step 1 → Step 2 (or straight to submit when there's no registration form).
-  // First check the email isn't already registered, so we flag it here instead
-  // of only after the applicant has filled out the whole §3 form.
   async function continueFromAccount(e: React.FormEvent) {
     e.preventDefault();
     if (!validateAccountFields()) return;
@@ -160,17 +154,14 @@ function AuthInner({
         blocked = true;
       }
     } catch {
-      // Network hiccup → fail open and let them continue; final submit still
-      // guards against a duplicate account.
+      // Network hiccup → fail open and let them continue; final submit still guards against a duplicate account.
     } finally {
       setLoading(false);
     }
     if (blocked) return;
 
     if (hasRegForm) {
-      // Clear any errors left over from a previous submit attempt so step 2
-      // renders clean — the user shouldn't see red on inputs they haven't
-      // touched yet.
+      // Clear any errors left over from a previous submit attempt so step 2 renders clean — the user shouldn't see red on inputs they haven't touched yet.
       form.clearErrors();
       setRegStep(2);
     } else {
@@ -185,9 +176,7 @@ function AuthInner({
     try {
       const { res, j } = await postAuth({ action: "register", email, password, profile });
       if (!res.ok) {
-        // 409 = email already registered. Surface it prominently (the email
-        // field lives on step 1, which may not be visible here) and offer a
-        // one-click switch to sign in.
+        // 409 = email already registered.
         if (res.status === 409) {
           setRegStep(1);
           setEmailError(null);
@@ -234,8 +223,7 @@ function AuthInner({
     }
   }
 
-  // Send a password-reset link. The API only mails real applicant accounts and
-  // returns 404 ("No account found with this email.") otherwise.
+  // Send a password-reset link.
   async function sendForgot(e: React.FormEvent) {
     e.preventDefault();
     const eErr = applicantEmailError(email);

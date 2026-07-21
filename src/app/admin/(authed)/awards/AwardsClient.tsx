@@ -10,7 +10,7 @@ import { useConfirm } from "@/components/ui/useConfirm";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
-import type { AwardRow } from "@/lib/awards.server";
+import type { AwardRow } from "@/lib/startups/awards/awards.server";
 
 type Candidate = {
   id: string;
@@ -198,8 +198,7 @@ export function AwardsClient({
       router.refresh();
     });
 
-  // Group awards under their startup (preserving order) so a startup with
-  // several awards shows as one card with all of them listed.
+  // Group awards under their startup (preserving order) so a startup with several awards shows as one card with all of them listed.
   type Group = {
     databank_id: string;
     startup_name: string | null;

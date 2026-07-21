@@ -20,8 +20,8 @@ import {
   statusLabel,
   type EmailTemplateRow,
   type EmailTemplateStatus,
-} from "@/lib/email-templates";
-import { wrapEmail } from "@/lib/email-shell";
+} from "@/lib/email/email-templates";
+import { wrapEmail } from "@/lib/email/email-shell";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { Pagination } from "../_components/Pagination";
@@ -104,11 +104,7 @@ export function EmailTemplatesClient({
   const { isPending, setParams } = useListNav();
   const router = useRouter();
   const [rows, setRows] = useState<EmailTemplateRow[]>(initial);
-  // Reconcile with a freshly re-fetched server listing (e.g. after
-  // router.refresh() following a save/delete). React's recommended
-  // "adjust state when a prop changes" pattern — set during render, not in an
-  // effect — so the new server rows replace the optimistic ones without an
-  // extra render pass.
+  // Reconcile with a freshly re-fetched server listing (e.g.
   const [syncedInitial, setSyncedInitial] = useState(initial);
   if (syncedInitial !== initial) {
     setSyncedInitial(initial);
@@ -180,10 +176,7 @@ export function EmailTemplatesClient({
           setRows((prev) => [template, ...prev]);
           closeForm();
         }
-        // Re-fetch the server-rendered listing so the table reflects the
-        // authoritative DB state (and any server-side side effects) without a
-        // manual refresh. The optimistic setRows above keeps the UI instant;
-        // this reconciles it.
+        // Re-fetch the server-rendered listing so the table reflects the authoritative DB state (and any server-side side effects) without a manual refresh.
         router.refresh();
       },
       status === "active" ? "Template activated" : status === "archived" ? "Template archived" : "Saved as draft"
@@ -213,8 +206,7 @@ export function EmailTemplatesClient({
     () => renderTemplate(form.body, previewValues),
     [form.body, previewValues]
   );
-  // Show the body inside the shared header/footer shell — exactly what recipients
-  // get, since mailer.ts wraps the rendered body with wrapEmail() at send time.
+  // Show the body inside the shared header/footer shell — exactly what recipients get, since mailer.ts wraps the rendered body with wrapEmail() at.
   const previewHtml = useMemo(() => wrapEmail(previewBody), [previewBody]);
 
   const canSave = form.template_id.trim().length > 0 && /^[a-z0-9_]+$/.test(form.template_id.trim());

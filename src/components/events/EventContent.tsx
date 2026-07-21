@@ -6,7 +6,7 @@ import { ArrowUpRight, Calendar, ChevronDown, Clock, MapPin, Users } from "lucid
 import { motion, type Variants } from "framer-motion";
 import { useState } from "react";
 import { cn, initials } from "@/lib/utils";
-import { eventSlug } from "@/lib/slug";
+import { eventSlug } from "@/lib/utils/slug";
 import {
   AGENDA_TAG_STYLES,
   AUDIENCE_BORDER_COLORS,
@@ -14,7 +14,7 @@ import {
   eventTypeLabel,
   formatLabel,
   type EventRow,
-} from "@/lib/events";
+} from "@/lib/events/events";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 

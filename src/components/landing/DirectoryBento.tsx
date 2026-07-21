@@ -5,12 +5,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
-import { safeImageSrc } from "@/lib/safe-url";
+import { safeImageSrc } from "@/lib/validators/safe-url";
 import { RichText } from "@/components/ui/RichText";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
 import { PillButton } from "./shared/PillButton";
 import { useHomeSearch } from "./HomeSearchProvider";
+import { EMPTY_OPTION_INDEX, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -69,11 +70,12 @@ function CardFooterLinks({ dark = false }: { dark?: boolean }) {
   );
 }
 
-function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: string; index: number }) {
+function MiniCard({ startup, tint, index, optionIndex }: { startup: WatchlistStartup; tint: string; index: number; optionIndex: OptionIndex }) {
+  const sectorLabel = resolveOptionLabel(optionIndex, "SECTORS", startup.primary_industry);
   return (
     <article
       data-name={startup.startup_name.toLowerCase()}
-      data-sector={(startup.primary_industry ?? "").toLowerCase()}
+      data-sector={(sectorLabel ?? "").toLowerCase()}
       data-stage={(startup.product_stage ?? "").toLowerCase()}
       style={{ backgroundColor: tint }}
       className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] p-6 transition-all duration-300 hover:-translate-y-1"
@@ -84,9 +86,9 @@ function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: s
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-2">
-        {startup.primary_industry && (
+        {sectorLabel && (
           <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-[1px] text-pasha-ink">
-            {startup.primary_industry}
+            {sectorLabel}
           </span>
         )}
         {startup.city && (
@@ -109,11 +111,12 @@ function MiniCard({ startup, tint, index }: { startup: WatchlistStartup; tint: s
   );
 }
 
-function SpotlightCard({ startup }: { startup: WatchlistStartup }) {
+function SpotlightCard({ startup, optionIndex }: { startup: WatchlistStartup; optionIndex: OptionIndex }) {
+  const sectorLabel = resolveOptionLabel(optionIndex, "SECTORS", startup.primary_industry);
   return (
     <article
       data-name={startup.startup_name.toLowerCase()}
-      data-sector={(startup.primary_industry ?? "").toLowerCase()}
+      data-sector={(sectorLabel ?? "").toLowerCase()}
       data-stage={(startup.product_stage ?? "").toLowerCase()}
       className="group relative flex h-full flex-col overflow-hidden rounded-[28px] bg-pasha-ink"
     >
@@ -147,9 +150,9 @@ function SpotlightCard({ startup }: { startup: WatchlistStartup }) {
 
       <div className="relative flex flex-1 flex-col justify-between p-7 sm:p-8">
         <div className="flex items-center justify-between gap-2">
-          {startup.primary_industry && (
+          {sectorLabel && (
             <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[1px] text-white/70">
-              {startup.primary_industry}
+              {sectorLabel}
             </span>
           )}
           {startup.city && (
@@ -174,21 +177,41 @@ function SpotlightCard({ startup }: { startup: WatchlistStartup }) {
   );
 }
 
-export function DirectoryBento({ startups }: { startups: WatchlistStartup[] }) {
+export function DirectoryBento({
+  startups,
+  optionIndex = EMPTY_OPTION_INDEX,
+}: {
+  startups: WatchlistStartup[];
+  optionIndex?: OptionIndex;
+}) {
   const { keyword, sector, stage } = useHomeSearch();
+
+  // Compares against the resolved label so an id filter matches legacy text rows.
+  const matches = (stored: string | null | undefined, type: string, param: string) => {
+    if (param === "all") return true;
+    const raw = (stored ?? "").trim();
+    if (!raw) return false;
+    if (raw === param) return true;
+    const storedLabel = resolveOptionLabel(optionIndex, type, raw);
+    const paramLabel = resolveOptionLabel(optionIndex, type, param);
+    if (!storedLabel || !paramLabel) return false;
+    return storedLabel.toLowerCase() === paramLabel.toLowerCase();
+  };
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     return startups.filter((s) => {
       if (q) {
-        const haystack = `${s.startup_name} ${s.primary_industry ?? ""} ${s.city ?? ""}`.toLowerCase();
+        const sectorLabel = resolveOptionLabel(optionIndex, "SECTORS", s.primary_industry) ?? "";
+        const haystack = `${s.startup_name} ${sectorLabel} ${s.city ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      if (sector !== "all" && s.primary_industry?.toLowerCase() !== sector.toLowerCase()) return false;
-      if (stage !== "all" && !(s.product_stage ?? "").toLowerCase().includes(stage.toLowerCase())) return false;
+      if (!matches(s.primary_industry, "SECTORS", sector)) return false;
+      if (!matches(s.product_stage, "STAGES", stage)) return false;
       return true;
     });
-  }, [startups, keyword, sector, stage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startups, keyword, sector, stage, optionIndex]);
 
   if (startups.length === 0) return null;
 
@@ -228,11 +251,11 @@ export function DirectoryBento({ startups }: { startups: WatchlistStartup[] }) {
           >
             {spotlight && (
               <div className="lg:row-span-2 lg:col-span-1">
-                <SpotlightCard startup={spotlight} />
+                <SpotlightCard startup={spotlight} optionIndex={optionIndex} />
               </div>
             )}
             {minis.map((startup, i) => (
-              <MiniCard key={startup.id} startup={startup} tint={MINI_TINTS[i % MINI_TINTS.length]} index={i} />
+              <MiniCard key={startup.id} startup={startup} tint={MINI_TINTS[i % MINI_TINTS.length]} index={i} optionIndex={optionIndex} />
             ))}
           </motion.div>
         )}

@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, CheckCircle2 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getDatabankDynamicFields } from "@/lib/form-config.server";
-import { getAwardTitlesForDatabank } from "@/lib/awards.server";
-import { InputType } from "@/lib/form-enums";
-import { sanitizeHtml } from "@/lib/sanitize-html";
+import { getDatabankDynamicFields } from "@/lib/forms/form-config.server";
+import { getAwardTitlesForDatabank } from "@/lib/startups/awards/awards.server";
+import { InputType } from "@/lib/forms/form-enums";
+import { sanitizeHtml } from "@/lib/validators/sanitize-html";
 import { formatNumber, formatCurrency } from "@/lib/utils";
-import type { DynamicFieldDef } from "@/lib/form-config";
+import type { DynamicFieldDef } from "@/lib/forms/form-config";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -70,8 +72,7 @@ function ReadField({ label, children, full }: { label: string; children: React.R
 // Render a static column value, returning null when empty (so the field hides).
 function colNode(row: Row, key: string, kind: "text" | "number" | "currency" | "bool" | "html" | "url" = "text") {
   const v = row[key];
-  // A null/undefined value hides the field entirely — for booleans too. A real
-  // false still renders ("No"), only an unset value is dropped.
+  // A null/undefined value hides the field entirely — for booleans too.
   if (kind === "bool") {
     if (v === null || v === undefined) return null;
     return v ? "Yes" : "No";
@@ -100,8 +101,7 @@ function colNode(row: Row, key: string, kind: "text" | "number" | "currency" | "
   }
 }
 
-// Render a dynamic answers-bag value by its input type — only the SELECTED
-// value(s), never the unselected options/checkboxes.
+// Render a dynamic answers-bag value by its input type — only the SELECTED value(s), never the unselected options/checkboxes.
 function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | null {
   if (isEmpty(value) && def.input_type !== InputType.YES_NO) return null;
   const t = def.input_type;
@@ -149,7 +149,15 @@ function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | nu
   return str(value);
 }
 
-// Static field groups mirroring the edit page layout. [key, label, kind].
+// Columns that store an options/countries id and must be resolved to a label.
+const CHOICE_COLUMNS: [string, string][] = [
+  ["city", "HQ_CITIES"],
+  ["hq_country", "COUNTRIES"],
+  ["primary_industry", "SECTORS"],
+  ["product_stage", "STAGES"],
+];
+
+// Static field groups mirroring the edit page layout.
 const STATIC_GROUPS: { title: string; fields: [string, string, ("text" | "number" | "currency" | "bool" | "html" | "url")?][] }[] = [
   {
     title: "Branding & identity",
@@ -232,10 +240,15 @@ export default async function ViewDatabankPage({ params }: { params: Promise<{ i
   const [row, dynamicFields] = await Promise.all([load(id), getDatabankDynamicFields()]);
   if (!row) notFound();
 
-  // Awards are curated in Admin → Award Winners (startup_awards). Show those in
-  // place of the legacy databank.awards text; fall back to the text if none.
+  // Awards are curated in Admin → Award Winners (startup_awards).
   const curatedAwards = await getAwardTitlesForDatabank(id);
   if (curatedAwards.length > 0) row.awards = curatedAwards.join("\n");
+
+  // Choice columns may hold an option id — swap in the label before any field renders.
+  const optionIndex = await getOptionIndex();
+  for (const [key, type] of CHOICE_COLUMNS) {
+    row[key] = resolveOptionLabel(optionIndex, type, typeof row[key] === "string" ? (row[key] as string) : null);
+  }
 
   const answers = (row.answers ?? {}) as Row;
   const keyPersons = Array.isArray(row.key_persons) ? (row.key_persons as Row[]) : [];

@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getApplicantUser } from "@/lib/applicant-auth";
+import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 
-/**
- * Reopen the applicant's draft for editing after a rejection so they can update
- * details and resubmit. Only valid when the latest submission's status is
- * "rejected" — submitted/approved/needs_update use other flows.
- */
+// Reopen the applicant's draft for editing after a rejection so they can update
 export async function POST() {
   const user = await getApplicantUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });

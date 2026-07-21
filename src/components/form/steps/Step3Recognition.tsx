@@ -5,15 +5,9 @@ import { Field } from "../Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { CheckboxGroup, YesNo } from "@/components/ui/RadioCard";
 import { ENGAGEMENT_INTERESTS } from "@/lib/options";
+import { useOptionList } from "@/components/form/OptionListsContext";
 
-/**
- * Step 3 — Recognition & Community
- *
- * Final step. Consolidates IP, awards/certs, engagement interests, community
- * opt-ins, and closing notes. Nothing here is required at submit-time — the
- * required-field bar lives entirely on Step 1 (startup) and Step 2 (primary
- * founder identity).
- */
+// Step 3 — Recognition & Community
 export function Step3Recognition({ form }: StepProps) {
   const {
     register,
@@ -22,6 +16,10 @@ export function Step3Recognition({ form }: StepProps) {
     formState: { errors },
   } = form;
   const v = watch();
+  // Single source of truth: admin-managed list, code constant as fallback.
+  const engagementInterests = useOptionList("ENGAGEMENT_INTERESTS", ENGAGEMENT_INTERESTS).map(
+    (o) => o.value
+  );
 
   return (
     <div className="space-y-10">
@@ -82,7 +80,7 @@ export function Step3Recognition({ form }: StepProps) {
           onChange={(arr) =>
             setValue("engagement_interests", arr, { shouldValidate: true })
           }
-          options={ENGAGEMENT_INTERESTS}
+          options={engagementInterests}
           aria-label="Engagement interests"
         />
       </Section>

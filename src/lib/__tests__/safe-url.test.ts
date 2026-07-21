@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { safeHref, safeImageSrc } from "../safe-url";
-import { submissionSchema } from "../schema";
+import { safeHref, safeImageSrc } from "../validators/safe-url";
+import { submissionSchema } from "../forms/schema";
 
 describe("safeHref - XSS prevention", () => {
   const cases: { input: string; expectSafe: boolean; note: string }[] = [
@@ -61,7 +61,7 @@ describe("submissionSchema - URL fields reject unsafe schemes", () => {
     description: "x".repeat(60),
     hq_city: "Lahore",
     primary_sector: "Artificial Intelligence (AI)",
-    stage: "growth",
+    stage: "Growth (Series B,C)",
     founders: [
       {
         name: "Hamad Pervaiz",
@@ -73,8 +73,7 @@ describe("submissionSchema - URL fields reject unsafe schemes", () => {
     ],
   };
 
-  // Top-level URL fields. founder LinkedIn / photo URL moved into the
-  // founders[] array — covered in schema.test.ts instead.
+  // Top-level URL fields.
   const URL_FIELDS = [
     "website",
     "logo_url",
@@ -87,8 +86,7 @@ describe("submissionSchema - URL fields reject unsafe schemes", () => {
     "company_youtube",
   ];
 
-  // website is now required at submit-time, so the "empty → undefined"
-  // expectation only applies to genuinely-optional URL fields.
+  // website is now required at submit-time, so the "empty → undefined" expectation only applies to genuinely-optional URL fields.
   const OPTIONAL_URL_FIELDS = URL_FIELDS.filter((f) => f !== "website");
 
   for (const field of URL_FIELDS) {

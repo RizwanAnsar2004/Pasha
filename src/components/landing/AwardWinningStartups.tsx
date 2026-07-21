@@ -30,8 +30,7 @@ function awardLines(awards?: string | null): string[] {
 }
 
 export function AwardWinningStartups({ startups }: { startups: AwardWinningStartup[] }) {
-  // Awards are admin-curated (Admin → Award Winners). Only ever show real
-  // entries — no demo padding — so the homepage reflects exactly what's set.
+  // Awards are admin-curated (Admin → Award Winners).
   const winners = startups
     .map((s) => ({ ...s, titles: awardLines(s.awards) }))
     .filter((s) => s.titles.length > 0)

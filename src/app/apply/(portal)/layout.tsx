@@ -1,17 +1,13 @@
 import { redirect } from "next/navigation";
 import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import { PashaLogo } from "@/components/PashaLogo";
-import { getApplicantContext } from "@/lib/applicant-auth";
+import { getApplicantContext } from "@/lib/auth/applicant/applicant-auth";
 import { ApplicantUserMenu } from "./ApplicantUserMenu";
 
 // Per-applicant draft state — always render fresh.
 export const dynamic = "force-dynamic";
 
-/**
- * Applicant portal shell — mirrors the admin `(authed)` layout. Gates the whole
- * section: anonymous visitors go to sign-in; admin sessions are bounced (they
- * belong to the committee portal, never the apply flow).
- */
+// Applicant portal shell — mirrors the admin `(authed)` layout. Gates the whole
 export default async function ApplicantPortalLayout({
   children,
 }: {

@@ -1,9 +1,4 @@
-// Admin CRUD for the form builder (form_sections / form_fields). Lets admins
-// define the public apply form: sections (steps), fields, input types,
-// validations, and repeatable subsections.
-//
-// Auth: authenticated Supabase session + email in the admin allowlist.
-// Every mutation writes an audit_log entry.
+// Admin CRUD for the form builder (form_sections / form_fields).
 
 import { NextResponse } from "next/server";
 import {
@@ -11,7 +6,7 @@ import {
   createServiceClient,
 } from "@/lib/supabase/server";
 import { z } from "zod";
-import { isAdminEmail } from "@/lib/admin-allowlist";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 
 const SECTION_COLS = new Set([
   "key",

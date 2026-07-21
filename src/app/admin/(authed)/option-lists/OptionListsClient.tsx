@@ -58,8 +58,7 @@ export function OptionListsClient({
   pageSize: number;
 }) {
   const router = useRouter();
-  // Render the server-provided page slice directly. Mutations re-run the server
-  // component via router.refresh(), which re-slices the current page.
+  // Render the server-provided page slice directly.
   const lists = initial;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -87,8 +86,7 @@ export function OptionListsClient({
   const saveList = (meta: OptionListMeta, text: string) =>
     run(async () => {
       const items = textToItems(text);
-      // A code list with no DB row yet → create an override (POST); otherwise
-      // update the existing DB row (PATCH).
+      // A code list with no DB row yet → create an override (POST); otherwise update the existing DB row (PATCH).
       const method = meta.source === "code" ? "POST" : "PATCH";
       await api(method, { name: meta.name, label: meta.label, items });
       await refresh();

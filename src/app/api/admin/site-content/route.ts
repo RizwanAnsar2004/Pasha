@@ -4,13 +4,13 @@ import {
   createClient as createSessionClient,
   createServiceClient,
 } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import {
   DEFAULT_SITE_CONTENT,
   SITE_CONTENT_SLUGS,
   isSiteContentSlug,
   type SiteContentSlug,
-} from "@/lib/site-content";
+} from "@/lib/content/site-content";
 
 const putSchema = z.object({
   slug: z.enum(SITE_CONTENT_SLUGS),

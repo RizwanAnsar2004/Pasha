@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PashaLogo } from "./PashaLogo";
 import { PillButton } from "./landing/shared/PillButton";
 import { cn } from "@/lib/utils";
+import { PASHA_FACEBOOK } from "@/lib/content/community";
+import { FacebookGlyph } from "./community/FacebookGlyph";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -36,7 +38,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
         <div className="site-container">
           <div className="flex items-center justify-between h-8 text-xs"  style={{ fontSize: "0.65rem" }}>
             <span className="font-mono ">
-              <strong className="text-white">P@SHA Startup Directory</strong>  · Discover ambitious startups across Pakistan
+              <strong className="text-white">P@SHA Startup Hub</strong>  · Discover ambitious startups across Pakistan
             </span>
             <Link href="/apply" className="inline-flex items-center gap-1.5 text-white hover:text-pasha-red-light transition-colors">
               Applications are open
@@ -83,6 +85,17 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
               </nav>
 
               <div className="flex items-center gap-3">
+                {/* Community link — icon-only so it stays out of the way of the */}
+                <a
+                  href={PASHA_FACEBOOK}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  title="Join the P@SHA community on Facebook"
+                  aria-label="Join the P@SHA community on Facebook"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-pasha-ink/10 bg-white text-pasha-ink/60 shadow-sm transition-all duration-200 hover:scale-105 hover:border-pasha-red/30 hover:text-pasha-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red"
+                >
+                  <FacebookGlyph className="h-4 w-4" />
+                </a>
                 <PillButton
                   href="/directory"
                   variant="outline"
@@ -130,6 +143,16 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
                     {link.label}
                   </Link>
                 ))}
+                <a
+                  href={PASHA_FACEBOOK}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex items-center gap-2.5 text-lg font-semibold text-pasha-ink"
+                >
+                  <FacebookGlyph className="h-4 w-4 text-pasha-red" />
+                  Community
+                </a>
                 <PillButton href="/apply" variant="solid" dot={false} className="w-fit py-3 px-6 text-base font-semibold">
                   List your startup
                 </PillButton>

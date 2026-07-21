@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ResetPasswordCard } from "@/components/auth/ResetPasswordCard";
-import { APPLICANT_MIN_PASSWORD_LENGTH } from "@/lib/applicant-password";
+import { APPLICANT_MIN_PASSWORD_LENGTH } from "@/lib/auth/applicant/applicant-password";
 
 export const metadata = { title: "Reset password" };
 

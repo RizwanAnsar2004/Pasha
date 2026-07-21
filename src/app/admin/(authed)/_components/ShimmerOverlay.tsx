@@ -1,9 +1,6 @@
 "use client";
 
 // Subtle "loading" affordance for admin lists during a server transition.
-// Renders a thin animated progress bar at the top of the container plus a
-// very light tint, both fading in/out so changes don't feel like a teleport.
-// The container must be `position: relative`.
 export function ShimmerOverlay({ active }: { active: boolean }) {
   return (
     <div

@@ -70,14 +70,7 @@ export function VerifiedBadge({
             </span>
 
             {/* Uncomment if you want the description */}
-            {/*
-            <span className="mt-2 block max-w-xs font-sans text-[13px] leading-[1.55] tracking-normal text-pasha-ink/85">
-              P@SHA has reviewed this profile in good faith. The badge confirms
-              that basic identifying details have been sighted — it is not a
-              warranty of the company's claims, financials, performance, or
-              compliance, and should not be read as due-diligence or endorsement.
-            </span>
-            */}
+            {/* <span className="mt-2 block max-w-xs font-sans text-[13px] leading-[1.55] tracking-normal text-pasha-ink/85"> */}
           </div>,
           document.body
         )}

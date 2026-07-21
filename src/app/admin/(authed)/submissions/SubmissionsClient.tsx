@@ -7,18 +7,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, FileText, BadgeCheck } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { htmlToText } from "@/lib/sanitize-html";
+import { htmlToText } from "@/lib/validators/sanitize-html";
 import { RichText } from "@/components/ui/RichText";
 import { createClient } from "@/lib/supabase/client";
-import { safeHref, safeImageSrc } from "@/lib/safe-url";
-import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/workflow";
+import { safeHref, safeImageSrc } from "@/lib/validators/safe-url";
+import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/startups/vetting/workflow";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 
 type FieldLabelMap = Record<string, string>;
 
-/** `submissions.answers` bag — new dynamic-form fields land here. */
+// `submissions.answers` bag — new dynamic-form fields land here.
 function submissionAnswers(row: Record<string, unknown>): Record<string, unknown> {
   let raw = row.answers;
   if (typeof raw === "string") {
@@ -38,7 +38,7 @@ function answerOf(row: Record<string, unknown>, key: string): unknown {
   return submissionAnswers(row)[key];
 }
 
-/** Yes when `pasha_membership_number` is present (new form); legacy boolean fallback. */
+// Yes when `pasha_membership_number` is present (new form); legacy boolean fallback.
 function renderPashaMember(row: Record<string, unknown>): React.ReactNode {
   const num = answerOf(row, "pasha_membership_number");
   if (typeof num === "string" && num.trim()) return `Yes · ${num.trim()}`;
@@ -47,7 +47,7 @@ function renderPashaMember(row: Record<string, unknown>): React.ReactNode {
   return "—";
 }
 
-/** New form: `answers.total_funding_raised`; legacy: raised_funding + funding_stage. */
+// New form: `answers.total_funding_raised`; legacy: raised_funding + funding_stage.
 function renderRaisedFunding(row: Record<string, unknown>): React.ReactNode {
   const raised = answerOf(row, "total_funding_raised");
   if (raised != null && raised !== "") return String(raised);
@@ -64,7 +64,7 @@ function renderAnswerField(row: Record<string, unknown>, key: string): React.Rea
   return renderAnswerValue(val);
 }
 
-/** KV row for a form field — omitted when no API label or empty value. */
+// KV row for a form field — omitted when no API label or empty value.
 function FieldKV({
   fieldKey,
   labels,
@@ -79,7 +79,7 @@ function FieldKV({
   return <KV k={k} v={v} />;
 }
 
-/** KV row for an answers field — omitted when no API label or empty. */
+// KV row for an answers field — omitted when no API label or empty.
 function AnswerKV({
   row,
   fieldKey,
@@ -101,7 +101,7 @@ function answerUrl(row: Record<string, unknown>, key: string): string | null {
   return typeof val === "string" && val.trim() ? val.trim() : null;
 }
 
-/** Answer keys already rendered in structured sections — hide from Additional fields. */
+// Answer keys already rendered in structured sections — hide from Additional fields.
 const DRAWER_ANSWER_KEYS = new Set([
   "total_funding_raised",
   "funding_status",
@@ -174,8 +174,7 @@ export function SubmissionsClient({
   }, [q, filters.q, setParams]);
 
   const setFilter = (next: typeof filter) => setParams({ status: next === "all" ? null : next, page: 1 });
-  // Initialise from ?id= query param on mount so deep-linked submissions
-  // open immediately without a cascading setState inside an effect.
+  // Initialise from ?id= query param on mount so deep-linked submissions open immediately without a cascading setState inside an effect.
   const [openId, setOpenId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("id");
@@ -404,8 +403,7 @@ function TierBadge({ tier, score }: { tier: string; score: number }) {
   );
 }
 
-// Map a raw submissions.status to a workflow stage for the table/badge
-// (verified/featured need databank info, so the table tops out at "approved").
+// Map a raw submissions.status to a workflow stage for the table/badge (verified/featured need databank info, so the table tops out at "approved").
 function rowStage(status: string | null): WorkflowStage {
   return deriveStage({ submitted: true, status });
 }
@@ -477,9 +475,7 @@ function SubmissionDrawer({
   const [acting, setActing] = useState<null | "approve" | "reject" | "needs_update" | "verify">(null);
   const [notes, setNotes] = useState("");
   const [verified, setVerified] = useState(false);
-  // The matching databank row's id, if this submission has been approved
-  // and materialised into the public directory. Powers the "Edit listing"
-  // link in the drawer footer.
+  // The matching databank row's id, if this submission has been approved and materialised into the public directory.
   const [databankId, setDatabankId] = useState<string | null>(null);
   const [featuredStatus, setFeaturedStatus] = useState<FeaturedStatus | null>(null);
   const [fieldLabels, setFieldLabels] = useState<FieldLabelMap>({});
@@ -503,9 +499,7 @@ function SubmissionDrawer({
     setFeaturedStatus(null);
     setFieldLabels({});
     setVerified(false);
-    // Start empty: the box composes a *new* note. The note already sent to the
-    // applicant is shown read-only in the "Sent to applicant" section instead,
-    // so re-opening a reviewed submission can't silently resend the old text.
+    // Start empty: the box composes a *new* note.
     setNotes("");
 
     (async () => {
@@ -537,9 +531,7 @@ function SubmissionDrawer({
       });
       if (res.ok) {
         onUpdated({ id, status: newStatus });
-        // Approve / Reject / Request-update all resolve the review → close the
-        // drawer, show a toast, and the listing reflects the new status (the
-        // row was updated above + realtime).
+        // Approve / Reject / Request-update all resolve the review → close the drawer, show a toast, and the listing reflects the new status (the row was.
         const text =
           newStatus === "approved"
             ? "Submission approved"
@@ -581,8 +573,7 @@ function SubmissionDrawer({
   const status = String(row?.status ?? "pending");
   const isApproved = status === "approved";
 
-  // The note already emailed to the applicant. Rendered read-only at the end of
-  // the drawer rather than back into the compose box above.
+  // The note already emailed to the applicant.
   const sentNote =
     typeof row?.reviewer_notes === "string" ? row.reviewer_notes.trim() : "";
   const reviewedAt = row?.reviewed_at ? new Date(String(row.reviewed_at)) : null;
@@ -600,8 +591,7 @@ function SubmissionDrawer({
         onClick={onClose}
         className="fixed inset-0 z-[100] bg-pasha-ink/40 backdrop-blur-sm"
       />
-      {/* Centering layer: pointer-events-none so clicks on the backdrop around
-          the modal fall through to the overlay above and close it. */}
+      {/* Centering layer: pointer-events-none so clicks on the backdrop around */}
       <div className="fixed inset-0 z-[110] grid place-items-center p-4 pointer-events-none">
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -932,8 +922,7 @@ function SubmissionDrawer({
         )}
         <div className="shrink-0 border-t border-pasha-line bg-pasha-stone/30 px-4 sm:px-8 py-4 space-y-3">
           {!row ? (
-            // Match the loaded footer's height so the panel doesn't resize
-            // underneath the reviewer when the fetch resolves.
+            // Match the loaded footer's height so the panel doesn't resize underneath the reviewer when the fetch resolves.
             <>
               <div className="skeleton h-[62px] w-full rounded-lg" />
               <div className="flex flex-wrap items-center gap-2">
@@ -1020,11 +1009,7 @@ function SubmissionDrawer({
   return createPortal(drawer, document.body);
 }
 
-/**
- * Loading state for the submission drawer. Mirrors the real layout — logo,
- * title, badge row, then the stacked sections — so the panel opens at close to
- * its final size instead of collapsing to a header-height box around a spinner.
- */
+// Loading state for the submission drawer. Mirrors the real layout — logo,
 function DrawerSkeleton() {
   return (
     <div
@@ -1052,13 +1037,13 @@ function DrawerSkeleton() {
   );
 }
 
-/** One placeholder section: a title bar, then either text lines or KV pairs. */
+// One placeholder section: a title bar, then either text lines or KV pairs.
 function SkeletonSection({
   lines,
   cols = 1,
   rows = 2,
 }: {
-  /** Render this many full-width text lines instead of KV pairs. */
+  // Render this many full-width text lines instead of KV pairs.
   lines?: number;
   cols?: 1 | 2;
   rows?: number;
@@ -1096,8 +1081,7 @@ function Section({
 }: {
   title: string;
   children: React.ReactNode;
-  /** 2 lays the KV rows out in a responsive two-column grid (empty fields
-   *  return null, so the grid simply reflows with no gaps). */
+  // 2 lays the KV rows out in a responsive two-column grid (empty fields
   cols?: 1 | 2;
 }) {
   return (
@@ -1272,7 +1256,7 @@ function renderAnswerValue(val: unknown): React.ReactNode {
   return String(val);
 }
 
-/** Stringified URL → KV row with link, falling back to —. */
+// Stringified URL → KV row with link, falling back to —.
 function SocialKV({ k, v }: { k: string; v: unknown }) {
   if (!v || typeof v !== "string") return <KV k={k} v="—" />;
   return (
@@ -1292,19 +1276,7 @@ function SocialKV({ k, v }: { k: string; v: unknown }) {
   );
 }
 
-/**
- * Founder section for the admin drawer.
- *
- * Modern v2/v3 submissions store founders as a JSONB array on the row. Each
- * entry has name, role, email, mobile, linkedin, x, instagram, facebook,
- * custom_links, photo_url, gender, is_primary. We render one card per
- * founder with the photo, identity, contact info, and every social link.
- *
- * Older v1 submissions never wrote the founders array — only the flat
- * founder_name / founder_email / founder_mobile / founder_linkedin columns.
- * For those rows we fall back to a single legacy card so admins can still
- * see the contact.
- */
+// Founder section for the admin drawer.
 function FoundersSection({ row }: { row: Record<string, unknown> }) {
   const list = Array.isArray(row.founders) ? (row.founders as Record<string, unknown>[]) : [];
   const founderBio = answerOf(row, "founder_bio");

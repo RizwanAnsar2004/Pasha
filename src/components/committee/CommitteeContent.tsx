@@ -24,7 +24,7 @@ import {
   committeeActivityTypeLabel,
   type CommitteeActivityRow,
   type CommitteeMemberRow,
-} from "@/lib/committee";
+} from "@/lib/committee/committee";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -144,22 +144,17 @@ export function CommitteeContent({
   members: CommitteeMemberRow[];
   activities: CommitteeActivityRow[];
 }) {
-  // Prefer live committee-management data; fall back to the static roster only
-  // when no members have been added yet (e.g. fresh / empty database).
+  // Prefer live committee-management data; fall back to the static roster only when no members have been added yet (e.g.
   const source = members.length > 0 ? members : STATIC_COMMITTEE;
-  // Public page shows only Chairmen and Committee Members. 'admin' is an
-  // internal portal role and never appears on /committee.
+  // Public page shows only Chairmen and Committee Members.
   const roster = source.filter((m) => m.type === "chairman" || m.type === "member");
-  // Chair(s) are explicit (member type). Multiple chairmen are allowed; the
-  // first is featured in the top tier, the rest fall into the grid.
+  // Chair(s) are explicit (member type).
   const chairs = roster.filter((m) => m.type === "chairman");
   const committeeMembers = roster.filter((m) => m.type !== "chairman");
 
   return (
     <>
-      {/* ───────────────────────────────────────────────────────
-          HERO — dark, matches Hero.tsx / DirectoryHero.tsx
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
         <div
           aria-hidden
@@ -201,9 +196,7 @@ export function CommitteeContent({
         </div>
       </section>
 
-      {/* ───────────────────────────────────────────────────────
-          MISSION & OBJECTIVES
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
         <div className="site-container">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-16">
@@ -259,9 +252,7 @@ export function CommitteeContent({
         </div>
       </section>
 
-      {/* ───────────────────────────────────────────────────────
-          MEET THE COMMITTEE — ORGANOGRAM
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28 overflow-hidden">
         <div
           aria-hidden
@@ -390,9 +381,7 @@ export function CommitteeContent({
         </div>
       </section>
 
-      {/* ───────────────────────────────────────────────────────
-          ACTIVITY TIMELINE
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       {activities.length > 0 ? (
         <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
           <div className="site-container">
@@ -456,9 +445,7 @@ export function CommitteeContent({
         </section>
       ) : null}
 
-      {/* ───────────────────────────────────────────────────────
-          CTA
-          ─────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────── */}
       <section className="bg-pasha-stone py-14 sm:py-20">
         <div className="site-container">
           <Reveal className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-pasha-ink to-[#2e2a27] px-7 py-10 sm:px-12 sm:py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">

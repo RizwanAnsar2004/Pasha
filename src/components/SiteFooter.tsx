@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PashaLogo } from "./PashaLogo";
+import { PASHA_FACEBOOK } from "@/lib/content/community";
 
 export function SiteFooter() {
   return (
@@ -10,7 +11,7 @@ export function SiteFooter() {
             <PashaLogo width={130} href="/" className="brightness-0 invert" />
             <p className="mt-5 text-sm leading-relaxed text-white/50 max-w-md">
               The Pakistan Software Houses Association (P@SHA) maintains the P@SHA Startup
-              Directory — a curated network of founders, mentors, and investors shaping
+              Hub — a curated network of founders, mentors, and investors shaping
               Pakistan&apos;s product economy.
             </p>
           </div>
@@ -29,6 +30,7 @@ export function SiteFooter() {
               <li><Link href="/apply" className="hover:text-white transition-colors">List a company</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">Partner with us</Link></li>
               <li><a href="https://www.linkedin.com/company/pashapk/" target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">LinkedIn</a></li>
+              <li><a href={PASHA_FACEBOOK} target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">Facebook community</a></li>
               <li><a href="mailto:hello@pasha.org.pk" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>

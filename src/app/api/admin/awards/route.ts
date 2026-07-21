@@ -4,9 +4,9 @@ import {
   createClient as createSessionClient,
   createServiceClient,
 } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { getAwardsForAdmin } from "@/lib/awards.server";
-import { parsePagination } from "@/lib/pagination";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { getAwardsForAdmin } from "@/lib/startups/awards/awards.server";
+import { parsePagination } from "@/lib/utils/pagination";
 
 const addSchema = z.object({
   databank_id: z.string().uuid(),
@@ -62,8 +62,6 @@ async function safeJson(req: Request): Promise<unknown> {
 }
 
 // GET ?q= → { candidates } startup search (modal picker).
-// GET (list) → { awards, total, page, pageSize } with server-side search
-//   (listQ), source filter, and pagination.
 export async function GET(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
@@ -113,8 +111,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Startup not found" }, { status: 404 });
   }
 
-  // Strip-and-retry so an award can still be added before the `description`
-  // column has been migrated in (the description is simply dropped in that case).
+  // Strip-and-retry so an award can still be added before the `description` column has been migrated in (the description is simply dropped in that case).
   const insertRow: Record<string, unknown> = { databank_id, title, year, description };
   let { data, error: dbErr } = await supabase
     .from("startup_awards")

@@ -1,15 +1,10 @@
-// Admin CRUD for reusable option lists (option_lists table). Lets admins create
-// new choice lists and override the code-defined built-ins (a DB row whose name
-// matches a code list wins at render time). Fields reference a list by name via
-// options_source.
-//
-// Auth: authenticated Supabase session + email in the admin allowlist.
+// Admin CRUD for reusable option lists (option_lists table).
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { getOptionListsForAdmin } from "@/lib/option-lists.server";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { getOptionListsForAdmin } from "@/lib/options/registry.server";
 
 async function requireAdmin() {
   const sessionClient = await createSessionClient();

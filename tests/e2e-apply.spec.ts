@@ -1,12 +1,4 @@
-/**
- * End-to-end browser tests for the v2 (3-step) apply form.
- * Run: pnpm playwright test
- * Baseline URL: https://pasha-startup-platform.vercel.app
- *
- * The form was rebuilt as Startup → Founders → Recognition. These tests
- * walk the new layout and assert the regressions we care about most:
- * happy path, required-field gating on step 1, no auto-submit, autosave.
- */
+// End-to-end browser tests for the v2 (3-step) apply form.
 import { test, expect } from "@playwright/test";
 
 const DESCRIPTION_50_PLUS =

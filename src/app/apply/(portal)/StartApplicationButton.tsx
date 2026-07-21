@@ -3,10 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { usePortalTabs } from "./PortalTabs";
 
-/**
- * The overview's primary "Start / Continue / Edit application" CTA. Switches to
- * the form tab via the PortalTabs context so it's instant (no navigation).
- */
+// The overview's primary "Start / Continue / Edit application" CTA. Switches to
 export function StartApplicationButton({ label }: { label: string }) {
   const tabs = usePortalTabs();
   return (

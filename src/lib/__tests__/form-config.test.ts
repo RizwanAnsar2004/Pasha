@@ -1,5 +1,4 @@
 // Unit tests for the runtime Zod builder that powers the dynamic form.
-// Run: node --import tsx --test src/lib/__tests__/form-config.test.ts
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -9,8 +8,8 @@ import {
   stepFieldKeys,
   type FormConfig,
   type FormFieldConfig,
-} from "../form-config";
-import { InputType } from "../form-enums";
+} from "../forms/form-config";
+import { InputType } from "../forms/form-enums";
 
 let keyCounter = 0;
 function field(partial: Partial<FormFieldConfig> & { field_key: string; input_type: number }): FormFieldConfig {

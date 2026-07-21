@@ -1,14 +1,6 @@
-import { safeHref } from "@/lib/safe-url";
+import { safeHref } from "@/lib/validators/safe-url";
 
-/**
- * Small icon-link row for a startup's social presence. Renders inline in
- * the detail-page hero next to the website link. Skips any URL that fails
- * the safe-href check (defense in depth).
- *
- * Pass only the URLs we have — undefined / "NULL" / empty strings render
- * nothing. Brand glyphs are inline SVGs because lucide-react 1.x dropped
- * brand icons; keeping them inline avoids pulling in another icon dep.
- */
+// Small icon-link row for a startup's social presence. Renders inline in
 export function CompanySocials({
   linkedin,
   x,
@@ -57,7 +49,7 @@ function clean(v: string | null | undefined): string | null {
   return s;
 }
 
-// ---- Inline brand glyphs (16px). Single-color so they inherit currentColor.
+// ---- Inline brand glyphs (16px).
 
 function LinkedInIcon() {
   return (

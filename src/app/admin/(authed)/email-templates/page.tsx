@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { parsePagination } from "@/lib/pagination";
-import { EMAIL_TEMPLATE_COLS, type EmailTemplateRow } from "@/lib/email-templates";
+import { parsePagination } from "@/lib/utils/pagination";
+import { EMAIL_TEMPLATE_COLS, type EmailTemplateRow } from "@/lib/email/email-templates";
 import { EmailTemplatesClient } from "./EmailTemplatesClient";
 
 export const dynamic = "force-dynamic";

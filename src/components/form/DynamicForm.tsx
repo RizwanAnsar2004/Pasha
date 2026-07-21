@@ -15,10 +15,10 @@ import {
   sectionsForStep,
   stepFieldKeys,
   type FormConfig,
-} from "@/lib/form-config";
+} from "@/lib/forms/form-config";
 import { DynamicField } from "./DynamicField";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
-import { funnel } from "@/lib/analytics";
+import { funnel } from "@/lib/utils/analytics";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -33,13 +33,13 @@ export function DynamicForm({
   optionLists,
 }: {
   config: FormConfig;
-  /** Server-saved draft values to resume from (applicant flow). */
+  // Server-saved draft values to resume from (applicant flow).
   initialValues?: Values;
-  /** Step index the applicant left off on. */
+  // Step index the applicant left off on.
   initialStep?: number;
-  /** Persist progress to the server draft API instead of localStorage. */
+  // Persist progress to the server draft API instead of localStorage.
   serverPersist?: boolean;
-  /** Resolved option-list registry (code + admin-managed DB lists). */
+  // Resolved option-list registry (code + admin-managed DB lists).
   optionLists?: OptionRegistry;
 }) {
   const router = useRouter();
@@ -63,8 +63,7 @@ export function DynamicForm({
     const max = Math.max(0, steps.length - 1);
     return Math.min(Math.max(0, initialStep), max);
   }); // index into `steps`
-  // Furthest step the user has reached, so the stepper can jump forward to any
-  // already-visited step (not just strictly-earlier ones).
+  // Furthest step the user has reached, so the stepper can jump forward to any already-visited step (not just strictly-earlier ones).
   const [maxStepReached, setMaxStepReached] = useState(stepIdx);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +73,7 @@ export function DynamicForm({
   const stepRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const trackRef = useRef<HTMLDivElement>(null);
   const [progressWidth, setProgressWidth] = useState(0);
-  // Serialized snapshot of the last payload we persisted — lets us skip saves
-  // when nothing actually changed (form.watch() returns a fresh object every
-  // render, and setSaveState re-renders, so a naive effect would loop forever).
+  // Serialized snapshot of the last payload we persisted — lets us skip saves when nothing actually changed (form.watch() returns a fresh object every.
   const lastSavedRef = useRef<string | null>(null);
 
   const totalSteps = steps.length;
@@ -96,12 +93,7 @@ export function DynamicForm({
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
 
-  // Submission is gated on the form's own schema — the same rules (and the same
-  // admin `required` flags) that power per-step Continue validation. Optional
-  // fields (no admin `required`) never block submit, so the * markers, Continue,
-  // and this gate all agree. The §12 completion ladder stays a dashboard-only
-  // progress indicator. We re-validate live so the button enables the moment the
-  // last required field is filled.
+  // Submission is gated on the form's own schema — the same rules (and the same admin `required` flags) that power per-step Continue validation.
   const submitCheck = useMemo(() => schema.safeParse(values), [schema, values]);
   const canSubmit = submitCheck.success;
   const missingRequired = useMemo(() => {
@@ -123,8 +115,7 @@ export function DynamicForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Hydrate draft once (localStorage only). In server-persist mode the draft is
-  // seeded into `defaults` from the DB, so there's nothing to restore here.
+  // Hydrate draft once (localStorage only).
   useEffect(() => {
     if (serverPersist) return;
     if (draftRestoredOnce.current) return;
@@ -141,22 +132,18 @@ export function DynamicForm({
       form.reset({ ...form.getValues(), ...draft.values });
       setDraftRestored(true);
     } catch {
-      /* corrupted draft — ignore */
+      // corrupted draft — ignore
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced autosave. Server-persist mode (applicant flow) writes to the
-  // draft API so progress resumes across devices; otherwise localStorage. We
-  // diff a serialized snapshot so the network is only hit on a *real* change —
-  // not on every render (form.watch() + our setSaveState would otherwise loop).
+  // Debounced autosave.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     if (serverPersist) {
       const payload = JSON.stringify({ data: values, current_step: stepIdx });
-      // First run: the seeded values already match the server draft, so record
-      // the baseline without a redundant write.
+      // First run: the seeded values already match the server draft, so record the baseline without a redundant write.
       if (lastSavedRef.current === null) {
         lastSavedRef.current = payload;
         return;
@@ -164,8 +151,7 @@ export function DynamicForm({
       if (payload === lastSavedRef.current) return; // nothing actually changed
 
       const handle = window.setTimeout(() => {
-        // Mark saved up front so the re-render from setSaveState doesn't re-fire
-        // (and so a failing endpoint isn't hammered on every render).
+        // Mark saved up front so the re-render from setSaveState doesn't re-fire (and so a failing endpoint isn't hammered on every render).
         lastSavedRef.current = payload;
         setSaveState("saving");
         fetch("/api/applicant/draft", {
@@ -183,7 +169,7 @@ export function DynamicForm({
       try {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), values }));
       } catch {
-        /* quota — ignore */
+        // quota — ignore
       }
     }, DRAFT_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
@@ -208,9 +194,7 @@ export function DynamicForm({
       return;
     }
     setError(null);
-    // Wipe any errors carried over from the previous step so the next step
-    // starts clean — the user should only see errors after touching a field
-    // or attempting Next again.
+    // Wipe any errors carried over from the previous step so the next step starts clean — the user should only see errors after touching a field or.
     form.clearErrors();
     funnel.stepCompleted(stepIdx, titles[stepIdx]?.title);
     setStepIdx(stepIdx + 1);
@@ -219,17 +203,13 @@ export function DynamicForm({
 
   const goPrev = () => {
     setError(null);
-    // Same reason as goNext: re-entering a step shouldn't display errors that
-    // were populated by an earlier trigger() call.
+    // Same reason as goNext: re-entering a step shouldn't display errors that were populated by an earlier trigger() call.
     form.clearErrors();
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Advance WITHOUT validating the current step — lets applicants move past
-  // steps whose fields are all optional. Only offered on non-last steps; the
-  // final Submit stays gated by canSubmit (Public Profile Ready, 50%), so
-  // skipping can't push an under-filled application through.
+  // Advance WITHOUT validating the current step — lets applicants move past steps whose fields are all optional.
   const goSkip = () => {
     if (stepIdx >= totalSteps - 1) return;
     setError(null);
@@ -343,8 +323,7 @@ export function DynamicForm({
 
       {/* Progress bar + step pills (supports any number of steps) */}
       <div className="mb-6">
-        {/* Mobile: single compact caption — the full spread label row collides
-            with many dynamic steps on narrow screens. */}
+        {/* Mobile: single compact caption — the full spread label row collides */}
         <div className="sm:hidden mb-2 flex items-baseline justify-between gap-2">
           <span className="text-xs font-medium text-pasha-red truncate">
             {titles[stepIdx]?.title}
@@ -434,8 +413,7 @@ export function DynamicForm({
             >
               {sectionsForStep(config, currentStep).map((section, idx) => (
                 <div key={section.id} className="space-y-6">
-                  {/* The first section of a step is the step itself (its title is
-                      already in the header); later sections render a divider. */}
+                  {/* The first section of a step is the step itself (its title is */}
                   {idx > 0 && (
                     <div className="flex items-center gap-3">
                       <h3 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/70 font-semibold whitespace-nowrap">

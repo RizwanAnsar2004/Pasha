@@ -1,8 +1,7 @@
 import { createContext, useContext, useId, type ReactNode } from "react";
 import { Label, FieldHint, FieldError } from "@/components/ui/Label";
 
-// Context lets nested inputs pick up the generated id + describedby ids,
-// so screen readers announce field labels + hints + errors correctly.
+// Context lets nested inputs pick up the generated id + describedby ids, so screen readers announce field labels + hints + errors correctly.
 type FieldContextValue = {
   inputId: string;
   hintId: string;
@@ -43,9 +42,7 @@ export function Field({
       value={{ inputId, hintId, errorId, hasError: !!error }}
     >
       <div className={`flex flex-col gap-2 ${className ?? ""}`}>
-        {/* Label stays a single, clean line — the descriptive hint renders as a
-            subtext line below the input, not inline. This keeps labels a uniform
-            height so inputs align across multi-column form grids. */}
+        {/* Label stays a single, clean line — the descriptive hint renders as a */}
         {label && (
           <Label htmlFor={inputId} required={required}>
             {label}

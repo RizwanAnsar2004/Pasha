@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getApplicantUser } from "@/lib/applicant-auth";
+import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 
-/**
- * Server-side resumable draft for the signed-in applicant. One row per user
- * (see `application_drafts`). The form autosaves here as the applicant works so
- * progress survives across sessions/devices; the localStorage draft is gone.
- *
- * Access pattern mirrors the rest of the app: the route authenticates via the
- * Supabase session cookie, then reads/writes the user's own row via the
- * service-role client (the table is RLS deny-all).
- */
+// Server-side resumable draft for the signed-in applicant. One row per user
 
 export async function GET() {
   const user = await getApplicantUser();

@@ -7,20 +7,12 @@ import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/form/SelectField";
 import { FileUpload } from "@/components/form/FileUpload";
 import { FOUNDER_GENDERS } from "@/lib/options";
-import type { SubmissionInput } from "@/lib/schema";
-import { phoneRegisterProps } from "@/lib/phone";
+import { useOptionList } from "@/components/form/OptionListsContext";
+import type { SubmissionInput } from "@/lib/forms/schema";
+import { phoneRegisterProps } from "@/lib/validators/phone";
 import { cn } from "@/lib/utils";
 
-/**
- * Add/remove founder cards. The first card is the primary submitter and
- * cannot be removed. The schema's superRefine guarantees the first founder
- * has email + mobile required; secondary founders are looser.
- *
- * Each card has: name, role, email, mobile, LinkedIn, photo, gender.
- *
- * The detail page reads `founders` JSONB → renders a Y Combinator-style
- * Key Persons grid.
- */
+// Add/remove founder cards. The first card is the primary submitter and
 export function FoundersRepeater() {
   const form = useFormContext<SubmissionInput>();
   const { fields, append, remove } = useFieldArray({
@@ -28,6 +20,8 @@ export function FoundersRepeater() {
     name: "founders",
   });
   const errors = form.formState.errors;
+  // Single source of truth: admin-managed list, code constant as fallback.
+  const genders = useOptionList("FOUNDER_GENDERS", FOUNDER_GENDERS);
 
   return (
     <div className="space-y-5">
@@ -114,7 +108,7 @@ export function FoundersRepeater() {
                 <SelectField
                   name={`founders.${idx}.gender`}
                   placeholder="Select gender"
-                  options={[...FOUNDER_GENDERS]}
+                  options={genders}
                 />
               </Field>
             </div>
@@ -123,10 +117,7 @@ export function FoundersRepeater() {
               <FoundersPhotoUploadField index={idx} />
             </Field>
 
-            {/* Per-founder social links. LinkedIn was first-class; X /
-                Instagram / Facebook are now native. Plus a repeatable
-                "custom links" sub-array for anything else (GitHub, blog,
-                Substack, etc.). All optional. */}
+            {/* Per-founder social links. LinkedIn was first-class; X / */}
             <div className="pt-2 border-t border-pasha-line/60">
               <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted mb-3">
                 Social links
@@ -194,11 +185,7 @@ export function FoundersRepeater() {
   );
 }
 
-/**
- * Inline editor for the founders[i].custom_links sub-array. Each row is
- * {label, url}. Empty rows are stripped at submit time by the schema
- * preprocessor.
- */
+// Inline editor for the founders[i].custom_links sub-array. Each row is
 function CustomLinksField({ founderIndex }: { founderIndex: number }) {
   const form = useFormContext<SubmissionInput>();
   const { fields, append, remove } = useFieldArray({
@@ -251,11 +238,7 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
   );
 }
 
-/**
- * Tiny adapter so FileUpload can read/write the correct dotted path in the
- * RHF state. Kept inline here so the rest of the form doesn't need to know
- * about the JSON path shape.
- */
+// Tiny adapter so FileUpload can read/write the correct dotted path in the
 function FoundersPhotoUploadField({ index }: { index: number }) {
   const form = useFormContext<SubmissionInput>();
   const value = form.watch(`founders.${index}.photo_url`) as string | undefined;

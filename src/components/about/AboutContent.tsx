@@ -13,6 +13,7 @@ import {
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
+import { JoinCommunity } from "@/components/community/JoinCommunity";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -53,9 +54,7 @@ const SECTIONS = [
 export function AboutContent() {
   return (
     <>
-      {/* ──────────────────────────────────────────────────────
-          HERO — dark, matches Hero.tsx / DirectoryHero.tsx
-          ────────────────────────────────────────────────────── */}
+      {/* ────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
         <div
           aria-hidden
@@ -87,8 +86,6 @@ export function AboutContent() {
               <Divider />
               <Meta label="Stewarded by" value="P@SHA" />
               <Divider />
-              <Meta label="Committees" value="6" />
-              <Divider />
               <span className="inline-flex items-center gap-2 text-white/45">
                 <Compass className="w-3.5 h-3.5 text-pasha-red-light" />
                 <span className="font-mono text-[10px] uppercase tracking-[1.5px]">
@@ -100,9 +97,7 @@ export function AboutContent() {
         </div>
       </section>
 
-      {/* ──────────────────────────────────────────────────────
-          SECTIONS — editorial article-style layout
-          ────────────────────────────────────────────────────── */}
+      {/* ────────────────────────────────────────────────────── */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-8">
           {/* Section header */}
@@ -143,13 +138,14 @@ export function AboutContent() {
           </motion.div>
         </div>
       </section>
+
+      {/* ────────────────────────────────────────────────────── */}
+      <JoinCommunity />
     </>
   );
 }
 
-/* ──────────────────────────────────────────────────────────────
-   ArticleSection — number + icon on the left, content on the right.
-   ────────────────────────────────────────────────────────────── */
+// ──────────────────────────────────────────────────────────────
 function ArticleSection({
   section,
   index,

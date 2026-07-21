@@ -20,19 +20,21 @@ import {
   getApplicantContext,
   getApplicantDraft,
   getApplicantSubmissionStatus,
-} from "@/lib/applicant-auth";
-import { getFormConfig } from "@/lib/form-config.server";
-import { buildDevPrefill } from "@/lib/form-config";
-import { getOptionRegistry } from "@/lib/option-lists.server";
-import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/profile-completion";
-import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/workflow";
-import { deriveBadges, isYes, type BadgeTone } from "@/lib/badges";
+} from "@/lib/auth/applicant/applicant-auth";
+import { getFormConfig } from "@/lib/forms/form-config.server";
+import { buildDevPrefill } from "@/lib/forms/form-config";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
+import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/forms/profile-completion";
+import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/startups/vetting/workflow";
+import { deriveBadges, isYes, type BadgeTone } from "@/lib/startups/vetting/badges";
 import { ReapplyButton } from "./ReapplyButton";
 import { PortalTabs } from "./PortalTabs";
 import { StartApplicationButton } from "./StartApplicationButton";
 import { DynamicForm } from "@/components/form/DynamicForm";
 import { ApplyForm } from "@/components/form/ApplyForm";
 import { RichText } from "@/components/ui/RichText";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 
 export const metadata: Metadata = {
   title: "Your application",
@@ -57,8 +59,7 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   green: "bg-green-600/10 text-green-700",
 };
 
-// Highlighted container border for an EARNED badge, matching its pill tone so
-// acquired badges visibly stand out from locked ones. Border only — no fill.
+// Highlighted container border for an EARNED badge, matching its pill tone so acquired badges visibly stand out from locked ones.
 const BADGE_BORDER_CLASS: Record<BadgeTone, string> = {
   verified: "border-pasha-red/40",
   gold: "border-amber-300",
@@ -77,8 +78,7 @@ const STAGE_ICON: Record<WorkflowStage, typeof CheckCircle2> = {
   featured: Star,
 };
 
-// Whether to prefill the form with the Western debug sample company. STRICTLY
-// local-debug: hard-off in any production build, regardless of flags.
+// Whether to prefill the form with the Western debug sample company.
 function debugPrefillEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false; // never in prod
   const flag = process.env.DEBUG_FORM_PREFILL;
@@ -92,8 +92,7 @@ export default async function ApplicantOverviewPage({
 }: {
   searchParams: Promise<{ tab?: string; step?: string }>;
 }) {
-  // The layout gates this section, but a layout redirect doesn't stop the page
-  // from rendering in parallel — so guard here too (and narrow ctx.user).
+  // The layout gates this section, but a layout redirect doesn't stop the page from rendering in parallel — so guard here too (and narrow ctx.user).
   const ctx = await getApplicantContext();
   if (ctx.status !== "applicant") {
     redirect(ctx.status === "admin" ? "/apply/login?error=admin" : "/apply/login?redirect=/apply");
@@ -102,7 +101,7 @@ export default async function ApplicantOverviewPage({
   const [draft, config, optionLists] = await Promise.all([
     getApplicantDraft(user.id),
     getFormConfig(),
-    getOptionRegistry(),
+    getFormOptionRegistry(),
   ]);
 
   // Workflow status of the (latest) submission, if any.
@@ -120,21 +119,17 @@ export default async function ApplicantOverviewPage({
   const tone = TONE[meta.tone] ?? TONE.neutral;
   const StageIcon = STAGE_ICON[stage] ?? ClipboardList;
 
-  // The form is editable while the applicant owns it: never submitted, or the
-  // committee reopened it for changes (Needs Update resets submitted_at).
+  // The form is editable while the applicant owns it: never submitted, or the committee reopened it for changes (Needs Update resets submitted_at).
   const editable = !draft.submitted;
 
-  // §12 completion ladder, from the saved draft values. Field labels in the
-  // hints come from the live form config (falls back to built-in names).
+  // §12 completion ladder, from the saved draft values.
   const completion = computeCompletion(draft.data, config ? fieldLabelMap(config) : undefined);
-  // Dashboard modules mirror the application's actual steps (title + subtitle +
-  // per-step progress) so they stay in sync with the form builder.
+  // Dashboard modules mirror the application's actual steps (title + subtitle + per-step progress) so they stay in sync with the form builder.
   const modules = config ? computeFormModules(config, draft.data) : [];
 
   const d = draft.data as Record<string, unknown>;
 
-  // §13 badges — derived from the startup's own data (women-led/hiring/raising)
-  // plus admin-awarded verified/featured.
+  // §13 badges — derived from the startup's own data (women-led/hiring/raising) plus admin-awarded verified/featured.
   const badges = deriveBadges({
     pashaVerified: submissionStatus?.pashaVerified,
     featuredActive: submissionStatus?.featuredActive,
@@ -145,15 +140,25 @@ export default async function ApplicantOverviewPage({
 
   // ---- Registration snapshot (from §3 fields stored in the draft) ----------
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
+  const optionIndex = await getOptionIndex();
   const labelFromList = (listKey: string, value: unknown): string => {
     if (typeof value !== "string" || !value) return "";
-    return optionLists[listKey]?.find((o) => o.value === value)?.label ?? value;
+    return (
+      optionLists[listKey]?.find((o) => o.value === value)?.label ??
+      resolveOptionLabel(optionIndex, listKey, value) ??
+      ""
+    );
   };
   const fullName = str("full_name");
   const firstName = fullName.split(/\s+/)[0] || "";
   const startupName = str("startup_name");
   const tagline = str("tagline");
-  const location = [str("hq_city") || str("hq_other"), str("hq_country")].filter(Boolean).join(", ");
+  const location = [
+    labelFromList("HQ_CITIES", d["hq_city"]) || str("hq_other"),
+    labelFromList("COUNTRIES", d["hq_country"]),
+  ]
+    .filter(Boolean)
+    .join(", ");
   const startupFacts = [
     { icon: Tag, label: "Tagline", value: tagline, rich: true },
     { icon: Layers, label: "Stage", value: labelFromList("STAGES", d["stage"]), rich: false },
@@ -163,8 +168,7 @@ export default async function ApplicantOverviewPage({
   ].filter((f) => f.value);
   const greetingName = firstName || startupName;
 
-  // CTA label by stage. Editable → switch to the form tab (client, instant);
-  // otherwise link out to the directory.
+  // CTA label by stage.
   const ctaLabel = editable
     ? draft.started
       ? "Continue application"
@@ -193,7 +197,7 @@ export default async function ApplicantOverviewPage({
         optionLists={optionLists}
       />
     ) : (
-      <ApplyForm />
+      <ApplyForm optionLists={optionLists} />
     )
   ) : null;
 
@@ -204,7 +208,7 @@ export default async function ApplicantOverviewPage({
           {greetingName ? `Welcome, ${greetingName}` : "Welcome"} 👋
         </h1>
         <p className="mt-1.5 text-sm text-pasha-muted">
-          Apply to join the P@SHA Startup Community. Your progress is saved automatically — you can
+          Apply to join the P@SHA Startup Hub. Your progress is saved automatically — you can
           leave and pick up where you left off anytime.
         </p>
       </div>

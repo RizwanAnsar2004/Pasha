@@ -1,11 +1,12 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
-import { sendTemplate, firstNameOf } from "@/lib/mailer";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/featured-startups.server";
-import { parsePagination } from "@/lib/pagination";
-import { EXPORT_MAX_ROWS } from "@/lib/csv";
+import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured-startups.server";
+import { parsePagination } from "@/lib/utils/pagination";
+import { EXPORT_MAX_ROWS } from "@/lib/utils/csv";
+import { emailOrigin } from "@/lib/utils/site-url";
 
 const DATABANK_SELECT =
   "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage";
@@ -172,7 +173,7 @@ export async function POST(req: Request) {
             values: {
               "{{first_name}}": firstNameOf(startup.contact_person),
               "{{startup_name}}": startup.startup_name ?? "your startup",
-              "{{link}}": `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/directory`,
+              "{{link}}": `${emailOrigin()}/directory`,
             },
           },
         ],

@@ -1,22 +1,4 @@
-/**
- * One-time migration script: copy startupconnect.pk logos to Supabase Storage.
- *
- * Why: Vercel serverless functions run on AWS IPs, and startupconnect.pk
- * firewalls AWS at the L4 edge. The /api/logo proxy times out for every
- * upstream fetch from production. Solution: rehost the images on Supabase
- * Storage (which CSP + next/image already allow) and update databank.logo_url.
- *
- * MUST be run from a Pakistan-network machine (Hamad's laptop). The script
- * relies on the host being able to reach startupconnect.pk directly.
- *
- * Run:
- *   pnpm tsx scripts/migrate-logos.ts          # full migration
- *   pnpm tsx scripts/migrate-logos.ts --limit=10  # try 10 first
- *   pnpm tsx scripts/migrate-logos.ts --dry-run   # no writes, just report
- *
- * Idempotent: skips rows whose logo_url already points at our Supabase host.
- * Failures are written to scripts/migrate-logos.failed.json so we can retry.
- */
+// One-time migration script: copy startupconnect.pk logos to Supabase Storage.
 import { createClient } from "@supabase/supabase-js";
 import { writeFile, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -174,7 +156,6 @@ async function main() {
   let done = 0;
 
   // Resume support: load prior failures so a re-run focuses on them if --retry.
-  // (We don't auto-resume; just record fresh failures every run.)
   if (existsSync(failedPath)) {
     try {
       const prior = JSON.parse(await readFile(failedPath, "utf8"));

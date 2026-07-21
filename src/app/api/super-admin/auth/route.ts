@@ -1,14 +1,11 @@
 // Super-admin login / logout.
-//
-// POST /api/super-admin/auth → login (body: {email, password})
-// DELETE /api/super-admin/auth → logout
 
 import { NextResponse } from "next/server";
 import {
   endSuperAdminSession,
   startSuperAdminSession,
   validateSuperAdminCredentials,
-} from "@/lib/super-admin";
+} from "@/lib/auth/admin/super-admin";
 
 export async function POST(req: Request) {
   let body: { email?: string; password?: string };
@@ -23,8 +20,7 @@ export async function POST(req: Request) {
     String(body.password ?? "")
   );
   if (err) {
-    // Deliberately generic message to the client — the specific tag is
-    // only useful for server logs.
+    // Deliberately generic message to the client — the specific tag is only useful for server logs.
     console.log(`super-admin login rejected: ${err}`);
     if (err === "config_missing") {
       return NextResponse.json(

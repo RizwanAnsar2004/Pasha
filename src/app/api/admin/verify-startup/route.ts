@@ -1,15 +1,10 @@
 // Admin-only endpoint for toggling P@SHA-verified flag on a databank row.
-//
-// Mirrors the pattern in /api/admin/submission:
-//   - Session cookie must belong to an admin email (allowlist by domain).
-//   - Single update + audit_log insert (audit failure does not roll back the
-//     update — we log to server console and keep going).
 
 import { NextResponse } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { isAdminEmail } from "@/lib/admin-allowlist";
-import { notifyRagDatabank } from "@/lib/rag-sync";
+import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { notifyRagDatabank } from "@/lib/ai/rag-sync";
 
 const patchSchema = z.object({
   id: z.string().uuid(),

@@ -17,15 +17,15 @@ import {
   type SubmissionInput,
   stepTitles,
   stepFields,
-} from "@/lib/schema";
-import { resolveFieldLabel } from "@/lib/form-config";
+} from "@/lib/forms/schema";
+import { resolveFieldLabel } from "@/lib/forms/form-config";
+import { isOtherChoice } from "@/lib/options";
 
-// v2 draft key — bumping forces old v1 drafts to be ignored cleanly so users
-// with stale 7-step drafts don't get hydrated into the new 3-step form with
-// missing required fields.
+// v2 draft key — bumping forces old v1 drafts to be ignored cleanly so users with stale 7-step drafts don't get hydrated into the new 3-step form.
 const DRAFT_KEY = "pasha-apply-draft-v2";
 const DRAFT_DEBOUNCE_MS = 1000;
 
+import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { Step1Startup } from "./steps/Step1Startup";
 import { Step2Founders } from "./steps/Step2Founders";
 import { Step3Recognition } from "./steps/Step3Recognition";
@@ -36,10 +36,6 @@ export type StepProps = {
 };
 
 // Dev-only sample data to prefill the whole wizard for quick flow testing.
-// Every value is chosen to satisfy submissionSchema — valid option values
-// (sectors/stages/cities from @/lib/options), http(s) URLs, and a valid phone
-// — so the form validates and submits without manual entry. Never shipped:
-// the trigger button is gated behind NODE_ENV !== "production".
 const SAMPLE_SUBMISSION: Record<string, unknown> = {
   startup_name: "AtlasCloud",
   tagline: "One-click managed hosting for Pakistani SaaS startups",
@@ -55,7 +51,7 @@ const SAMPLE_SUBMISSION: Record<string, unknown> = {
   primary_sector: "SaaS",
   secondary_sector: "Fintech",
   business_model: "Business to Business (B2B)",
-  stage: "growth",
+  stage: "Growth (Series B,C)",
   revenue_models: ["Subscription", "Pay-As-You-Go (PAYG)"],
   total_employees: "24",
   female_employees: "8",
@@ -120,7 +116,7 @@ const SAMPLE_SUBMISSION: Record<string, unknown> = {
 
 const TOTAL_STEPS = 3;
 
-export function ApplyForm() {
+export function ApplyForm({ optionLists }: { optionLists?: OptionRegistry }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -137,11 +133,7 @@ const form = useForm<SubmissionInput>({
       whatsapp_optin: false,
       facebook_optin: false,
       outside_pakistan: false,
-      // Empty-string defaults so every <select> with a placeholder ("Select…")
-      // starts on the disabled placeholder option instead of the browser's
-      // auto-pick of the first real option (Karachi / Artificial Intelligence /
-      // Consumer Centric, etc.). The required ones (hq_city, primary_sector,
-      // stage) also need this so validation can detect "nothing chosen".
+      // Empty-string defaults so every <select> with a placeholder ("Select…") starts on the disabled placeholder option instead of the browser's.
       startup_name: "",
       tagline: "",
       website: "",
@@ -248,16 +240,14 @@ const form = useForm<SubmissionInput>({
     setDraftRestored(false);
   };
 
-  // Dev helper: load SAMPLE_SUBMISSION into every field so a tester can walk the
-  // flow (or jump to step 3 and submit) without filling anything by hand.
+  // Dev helper: load SAMPLE_SUBMISSION into every field so a tester can walk the flow (or jump to step 3 and submit) without filling anything by hand.
   const prefillDemo = () => {
     form.reset({ ...form.getValues(), ...SAMPLE_SUBMISSION } as unknown as SubmissionInput);
     form.clearErrors();
     setError(null);
   };
 
-  // Note: client-side live tier preview was removed. Vetting still runs
-  // server-side in /api/submit; the user just doesn't see it pre-submit.
+  // Note: client-side live tier preview was removed.
 
   const goNext = async (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -288,9 +278,7 @@ const form = useForm<SubmissionInput>({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Strip conditional sub-fields when their parent toggle is off so the DB
-  // doesn't end up with orphan values (e.g. nic_year=2023 when the user later
-  // toggled "incubated_in_nic" back to false).
+  // Strip conditional sub-fields when their parent toggle is off so the DB doesn't end up with orphan values (e.g.
   const cleanConditionalFields = (data: SubmissionInput): SubmissionInput => {
     const cleaned: SubmissionInput = { ...data };
     if (cleaned.incubated_in_nic !== true) {
@@ -310,7 +298,7 @@ const form = useForm<SubmissionInput>({
       cleaned.hq_other = undefined;
     } else {
       cleaned.hq_country = undefined;
-      if (cleaned.hq_city !== "Other") cleaned.hq_other = undefined;
+      if (!isOtherChoice(cleaned.hq_city)) cleaned.hq_other = undefined;
     }
     return cleaned;
   };
@@ -345,9 +333,7 @@ const form = useForm<SubmissionInput>({
     }
   };
 
-  // Map any invalid field back to the step that owns it. With nested paths
-  // like `founders.0.email`, RHF reports the root key `founders` in the
-  // errors object — we treat that as belonging to Step 2.
+  // Map any invalid field back to the step that owns it.
   function topLevelField(path: string): string {
     const dot = path.indexOf(".");
     return dot === -1 ? path : path.slice(0, dot);
@@ -392,10 +378,8 @@ const form = useForm<SubmissionInput>({
 
   return (
     <FormProvider {...form}>
-      {/* ═══════════════════════════════════════════════════════
-          DEV-ONLY: prefill the whole wizard with sample data.
-          Statically stripped from production builds.
-          ═══════════════════════════════════════════════════════ */}
+      <OptionListsProvider value={optionLists ?? {}}>
+      {/* ═══════════════════════════════════════════════════════ */}
       {process.env.NODE_ENV !== "production" && (
         <div className="mb-4 flex items-center justify-end gap-2">
           <button
@@ -408,9 +392,7 @@ const form = useForm<SubmissionInput>({
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          Draft restored banner
-          ═══════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {draftRestored && (
           <motion.div
@@ -440,14 +422,10 @@ const form = useForm<SubmissionInput>({
         )}
       </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════════════
-          WIZARD STEPPER — beautiful 3-step indicator
-          ═══════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <WizardStepper currentStep={step} onStepClick={handleStepClick} />
 
-      {/* ═══════════════════════════════════════════════════════
-          STEP CARD — content + navigation in one polished card
-          ═══════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <div className="mt-6 rounded-2xl bg-white border border-pasha-line/70 shadow-[0_4px_16px_-4px_rgba(14,14,16,0.06)] overflow-hidden">
         {/* Step header */}
         <div className="px-6 sm:px-8 pt-7 pb-5 border-b border-pasha-line/60 bg-gradient-to-b from-pasha-stone/20 to-transparent">
@@ -560,9 +538,7 @@ const form = useForm<SubmissionInput>({
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════
-          BOTTOM HELP STRIP — replaces the sidebar
-          ═══════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════ */}
       <div className="mt-8 grid sm:grid-cols-2 gap-4">
         <div className="rounded-2xl bg-gradient-to-br from-pasha-stone/40 to-transparent border border-pasha-line/70 p-5">
           <div className="flex items-start gap-3">
@@ -601,6 +577,7 @@ const form = useForm<SubmissionInput>({
           </div>
         </div>
       </div>
+      </OptionListsProvider>
     </FormProvider>
   );
 }

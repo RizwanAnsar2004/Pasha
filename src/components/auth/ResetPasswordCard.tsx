@@ -1,10 +1,6 @@
 "use client";
 
-// Shared "set a new password" card for the recovery flow. Both the applicant
-// (/apply/reset-password) and committee (/admin/reset-password) pages render
-// this. The recovery session is established by the auth callback before the
-// user lands here, so we read it from the browser Supabase client and call
-// updateUser() with the new password.
+// Shared "set a new password" card for the recovery flow.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -52,8 +48,7 @@ export function ResetPasswordCard({
       const supabase = createClient();
       const { error: updErr } = await supabase.auth.updateUser({ password });
       if (updErr) throw new Error(updErr.message);
-      // Sign out the recovery session so they re-authenticate with the new
-      // password through the normal login.
+      // Sign out the recovery session so they re-authenticate with the new password through the normal login.
       await supabase.auth.signOut();
       setDone(true);
     } catch (err) {

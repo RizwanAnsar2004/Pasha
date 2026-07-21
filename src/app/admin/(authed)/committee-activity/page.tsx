@@ -3,7 +3,7 @@ import {
   CommitteeActivityClient,
   type ActivityRow,
 } from "./CommitteeActivityClient";
-import { parsePagination } from "@/lib/pagination";
+import { parsePagination } from "@/lib/utils/pagination";
 
 export const dynamic = "force-dynamic";
 

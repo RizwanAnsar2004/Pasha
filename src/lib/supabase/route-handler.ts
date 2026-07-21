@@ -1,10 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/**
- * Supabase client for Route Handlers / Server Actions that must write auth
- * cookies onto the outgoing response (sign-in, sign-out, callback).
- */
+// Supabase client for Route Handlers / Server Actions that must write auth
 export function createRouteHandlerClient(request: NextRequest) {
   let response = NextResponse.next({ request });
 

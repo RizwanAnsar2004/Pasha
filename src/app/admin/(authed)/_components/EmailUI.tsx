@@ -1,8 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Shared presentational bits for the email admin screens. No hooks → usable
-// from both server and client components.
+// Shared presentational bits for the email admin screens.
 
 export function PageHeader({
   icon: Icon,

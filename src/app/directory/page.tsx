@@ -10,19 +10,22 @@ import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { createServiceClient } from "@/lib/supabase/server";
-import { DUMMY_STARTUPS } from "@/lib/dummy-startups";
+import { getFormOptionRegistry } from "@/lib/options/registry.server";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { matchingOptionIds, optionFilterValues, type OptionIndex , optionIdFor} from "@/lib/options/resolve";
+import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 
 export const metadata: Metadata = {
   title: "Directory",
   description:
-    "P@SHA Startup Directory — browse 2,481 startups across cities and sectors. Maintained by the Pakistan Software Houses Association (P@SHA).",
+    "P@SHA Startup Hub — browse 2,481 startups across cities and sectors. Maintained by the Pakistan Software Houses Association (P@SHA).",
   alternates: { canonical: "/directory" },
   openGraph: {
-    title: "Directory · P@SHA Startup Community",
+    title: "Directory · P@SHA Startup Hub",
     url: "/directory",
   },
   twitter: {
-    title: "Directory · P@SHA Startup Community",
+    title: "Directory · P@SHA Startup Hub",
   },
 };
 
@@ -31,8 +34,7 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 12;
 
-// Card column set, richest first. If a column is missing (pre-migration), we
-// retry with the smaller, always-present set so the page still renders.
+// Card column set, richest first.
 const SELECT_COLUMNS =
   "id,startup_name,tagline,startup_idea,primary_industry,nic_name,city,website,company_linkedin,logo_url,current_revenue,investment_raised,number_of_customers,total_employees,female_employees,pasha_verified,women_led,hiring,fundraising,founded_date,product_stage,business_types,incubation_stage,jobs_created,answers";
 const SELECT_COLUMNS_FALLBACK =
@@ -40,14 +42,7 @@ const SELECT_COLUMNS_FALLBACK =
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-// The listing card only ever reads these two answer keys (range-band fallbacks
-// for funding / customers). We MUST NOT ship the rest of the `answers` bag to
-// the browser: it holds private document signed-URLs (founder CNIC/passport,
-// business-profile PDF, registration cert, authorization letter) and other
-// backend-only data. Since rows are passed into a client component, whatever is
-// on them is serialized into the public payload — so strip answers here.
-// tam_amount is public (shown as a card stat); the funding/customers bands are
-// used for range-label fallbacks. Everything else in `answers` stays server-side.
+// The listing card only ever reads these two answer keys (range-band fallbacks for funding / customers).
 const PUBLIC_ANSWER_KEYS_FOR_CARD = ["total_funding_raised", "num_customers", "tam_amount"] as const;
 function stripAnswers(rows: DirectoryRow[]): DirectoryRow[] {
   return rows.map((r) => {
@@ -59,12 +54,6 @@ function stripAnswers(rows: DirectoryRow[]): DirectoryRow[] {
     }
     return { ...r, answers: safe };
   });
-}
-
-function isMissing(v?: string | null): boolean {
-  if (!v) return true;
-  const s = String(v).trim();
-  return !s || s.toUpperCase() === "NULL";
 }
 
 function parseFilters(sp: SearchParams): DirectoryFilters {
@@ -88,20 +77,31 @@ function parseFilters(sp: SearchParams): DirectoryFilters {
 
 // PostgREST query builder is loosely typed across column sets; keep it untyped.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyFilters(query: any, f: DirectoryFilters) {
-  if (f.sector !== "all") query = query.eq("primary_industry", f.sector);
-  if (f.city !== "all") query = query.eq("city", f.city);
-  if (f.stage !== "all") query = query.eq("product_stage", f.stage);
+function applyFilters(query: any, f: DirectoryFilters, index: OptionIndex) {
+  // Match on the legacy text AND the equivalent option_id so filters survive the backfill.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matchOption = (q: any, column: string, idColumn: string, type: string, param: string) => {
+    const id = optionIdFor(index, type, param);
+    if (id) return q.eq(idColumn, id);
+    const values = optionFilterValues(index, type, param);
+    if (values.length === 0) return q;
+    return values.length === 1 ? q.eq(column, values[0]) : q.in(column, values);
+  };
+  if (f.sector !== "all") query = matchOption(query, "primary_industry", "primary_industry_id", "SECTORS", f.sector);
+  if (f.city !== "all") query = matchOption(query, "city", "city_id", "HQ_CITIES", f.city);
+  if (f.stage !== "all") query = matchOption(query, "product_stage", "product_stage_id", "STAGES", f.stage);
   if (f.verified) query = query.eq("pasha_verified", true);
   if (f.womenLed) query = query.eq("women_led", true);
   if (f.hiring) query = query.eq("hiring", true);
   if (f.fundraising) query = query.eq("fundraising", true);
-  // Strip PostgREST `or()` delimiters from the user term, then match across the
-  // searchable text columns. (founder_name lives in key_persons, not databank,
-  // so it isn't searchable from the listing table.)
+  // Strip PostgREST `or()` delimiters from the user term, then match across the searchable text columns.
   const term = f.q.replace(/[%,()]/g, " ").trim();
   if (term) {
     const like = `%${term}%`;
+    // Once the columns hold ids, ilike can no longer match a sector/city name — so
+    const idMatches = matchingOptionIds(index, term).map((id) =>
+      [`primary_industry_id.eq.${id}`, `city_id.eq.${id}`, `product_stage_id.eq.${id}`].join(",")
+    );
     query = query.or(
       [
         `startup_name.ilike.${like}`,
@@ -109,6 +109,7 @@ function applyFilters(query: any, f: DirectoryFilters) {
         `primary_industry.ilike.${like}`,
         `nic_name.ilike.${like}`,
         `city.ilike.${like}`,
+        ...idMatches,
       ].join(",")
     );
   }
@@ -118,14 +119,15 @@ function applyFilters(query: any, f: DirectoryFilters) {
 // Fetch ONE page of rows + the filtered total count in a single round-trip.
 async function loadPage(
   filters: DirectoryFilters,
-  page: number
+  page: number,
+  index: OptionIndex
 ): Promise<{ rows: DirectoryRow[]; total: number } | null> {
   const supabase = createServiceClient();
   const offset = (page - 1) * PAGE_SIZE;
 
   for (const columns of [SELECT_COLUMNS, SELECT_COLUMNS_FALLBACK]) {
     let query = supabase.from("databank").select(columns, { count: "exact" });
-    query = applyFilters(query, filters);
+    query = applyFilters(query, filters, index);
     if (filters.sort === "az") {
       query = query.order("startup_name", { ascending: true });
     } else if (filters.sort === "newest") {
@@ -151,55 +153,33 @@ async function loadPage(
   return null;
 }
 
-// Filter-dropdown options + the unfiltered total. These change rarely, so cache
-// for 5 minutes — they no longer re-scan the table on every navigation.
+// The unfiltered total. Changes rarely, so cache for 5 minutes rather than
 const getDirectoryMeta = unstable_cache(
-  async (): Promise<{ sectors: string[]; cities: string[]; stages: string[]; totalAll: number }> => {
+  async (): Promise<{ totalAll: number }> => {
     const supabase = createServiceClient();
-    const [{ data: opts }, { count }] = await Promise.all([
-      supabase.from("databank").select("primary_industry, city, product_stage"),
-      supabase.from("databank").select("id", { count: "exact", head: true }),
-    ]);
-    const sectors = Array.from(
-      new Set(
-        (opts ?? [])
-          .map((r) => r.primary_industry)
-          .filter((s): s is string => !isMissing(s))
-      )
-    ).sort();
-    const cities = Array.from(
-      new Set(
-        (opts ?? [])
-          .map((r) => r.city)
-          .filter((s): s is string => !isMissing(s))
-          .map((s) => s.trim())
-      )
-    ).sort();
-    const stages = Array.from(
-      new Set(
-        (opts ?? [])
-          .map((r) => r.product_stage)
-          .filter((s): s is string => !isMissing(s))
-      )
-    ).sort();
-    return { sectors, cities, stages, totalAll: count ?? 0 };
+    const { count } = await supabase
+      .from("databank")
+      .select("id", { count: "exact", head: true });
+    return { totalAll: count ?? 0 };
   },
-  ["directory-meta-v2"],
+  ["directory-meta-v3"],
   { revalidate: 300 }
 );
 
-// In-memory filter + paginate, used only for the bundled sample data when no
-// real DB rows exist yet (dev / pre-seed). Mirrors the server-side filters.
+// In-memory filter + paginate, used only for the bundled sample data when no real DB rows exist yet (dev / pre-seed).
 function inMemory(
   all: DirectoryRow[],
   filters: DirectoryFilters,
-  page: number
+  page: number,
+  index: OptionIndex
 ): { rows: DirectoryRow[]; total: number } {
   const needle = filters.q.toLowerCase();
+  const hits = (type: string, param: string, stored?: string | null) =>
+    optionFilterValues(index, type, param).includes(String(stored ?? ""));
   const matched = all.filter((r) => {
-    if (filters.sector !== "all" && r.primary_industry !== filters.sector) return false;
-    if (filters.city !== "all" && r.city !== filters.city) return false;
-    if (filters.stage !== "all" && r.product_stage !== filters.stage) return false;
+    if (filters.sector !== "all" && !hits("SECTORS", filters.sector, r.primary_industry)) return false;
+    if (filters.city !== "all" && !hits("HQ_CITIES", filters.city, r.city)) return false;
+    if (filters.stage !== "all" && !hits("STAGES", filters.stage, r.product_stage)) return false;
     if (filters.verified && !r.pasha_verified) return false;
     if (filters.womenLed && !r.women_led) return false;
     if (filters.hiring && !r.hiring) return false;
@@ -234,32 +214,28 @@ export default async function DirectoryPage({
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const page = Math.max(1, Number(pageRaw) || 1);
 
-  const [pageResult, meta] = await Promise.all([loadPage(filters, page), getDirectoryMeta()]);
+  const optionIndex = await getOptionIndex();
+  const [pageResult, meta, optionRegistry] = await Promise.all([
+    loadPage(filters, page, optionIndex),
+    getDirectoryMeta(),
+    getFormOptionRegistry(),
+  ]);
 
   let rows = pageResult?.rows ?? [];
   let total = pageResult?.total ?? 0;
-  let { sectors, cities, stages, totalAll } = meta;
+  let { totalAll } = meta;
 
-  // No real data yet → fall back to bundled sample startups.
+  // Dropdown options come from the single source of truth, not from the rows on
+  const sectors = optionRegistry.SECTORS ?? [];
+  const cities = optionRegistry.HQ_CITIES ?? [];
+  const stages = optionRegistry.STAGES ?? [];
+
+  // No real data yet → fall back to bundled sample startups. The dropdowns are
   if (totalAll === 0 && (!pageResult || pageResult.total === 0)) {
     const all = DUMMY_STARTUPS.map((s) => ({ ...s })) as unknown as DirectoryRow[];
-    const res = inMemory(all, filters, page);
+    const res = inMemory(all, filters, page, optionIndex);
     rows = res.rows;
     total = res.total;
-    sectors = Array.from(
-      new Set(all.map((r) => r.primary_industry).filter((s): s is string => !isMissing(s)))
-    ).sort();
-    cities = Array.from(
-      new Set(
-        all
-          .map((r) => r.city)
-          .filter((s): s is string => !isMissing(s))
-          .map((s) => s.trim())
-      )
-    ).sort();
-    stages = Array.from(
-      new Set(all.map((r) => r.product_stage).filter((s): s is string => !isMissing(s)))
-    ).sort();
     totalAll = all.length;
   }
 
@@ -270,9 +246,7 @@ export default async function DirectoryPage({
         <DirectoryHero totalStartups={totalAll} sectorCount={sectors.length} cityCount={cities.length} />
         <section id="directory" className="py-16 sm:py-24">
           <div className="site-container">
-            {/* useSearchParams in the client needs a Suspense boundary; route
-                transitions reuse the existing UI so the fallback only shows on
-                the very first paint. */}
+            {/* useSearchParams in the client needs a Suspense boundary; route */}
             <Suspense fallback={<div className="text-pasha-muted">Loading…</div>}>
               <DirectoryClient
                 rows={rows}
@@ -281,6 +255,8 @@ export default async function DirectoryPage({
                 sectors={sectors}
                 cities={cities}
                 stages={stages}
+                fundingBands={optionRegistry.FUNDING_AMOUNT_RANGES ?? []}
+                optionIndex={optionIndex}
                 filters={filters}
                 page={page}
                 pageSize={PAGE_SIZE}
