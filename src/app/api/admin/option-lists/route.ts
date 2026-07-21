@@ -1,10 +1,8 @@
-// Admin CRUD for reusable option lists (option_lists table).
-
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient as createSessionClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
-import { getOptionListsForAdmin } from "@/lib/options/registry.server";
+import { getAdminOptionTypes, saveOptionType, deleteOptionType } from "@/lib/options/admin.server";
 
 async function requireAdmin() {
   const sessionClient = await createSessionClient();
@@ -17,86 +15,52 @@ async function requireAdmin() {
   return { user, error: null };
 }
 
-const itemSchema = z.object({
-  value: z.string().trim().min(1),
-  label: z.string().trim().min(1),
-});
+const itemSchema = z.object({ value: z.string().trim().min(1), label: z.string().trim().min(1) });
 
 const upsertSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1)
-    .max(64)
-    .regex(/^[A-Za-z0-9_]+$/, "Use letters, numbers and underscores only"),
+  name: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_]+$/, "Use letters, numbers and underscores only"),
   label: z.string().trim().max(120).optional(),
   items: z.array(itemSchema),
 });
 
-// GET — all lists for the manager (code + DB + overrides).
+// GET — every option list, sourced from the options/countries tables.
 export async function GET() {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
-  return NextResponse.json({ lists: await getOptionListsForAdmin() });
+  return NextResponse.json({ lists: await getAdminOptionTypes() });
 }
 
-// POST — create a new list, or create a DB override of a code list.
-export async function POST(req: Request) {
+// POST / PATCH — upsert a whole list into the options table, then re-link data rows.
+async function upsert(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const parsed = upsertSchema.safeParse(await safeJson(req));
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Validation failed" }, { status: 400 });
   }
-  const { name, label, items } = parsed.data;
-  const supabase = createServiceClient();
-  const { error: insErr } = await supabase
-    .from("option_lists")
-    .insert({ name, label: label ?? name, items });
-  if (insErr) {
-    const conflict = /duplicate|unique/i.test(insErr.message);
-    return NextResponse.json(
-      { error: conflict ? `A list named "${name}" already exists` : insErr.message },
-      { status: conflict ? 409 : 500 }
-    );
+  try {
+    await saveOptionType(parsed.data.name, parsed.data.items);
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Save failed" }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }
 
-// PATCH — update an existing DB list by name.
-export async function PATCH(req: Request) {
-  const { user, error } = await requireAdmin();
-  if (!user) return error!;
-  const parsed = upsertSchema.safeParse(await safeJson(req));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
-      { status: 400 }
-    );
-  }
-  const { name, label, items } = parsed.data;
-  const supabase = createServiceClient();
-  const { error: updErr } = await supabase
-    .from("option_lists")
-    .update({ label: label ?? name, items, updated_at: new Date().toISOString() })
-    .eq("name", name);
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
-}
+export const POST = upsert;
+export const PATCH = upsert;
 
-// DELETE — remove a DB list (reverts to the code default if one exists).
+// DELETE — deactivate every option in a list (existing rows keep resolving their label).
 export async function DELETE(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const body = (await safeJson(req)) as { name?: string };
   const name = String(body.name ?? "").trim();
   if (!name) return NextResponse.json({ error: "Missing list name" }, { status: 400 });
-  const supabase = createServiceClient();
-  const { error: delErr } = await supabase.from("option_lists").delete().eq("name", name);
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  try {
+    await deleteOptionType(name);
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Delete failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2, Loader2, RotateCcw, Lock, X } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, Lock, X } from "lucide-react";
 import { Pagination } from "../_components/Pagination";
 
 export type OptionItem = { value: string; label: string };
@@ -94,12 +94,9 @@ export function OptionListsClient({
 
   const deleteList = (meta: OptionListMeta) =>
     run(async () => {
-      const revert = meta.source === "override";
       if (
         !confirm(
-          revert
-            ? `Remove your override of "${meta.name}"? It will revert to the built-in default.`
-            : `Delete the list "${meta.name}"? Fields referencing it will have no options.`
+          `Deactivate every option in "${meta.name}"? New entries won't offer them; records already using them keep their label.`
         )
       )
         return;
@@ -216,10 +213,8 @@ function ListCard({
 
   const badge =
     meta.source === "code"
-      ? { label: "Built-in", cls: "bg-pasha-stone text-pasha-ink/70" }
-      : meta.source === "override"
-      ? { label: "Built-in · overridden", cls: "bg-amber-100 text-amber-700" }
-      : { label: "Custom", cls: "bg-pasha-red/10 text-pasha-red" };
+      ? { label: "Not yet saved", cls: "bg-pasha-stone text-pasha-ink/70" }
+      : { label: "Live", cls: "bg-green-600/10 text-green-700" };
 
   return (
     <div className="rounded-xl border border-pasha-line bg-white p-4 space-y-3">
@@ -231,11 +226,9 @@ function ListCard({
           </span>
           <span className="text-[11px] text-pasha-muted">{meta.items.length} options</span>
         </div>
-        {meta.source === "code" && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-pasha-muted shrink-0">
-            <Lock className="w-3 h-3" /> Editing creates an override
-          </span>
-        )}
+        <span className="inline-flex items-center gap-1 text-[11px] text-pasha-muted shrink-0">
+          <Lock className="w-3 h-3" /> Left of <span className="font-mono">|</span> is the stored key — edit the label freely, change the key only to add a new option
+        </span>
       </div>
 
       <textarea
@@ -251,18 +244,8 @@ function ListCard({
           onClick={() => onSave(meta, text)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-sm hover:border-pasha-red hover:text-pasha-red disabled:opacity-50"
         >
-          <Save className="w-4 h-4" /> {meta.source === "code" ? "Save as override" : "Save"}
+          <Save className="w-4 h-4" /> {meta.source === "code" ? "Save & link" : "Save"}
         </button>
-        {meta.source === "override" && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onDelete(meta)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-pasha-line px-3 py-2 text-sm text-pasha-muted hover:border-pasha-red hover:text-pasha-red disabled:opacity-50"
-          >
-            <RotateCcw className="w-4 h-4" /> Revert to built-in
-          </button>
-        )}
         {meta.source === "db" && (
           <button
             type="button"

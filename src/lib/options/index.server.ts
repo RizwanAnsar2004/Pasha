@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getOptionRows } from "./registry.server";
+import { getAllOptionRows } from "./registry.server";
 import { buildOptionIndex, type OptionIndex } from "./resolve";
 
 type CountryIdRow = {
@@ -14,8 +14,7 @@ async function mergeCountries(index: OptionIndex): Promise<OptionIndex> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("countries")
-    .select("country_id, country_name")
-    .eq("is_active", true);
+    .select("country_id, country_name");
 
   if (error || !data) return index;
 
@@ -31,6 +30,6 @@ async function mergeCountries(index: OptionIndex): Promise<OptionIndex> {
 
 // The one id→label lookup every render path uses for stored choice columns.
 export const getOptionIndex = cache(async (): Promise<OptionIndex> => {
-  const index = buildOptionIndex(await getOptionRows());
+  const index = buildOptionIndex(await getAllOptionRows());
   return mergeCountries(index);
 });

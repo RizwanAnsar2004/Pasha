@@ -1,4 +1,4 @@
-import { getOptionListsForAdmin } from "@/lib/options/registry.server";
+import { getAdminOptionTypes } from "@/lib/options/admin.server";
 import { OptionListsClient } from "./OptionListsClient";
 import { parsePagination } from "@/lib/utils/pagination";
 
@@ -11,8 +11,7 @@ export default async function OptionListsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  // The list is a small, merged (code + DB) set assembled in memory, so we paginate by slicing the resolved array rather than a SQL range — but the.
-  const all = await getOptionListsForAdmin();
+  const all = await getAdminOptionTypes();
   const pagination = parsePagination(sp, { defaultPageSize: 25 });
   const rows = all.slice(pagination.from, pagination.to + 1);
 
@@ -21,9 +20,10 @@ export default async function OptionListsPage({
       <div className="mb-6">
         <h1 className="font-serif text-2xl text-pasha-ink">Option lists</h1>
         <p className="mt-1 text-sm text-pasha-muted">
-          Reusable choice lists for dropdown / radio / checkbox fields. Reference a
-          list from a field by its name in the form builder. Built-in lists can be
-          overridden here without a deploy — changes go live immediately.
+          Reusable choice lists for dropdown / radio / checkbox fields. Saving a list
+          writes to the options table and re-links existing records — changes go live
+          immediately. Removing an option hides it from new entries; records already
+          using it keep their label.
         </p>
       </div>
       <OptionListsClient

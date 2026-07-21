@@ -8,7 +8,6 @@ import { OTHER_VALUE, registerOtherOptionsFromRegistry } from "./choice";
 import type {
   OptionItem,
   OptionList,
-  OptionListMeta,
   OptionRegistry,
   OptionRow,
 } from "./types";
@@ -26,6 +25,24 @@ export const getOptionRows = cache(async (): Promise<Record<string, OptionRow[]>
     .from("options")
     .select("option_id, option_type, option_value, option_label, sort_order, is_active")
     .eq("is_active", true)
+    .order("option_type", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) return null;
+
+  const byType: Record<string, OptionRow[]> = {};
+  for (const row of data as OptionRow[]) {
+    (byType[row.option_type] ??= []).push(row);
+  }
+  return Object.keys(byType).length > 0 ? byType : null;
+});
+
+// Every option incl. inactive, so a removed-but-still-referenced value keeps rendering its label.
+export const getAllOptionRows = cache(async (): Promise<Record<string, OptionRow[]> | null> => {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("options")
+    .select("option_id, option_type, option_value, option_label, sort_order, is_active")
     .order("option_type", { ascending: true })
     .order("sort_order", { ascending: true });
 
@@ -101,28 +118,3 @@ export async function getOptionItems(name: string): Promise<OptionItem[]> {
   const registry = await getOptionRegistry();
   return registry[name] ?? [];
 }
-
-// Lists every option list for the admin manager, flagging code / db / override origin.
-export const getOptionListsForAdmin = cache(async (): Promise<OptionListMeta[]> => {
-  const codeNames = new Set(Object.keys(OPTION_LISTS));
-  const byName = new Map<string, OptionListMeta>();
-
-  for (const [name, list] of Object.entries(OPTION_LISTS)) {
-    byName.set(name, { name, label: name, items: normalizeOptions(list), source: "code" });
-  }
-
-  const supabase = createServiceClient();
-  const { data, error } = await supabase.from("option_lists").select("name, label, items");
-  if (!error && data) {
-    for (const row of data as OptionListRow[]) {
-      byName.set(row.name, {
-        name: row.name,
-        label: row.label || row.name,
-        items: normalizeOptions(row.items as OptionList),
-        source: codeNames.has(row.name) ? "override" : "db",
-      });
-    }
-  }
-
-  return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
-});
