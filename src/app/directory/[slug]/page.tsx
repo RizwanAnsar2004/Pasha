@@ -68,6 +68,7 @@ import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 import { getOptionItems } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
 import { resolveOptionLabel } from "@/lib/options/resolve";
+import { ClaimProfile } from "@/components/directory/ClaimProfile";
 
 // New records store revenue / funding as select bands (not numeric columns), so
 // Prefer the user's free text when the stored choice is the "Other"
@@ -148,7 +149,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   const supabase = createServiceClient();
   // Defensive select chain: try the full (post-v2-migration) column list, then fall back step-by-step.
   const V2_ADDITIONS =
-    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising, answers";
+    "key_persons, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, hq_country, awards, certifications, women_led, hiring, fundraising, answers, verified_claimed";
   const LEGACY_NO_PASHA =
     "id, source, startup_name, company_name, tagline, website, founded_date, primary_industry, secondary_industries, business_types, product_stage, sdgs, city, nic_name, incubation_stage, cohort, joining_date, total_employees, female_employees, jobs_created, current_revenue, investment_raised, investment_commitment, investment_raised_from, number_of_customers, video_pitch, logo_url, startup_idea, business_model, social_impact, secp_verified";
   const LEGACY = `${LEGACY_NO_PASHA}, pasha_verified`;
@@ -165,7 +166,7 @@ async function getStartup(slug: string): Promise<Row | null> {
   }
 
   let { data, error } = await tryFetch(FULL);
-  if (error && /key_persons|company_|hq_country|awards|certifications|women_led|hiring|fundraising|answers/.test(error.message ?? "")) {
+  if (error && /key_persons|company_|hq_country|awards|certifications|women_led|hiring|fundraising|answers|verified_claimed/.test(error.message ?? "")) {
     ({ data, error } = await tryFetch(LEGACY));
   }
   if (error && /pasha_verified/.test(error.message ?? "")) {
@@ -594,22 +595,10 @@ export default async function StartupDetailPage({
             </nav>
 
             {row.source !== "submission" && (
-              <div className="mb-8 rounded-2xl border border-pasha-red/30 bg-pasha-red/[0.08] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-white/85">
-                <p className="leading-relaxed">
-                  <strong className="font-semibold text-white">Is this your company?</strong>{" "}
-                  This profile was imported from a public source. To claim
-                  ownership and keep the information up to date, please email{" "}
-                  <a
-                    href={`mailto:startups@pasha.org.pk?subject=${encodeURIComponent(
-                      `Claim profile: ${row.startup_name}`
-                    )}`}
-                    className="text-white font-semibold underline underline-offset-2 hover:text-pasha-red-light"
-                  >
-                    startups@pasha.org.pk
-                  </a>{" "}
-                  from your company&rsquo;s email address.
-                </p>
-              </div>
+              <ClaimProfile
+                databankId={row.id}
+                alreadyClaimed={Boolean((row as { verified_claimed?: boolean }).verified_claimed)}
+              />
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 lg:gap-16 items-end">
