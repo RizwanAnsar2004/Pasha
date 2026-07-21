@@ -184,6 +184,22 @@ export async function registerApplicant(
   }
 
   if (data.session) return { status: "signed_in", userId: user.id };
+
+  // No session → the project still requires email confirmation. Auto-confirm via
+  // the service role and sign in, so registration always routes straight into
+  // the app without a verification screen.
+  const admin = createServiceClient();
+  const { error: confirmErr } = await admin.auth.admin.updateUserById(user.id, {
+    email_confirm: true,
+  });
+  if (confirmErr) {
+    return { status: "needs_verification", userId: user.id };
+  }
+  const { data: signIn } = await supabase.auth.signInWithPassword({
+    email: params.email.toLowerCase(),
+    password: params.password,
+  });
+  if (signIn.session) return { status: "signed_in", userId: user.id };
   return { status: "needs_verification", userId: user.id };
 }
 
