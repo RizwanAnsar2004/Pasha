@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { api as http } from "@/lib/api/client";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
@@ -79,15 +80,13 @@ function formToPayload(form: FormState) {
   };
 }
 
-async function api(method: string, body?: unknown) {
-  const res = await fetch("/api/admin/email-templates", {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function api(method: string, body?: unknown): Promise<any> {
+  const p = "/api/admin/email-templates";
+  if (method === "POST") return http.post(p, body);
+  if (method === "PATCH") return http.patch(p, body);
+  if (method === "DELETE") return http.del(p, body);
+  return http.get(p);
 }
 
 export function EmailTemplatesClient({

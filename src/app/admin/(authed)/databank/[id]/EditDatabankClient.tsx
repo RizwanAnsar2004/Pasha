@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import Link from "next/link";
 import { ArrowLeft, Plus, Save, Trash2, Loader2, X } from "lucide-react";
 import { Field } from "@/components/form/Field";
@@ -203,13 +205,7 @@ export function EditDatabankClient({
     setSuccess(null);
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/databank", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: row.id, updates: diff }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Save failed");
+      await api.patch(ENDPOINTS.admin.databank, { id: row.id, updates: diff });
       setSuccess("Saved.");
       // Reflect the saved state as the new baseline so the diff resets.
       router.refresh();
@@ -229,13 +225,7 @@ export function EditDatabankClient({
     setDeleting(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/databank", {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: row.id }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Delete failed");
+      await api.del(ENDPOINTS.admin.databank, { id: row.id });
       router.push("/admin/databank");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");

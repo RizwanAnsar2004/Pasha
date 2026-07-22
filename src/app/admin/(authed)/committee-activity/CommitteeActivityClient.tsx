@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { api as http } from "@/lib/api/client";
 import { format } from "date-fns";
 import { Download, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,15 +86,13 @@ function authorDisplay(email: string | null) {
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
-async function api(method: string, body?: unknown) {
-  const res = await fetch("/api/admin/committee-activity", {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function api(method: string, body?: unknown): Promise<any> {
+  const p = "/api/admin/committee-activity";
+  if (method === "POST") return http.post(p, body);
+  if (method === "PATCH") return http.patch(p, body);
+  if (method === "DELETE") return http.del(p, body);
+  return http.get(p);
 }
 
 type FormState = {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Loader2, Pencil, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
@@ -90,8 +92,7 @@ export function CommitteeManagementClient({
   }, [editingEmail, savingEmail]);
 
   async function refresh() {
-    const res = await fetch("/api/admin/committee-members", { cache: "no-store" });
-    const j = await res.json();
+    const j = await api.get<{ members?: MemberRow[] }>(ENDPOINTS.admin.committeeMembers);
     setRows(j.members ?? []);
   }
 
@@ -115,19 +116,13 @@ export function CommitteeManagementClient({
     setSuccess(null);
     setSavingEmail(targetEmail);
     try {
-      const res = await fetch("/api/admin/committee-members", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: targetEmail,
-          name: editName.trim(),
-          roles: editRoles.trim() || undefined,
-          org: editOrg.trim(),
-          type: editType,
-        }),
+      const j = await api.patch<{ member: MemberRow }>(ENDPOINTS.admin.committeeMembers, {
+        email: targetEmail,
+        name: editName.trim(),
+        roles: editRoles.trim() || undefined,
+        org: editOrg.trim(),
+        type: editType,
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not update committee member");
       setRows((prev) => prev.map((r) => (r.email === targetEmail ? j.member : r)));
       setSuccess(`Updated ${targetEmail}.`);
       cancelEdit();
@@ -144,19 +139,13 @@ export function CommitteeManagementClient({
     setSuccess(null);
     setAdding(true);
     try {
-      const res = await fetch("/api/admin/committee-members", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          name: name.trim() || undefined,
-          roles: roles.trim() || undefined,
-          org: org.trim() || undefined,
-          type,
-        }),
+      const j = await api.post<{ emailed?: boolean; password?: string; email: string }>(ENDPOINTS.admin.committeeMembers, {
+        email: email.trim().toLowerCase(),
+        name: name.trim() || undefined,
+        roles: roles.trim() || undefined,
+        org: org.trim() || undefined,
+        type,
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not add committee member");
       if (j.emailed) {
         setSuccess(`Added ${j.email}. Their login email, role, and password have been emailed to them.`);
       } else if (j.password) {
@@ -187,13 +176,7 @@ export function CommitteeManagementClient({
     setSuccess(null);
     setRemovingEmail(target);
     try {
-      const res = await fetch("/api/admin/committee-members", {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: target }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not remove committee member");
+      await api.del(ENDPOINTS.admin.committeeMembers, { email: target });
       setSuccess(`Removed ${target}.`);
       setDeleteTarget(null);
       if (editingEmail === target) cancelEdit();

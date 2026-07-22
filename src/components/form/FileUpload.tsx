@@ -1,4 +1,5 @@
 "use client";
+import { api, apiErrorMessage } from "@/lib/api/client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
@@ -43,13 +44,10 @@ export function FileUpload({
         fd.append("file", file);
         fd.append("bucket", bucket);
 
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        const data = await api.upload<{ url: string }>("/api/upload", fd);
         onChange(data.url);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Upload failed";
-        setError(msg);
+        setError(apiErrorMessage(e, "Upload failed"));
         setFileName(null);
       } finally {
         setUploading(false);

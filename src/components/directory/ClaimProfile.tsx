@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { api, ApiError } from "@/lib/api/client";
 
 type Step = "idle" | "email" | "code" | "done";
 
@@ -20,35 +21,22 @@ export function ClaimProfile({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function post(body: Record<string, unknown>) {
-    const res = await fetch("/api/claim", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => ({}));
-    return { ok: res.ok, json };
-  }
-
-  async function sendCode() {
+  async function claim(body: Record<string, unknown>, onOk: () => void) {
     setBusy(true);
     setError(null);
-    const { ok, json } = await post({ action: "start", databankId, email });
-    setBusy(false);
-    if (json?.claimed) return setClaimedElsewhere(true);
-    if (!ok) return setError(json?.error ?? "Something went wrong.");
-    setStep("code");
+    try {
+      await api.post("/api/claim", body);
+      onOk();
+    } catch (e) {
+      if (e instanceof ApiError && e.data.claimed) return setClaimedElsewhere(true);
+      setError(e instanceof ApiError ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function verify() {
-    setBusy(true);
-    setError(null);
-    const { ok, json } = await post({ action: "verify", databankId, email, code });
-    setBusy(false);
-    if (json?.claimed) return setClaimedElsewhere(true);
-    if (!ok) return setError(json?.error ?? "Something went wrong.");
-    setStep("done");
-  }
+  const sendCode = () => claim({ action: "start", databankId, email }, () => setStep("code"));
+  const verify = () => claim({ action: "verify", databankId, email, code }, () => setStep("done"));
 
   if (claimedElsewhere || step === "done") {
     return (

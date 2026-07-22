@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { api as http } from "@/lib/api/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -22,15 +23,13 @@ type Candidate = {
 
 type SourceFilter = "all" | "submission" | "manual";
 
-async function api(method: string, body?: unknown) {
-  const res = await fetch("/api/admin/awards", {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function api(method: string, body?: unknown): Promise<any> {
+  const p = "/api/admin/awards";
+  if (method === "POST") return http.post(p, body);
+  if (method === "PATCH") return http.patch(p, body);
+  if (method === "DELETE") return http.del(p, body);
+  return http.get(p);
 }
 
 export function AwardsClient({
@@ -153,11 +152,8 @@ export function AwardsClient({
     }
     setSearching(true);
     try {
-      const res = await fetch(`/api/admin/awards?q=${encodeURIComponent(value.trim())}`, {
-        cache: "no-store",
-      });
-      const j = await res.json();
-      setCandidates(j.candidates ?? []);
+      const j = await http.get<{ candidates?: unknown[] }>(`/api/admin/awards?q=${encodeURIComponent(value.trim())}`);
+      setCandidates((j.candidates ?? []) as typeof candidates);
     } finally {
       setSearching(false);
     }

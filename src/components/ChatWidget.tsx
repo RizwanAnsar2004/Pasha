@@ -1,4 +1,5 @@
 "use client";
+import { api, ApiError } from "@/lib/api/client";
 
 // Floating chat widget wired to the P@SHA RAG assistant (/api/chat).
 
@@ -71,22 +72,12 @@ export function ChatWidget() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text }),
-      });
-      const data = await res.json();
-      const botText =
-        res.ok && data.answer
-          ? data.answer
-          : data.error ?? "Sorry, something went wrong. Please try again.";
+      const data = await api.post<{ answer?: string }>("/api/chat", { question: text });
+      const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        { id: nextId.current++, role: "bot", text: "Could not reach the assistant. Please try again." },
-      ]);
+    } catch (e) {
+      const botText = e instanceof ApiError ? e.message : "Could not reach the assistant. Please try again.";
+      setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } finally {
       setLoading(false);
     }

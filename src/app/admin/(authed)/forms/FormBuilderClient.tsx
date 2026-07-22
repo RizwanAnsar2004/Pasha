@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, createContext, useContext } from "react";
+import { api as http } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import {
   Plus,
   Trash2,
@@ -163,15 +165,12 @@ function textToOptions(text: string): { value: string; label: string }[] | null 
   });
 }
 
-async function api(method: string, body: unknown) {
-  const res = await fetch("/api/admin/forms", {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function api(method: string, body: unknown): Promise<any> {
+  const p = ENDPOINTS.admin.forms;
+  if (method === "PATCH") return http.patch(p, body);
+  if (method === "DELETE") return http.del(p, body);
+  return http.post(p, body);
 }
 
 const inputCls =
@@ -196,8 +195,7 @@ export function FormBuilderClient({
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/api/admin/forms");
-    const data = await res.json();
+    const data = await http.get<{ sections?: typeof sections; fields?: typeof fields }>(ENDPOINTS.admin.forms);
     setSections(data.sections ?? []);
     setFields(data.fields ?? []);
   }, []);

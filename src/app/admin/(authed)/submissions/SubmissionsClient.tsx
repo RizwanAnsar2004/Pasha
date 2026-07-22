@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { api, apiErrorMessage } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, FileText, BadgeCheck } from "lucide-react";
@@ -503,14 +505,16 @@ function SubmissionDrawer({
     setNotes("");
 
     (async () => {
-      const res = await fetch(`/api/admin/submission?id=${encodeURIComponent(id)}`, {
-        cache: "no-store",
-      });
-      const j = await res.json().catch(() => ({}));
-      if (cancel || !res.ok) return;
+      let j: Record<string, unknown>;
+      try {
+        j = await api.get(`${ENDPOINTS.admin.submission}?id=${encodeURIComponent(id)}`);
+      } catch {
+        return;
+      }
+      if (cancel) return;
       setRow(j.submission as FullRow);
-      setDatabankId(j.databank_id ?? null);
-      setFeaturedStatus(j.featured ?? null);
+      setDatabankId((j.databank_id as string) ?? null);
+      setFeaturedStatus((j.featured as typeof featuredStatus) ?? null);
       setFieldLabels((j.field_labels as FieldLabelMap) ?? {});
       setVerified(Boolean(j.verified));
     })();
@@ -523,27 +527,19 @@ function SubmissionDrawer({
   const act = async (newStatus: "approved" | "rejected" | "needs_update") => {
     setActing(newStatus === "approved" ? "approve" : newStatus === "rejected" ? "reject" : "needs_update");
     try {
-      // Use the admin API route so writes go through is_admin() check + audit log
-      const res = await fetch("/api/admin/submission", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: newStatus, reviewer_notes: notes || undefined }),
-      });
-      if (res.ok) {
-        onUpdated({ id, status: newStatus });
-        // Approve / Reject / Request-update all resolve the review → close the drawer, show a toast, and the listing reflects the new status (the row was.
-        const text =
-          newStatus === "approved"
-            ? "Submission approved"
-            : newStatus === "rejected"
-            ? "Submission rejected"
-            : "Update requested from applicant";
-        onToast(text, true);
-        onClose();
-      } else {
-        const j = await res.json().catch(() => ({}));
-        onToast(j.error ?? "Couldn't update the submission", false);
-      }
+      // Admin route so writes go through is_admin() check + audit log.
+      await api.patch(ENDPOINTS.admin.submission, { id, status: newStatus, reviewer_notes: notes || undefined });
+      onUpdated({ id, status: newStatus });
+      const text =
+        newStatus === "approved"
+          ? "Submission approved"
+          : newStatus === "rejected"
+          ? "Submission rejected"
+          : "Update requested from applicant";
+      onToast(text, true);
+      onClose();
+    } catch (e) {
+      onToast(apiErrorMessage(e, "Couldn't update the submission"), false);
     } finally {
       setActing(null);
     }
@@ -552,19 +548,12 @@ function SubmissionDrawer({
   const toggleVerify = async () => {
     setActing("verify");
     try {
-      const res = await fetch("/api/admin/submission", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action: "verify", verified: !verified }),
-      });
-      if (res.ok) {
-        const next = !verified;
-        setVerified(next);
-        onToast(next ? "Marked as P@SHA Verified" : "Verification removed", true);
-      } else {
-        const j = await res.json().catch(() => ({}));
-        onToast(j.error ?? "Couldn't update verification", false);
-      }
+      await api.patch(ENDPOINTS.admin.submission, { id, action: "verify", verified: !verified });
+      const next = !verified;
+      setVerified(next);
+      onToast(next ? "Marked as P@SHA Verified" : "Verification removed", true);
+    } catch (e) {
+      onToast(apiErrorMessage(e, "Couldn't update verification"), false);
     } finally {
       setActing(null);
     }

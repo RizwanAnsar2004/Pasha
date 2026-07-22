@@ -2,6 +2,8 @@
 
 import { useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { api, ApiError, apiErrorMessage } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -126,13 +128,14 @@ function AuthInner({
   }
 
   async function postAuth(payload: Record<string, unknown>) {
-    const res = await fetch("/api/applicant/auth", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const j = await res.json().catch(() => ({}));
-    return { res, j };
+    type AuthResp = { error?: string; exists?: boolean; needsVerification?: boolean };
+    try {
+      const j = await api.post<AuthResp>(ENDPOINTS.applicant.auth, payload);
+      return { res: { ok: true, status: 200 }, j };
+    } catch (e) {
+      if (e instanceof ApiError) return { res: { ok: false, status: e.status }, j: e.data as AuthResp };
+      return { res: { ok: false, status: 0 }, j: { error: apiErrorMessage(e) } as AuthResp };
+    }
   }
 
   // Step 1 → Step 2 (or straight to submit when there's no registration form).

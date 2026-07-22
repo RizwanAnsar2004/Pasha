@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { ApiUnauthorizedHandler } from "@/components/ApiUnauthorizedHandler";
 import {
   ShieldCheck,
@@ -37,8 +39,7 @@ export function AdminsManager({
   const [success, setSuccess] = useState<string | null>(null);
 
   async function refresh() {
-    const res = await fetch("/api/super-admin/admins", { cache: "no-store" });
-    const j = await res.json();
+    const j = await api.get<{ admins?: typeof rows }>(ENDPOINTS.superAdmin.admins);
     setRows(j.admins ?? []);
   }
 
@@ -48,16 +49,10 @@ export function AdminsManager({
     setSuccess(null);
     setAdding(true);
     try {
-      const res = await fetch("/api/super-admin/admins", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          notes: notes.trim() || undefined,
-        }),
+      const j = await api.post<{ email: string }>(ENDPOINTS.superAdmin.admins, {
+        email: email.trim().toLowerCase(),
+        notes: notes.trim() || undefined,
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not add admin");
       setSuccess(`Added ${j.email}. They can now sign in at /admin/login.`);
       setEmail("");
       setNotes("");
@@ -81,13 +76,7 @@ export function AdminsManager({
     setSuccess(null);
     setRemovingEmail(target);
     try {
-      const res = await fetch("/api/super-admin/admins", {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: target }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not remove admin");
+      await api.del(ENDPOINTS.superAdmin.admins, { email: target });
       setSuccess(`Removed ${target}.`);
       await refresh();
     } catch (e) {
@@ -98,7 +87,7 @@ export function AdminsManager({
   }
 
   async function signOut() {
-    await fetch("/api/super-admin/auth", { method: "DELETE" });
+    await api.del(ENDPOINTS.superAdmin.auth);
     router.replace("/super-admin/login");
   }
 

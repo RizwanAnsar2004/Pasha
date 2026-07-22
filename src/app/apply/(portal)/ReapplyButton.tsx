@@ -1,4 +1,5 @@
 "use client";
+import { api, apiErrorMessage } from "@/lib/api/client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,15 +14,11 @@ export function ReapplyButton() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/applicant/draft/reopen", { method: "POST" });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? "Couldn't reopen application");
-      }
+      await api.post("/api/applicant/draft/reopen");
       router.push("/apply?tab=form");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't reopen application");
+      setError(apiErrorMessage(e, "Couldn't reopen application"));
       setLoading(false);
     }
   };

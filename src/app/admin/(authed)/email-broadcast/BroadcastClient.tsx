@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api/client";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 
 export type TemplateOption = { template_id: string; name: string };
@@ -40,13 +41,7 @@ export function BroadcastClient({ templates }: { templates: TemplateOption[] }) 
       if (scope === "custom" && (!emails || emails.length === 0)) {
         throw new Error("Enter at least one email address.");
       }
-      const res = await fetch("/api/admin/email-broadcast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, scope, emails }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Send failed");
+      const json = await api.post<{ queued: number }>("/api/admin/email-broadcast", { templateId, scope, emails });
       setMsg({ kind: "ok", text: `Queued ${json.queued} recipient(s). Track delivery in Email Log.` });
       if (scope === "custom") setEmailsText("");
     } catch (e) {

@@ -1,4 +1,5 @@
 "use client";
+import { api } from "@/lib/api/client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +19,7 @@ export function AdminUserMenu({ email }: { email: string }) {
   async function signOut() {
     setLoading(true);
     try {
-      await fetch("/api/admin/auth", { method: "DELETE" });
+      api.del("/api/admin/auth");
       router.replace("/admin/login");
       router.refresh();
     } catch {

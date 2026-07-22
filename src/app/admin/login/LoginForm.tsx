@@ -2,6 +2,8 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { api, apiErrorMessage } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { motion } from "framer-motion";
 import { ShieldCheck, Loader2, AlertCircle, MailCheck } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -31,16 +33,10 @@ function LoginInner() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Sign-in failed");
+      await api.post(ENDPOINTS.admin.auth, { email, password });
       router.replace(redirect);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed");
+      setError(apiErrorMessage(e, "Sign-in failed"));
     } finally {
       setLoading(false);
     }
@@ -52,16 +48,10 @@ function LoginInner() {
     setNotice(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "forgot", email }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Could not send the reset email");
+      await api.post(ENDPOINTS.admin.auth, { action: "forgot", email });
       setNotice("sent");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send the reset email");
+      setError(apiErrorMessage(e, "Could not send the reset email"));
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api, apiErrorMessage } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import {
   Search,
   Mail,
@@ -87,19 +89,10 @@ export function DatabankClient({
     const snapshot = rowsState;
     setRowsState((rs) => rs.filter((r) => r.id !== id));
     try {
-      const res = await fetch("/api/admin/databank", {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      if (!res.ok) {
-        setRowsState(snapshot); // rollback
-        const j = await res.json().catch(() => ({}));
-        alert(`Failed to delete: ${j.error ?? res.statusText}`);
-      }
+      await api.del(ENDPOINTS.admin.databank, { id });
     } catch (e) {
       setRowsState(snapshot); // rollback
-      alert(`Network error: ${e instanceof Error ? e.message : String(e)}`);
+      alert(`Failed to delete: ${apiErrorMessage(e)}`);
     } finally {
       setPending((p) => {
         const next = { ...p };
@@ -115,20 +108,10 @@ export function DatabankClient({
     // Optimistic update
     setRowsState((rs) => rs.map((r) => (r.id === id ? { ...r, pasha_verified: next } : r)));
     try {
-      const res = await fetch("/api/admin/verify-startup", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, verified: next }),
-      });
-      if (!res.ok) {
-        // Rollback on failure
-        setRowsState((rs) => rs.map((r) => (r.id === id ? { ...r, pasha_verified: !next } : r)));
-        const j = await res.json().catch(() => ({}));
-        alert(`Failed to update verified flag: ${j.error ?? res.statusText}`);
-      }
+      await api.patch(ENDPOINTS.admin.verifyStartup, { id, verified: next });
     } catch (e) {
       setRowsState((rs) => rs.map((r) => (r.id === id ? { ...r, pasha_verified: !next } : r)));
-      alert(`Network error: ${e instanceof Error ? e.message : String(e)}`);
+      alert(`Failed to update verified flag: ${apiErrorMessage(e)}`);
     } finally {
       setPending((p) => {
         const next = { ...p };

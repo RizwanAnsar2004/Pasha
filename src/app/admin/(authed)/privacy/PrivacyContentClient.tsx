@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { format, parseISO } from "date-fns";
 import { Check, Eye, Loader2, Save } from "lucide-react";
+import { api } from "@/lib/api/client";
 import { RichText } from "@/components/ui/RichText";
 import type { SiteContentSlug } from "@/lib/content/site-content";
 
@@ -37,16 +38,7 @@ export function PrivacyContentClient({
     setError(null);
     setSaved(false);
     try {
-      const res = await fetch("/api/admin/site-content", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, title, body }),
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(j?.error ?? "Failed to save");
-      }
-      const data = (await res.json()) as Initial;
+      const data = await api.put<Initial>("/api/admin/site-content", { slug, title, body });
       setUpdatedAt(data.updated_at ?? new Date().toISOString());
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);

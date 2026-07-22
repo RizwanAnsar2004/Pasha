@@ -19,6 +19,8 @@ import {
 import { DynamicField } from "./DynamicField";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
+import { api } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
@@ -142,7 +144,8 @@ export function DynamicForm({
     if (typeof window === "undefined") return;
 
     if (serverPersist) {
-      const payload = JSON.stringify({ data: values, current_step: stepIdx });
+      const draft = { data: values, current_step: stepIdx };
+      const payload = JSON.stringify(draft);
       // First run: the seeded values already match the server draft, so record the baseline without a redundant write.
       if (lastSavedRef.current === null) {
         lastSavedRef.current = payload;
@@ -154,12 +157,9 @@ export function DynamicForm({
         // Mark saved up front so the re-render from setSaveState doesn't re-fire (and so a failing endpoint isn't hammered on every render).
         lastSavedRef.current = payload;
         setSaveState("saving");
-        fetch("/api/applicant/draft", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: payload,
-        })
-          .then((res) => setSaveState(res.ok ? "saved" : "idle"))
+        api
+          .put(ENDPOINTS.applicant.draft, draft)
+          .then(() => setSaveState("saved"))
           .catch(() => setSaveState("idle"));
       }, DRAFT_DEBOUNCE_MS);
       return () => window.clearTimeout(handle);
@@ -223,13 +223,7 @@ export function DynamicForm({
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error ?? "Submission failed");
+      const result = await api.post<{ tier?: string; score?: number; id: string }>(ENDPOINTS.submit, data);
       try {
         window.localStorage.removeItem(DRAFT_KEY);
       } catch {}

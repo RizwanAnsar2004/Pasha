@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api, apiErrorMessage } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
@@ -17,16 +19,10 @@ export function SuperAdminLoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/super-admin/auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Sign-in failed");
+      await api.post(ENDPOINTS.superAdmin.auth, { email, password });
       router.replace("/super-admin");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed");
+      setError(apiErrorMessage(e, "Sign-in failed"));
     } finally {
       setLoading(false);
     }

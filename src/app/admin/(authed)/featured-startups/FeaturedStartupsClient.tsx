@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { api as http } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -94,15 +96,13 @@ function startOfDayIso(dateStr: string) {
   return new Date(`${dateStr}T00:00:00.000`).toISOString();
 }
 
-async function api(method: string, body?: unknown) {
-  const res = await fetch("/api/admin/featured-startups", {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function api(method: string, body?: unknown): Promise<any> {
+  const p = ENDPOINTS.admin.featuredStartups;
+  if (method === "POST") return http.post(p, body);
+  if (method === "PATCH") return http.patch(p, body);
+  if (method === "DELETE") return http.del(p, body);
+  return http.get(p);
 }
 
 const STATUS_STYLES: Record<FeaturedStatus, string> = {
@@ -167,10 +167,9 @@ export function FeaturedStartupsClient({
   }, []);
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/api/admin/featured-startups", { cache: "no-store" });
-    const j = await res.json();
-    setEntries(j.featured ?? []);
-    setSettings(j.settings ?? initialSettings);
+    const j = await http.get<{ featured?: unknown[]; settings?: unknown }>(ENDPOINTS.admin.featuredStartups);
+    setEntries((j.featured ?? []) as typeof entries);
+    setSettings((j.settings ?? initialSettings) as typeof initialSettings);
   }, [initialSettings]);
 
   // Server-side filtering — render as-is.

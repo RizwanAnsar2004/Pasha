@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2, Loader2, Lock, X } from "lucide-react";
 import { Pagination } from "../_components/Pagination";
+import { api } from "@/lib/api/client";
 
 export type OptionItem = { value: string; label: string };
 export type OptionListMeta = {
@@ -35,16 +36,12 @@ function textToItems(text: string): OptionItem[] {
     });
 }
 
-async function api(method: string, body: unknown) {
-  const res = await fetch("/api/admin/option-lists", {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
-  return json;
-}
+const call = (method: "POST" | "PATCH" | "DELETE", body: unknown) =>
+  method === "POST"
+    ? api.post("/api/admin/option-lists", body)
+    : method === "PATCH"
+      ? api.patch("/api/admin/option-lists", body)
+      : api.del("/api/admin/option-lists", body);
 
 export function OptionListsClient({
   initial,
@@ -88,7 +85,7 @@ export function OptionListsClient({
       const items = textToItems(text);
       // A code list with no DB row yet → create an override (POST); otherwise update the existing DB row (PATCH).
       const method = meta.source === "code" ? "POST" : "PATCH";
-      await api(method, { name: meta.name, label: meta.label, items });
+      await call(method, { name: meta.name, label: meta.label, items });
       await refresh();
     }, "Saved");
 
@@ -100,7 +97,7 @@ export function OptionListsClient({
         )
       )
         return;
-      await api("DELETE", { name: meta.name });
+      await call("DELETE", { name: meta.name });
       await refresh();
     }, "Done");
 
@@ -113,7 +110,7 @@ export function OptionListsClient({
 
   const createList = () =>
     run(async () => {
-      await api("POST", { name: newName.trim(), label: newName.trim(), items: textToItems(newText) });
+      await call("POST", { name: newName.trim(), label: newName.trim(), items: textToItems(newText) });
       setCreating(false);
       setNewName("");
       setNewText("");

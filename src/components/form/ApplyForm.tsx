@@ -25,6 +25,8 @@ import { isOtherChoice } from "@/lib/options";
 const DRAFT_KEY = "pasha-apply-draft-v2";
 const DRAFT_DEBOUNCE_MS = 1000;
 
+import { api } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { Step1Startup } from "./steps/Step1Startup";
 import { Step2Founders } from "./steps/Step2Founders";
@@ -308,15 +310,7 @@ const form = useForm<SubmissionInput>({
     setSubmitting(true);
     try {
       const data = cleanConditionalFields(raw);
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error ?? "Submission failed");
-      }
+      const result = await api.post<{ tier?: string; score?: number; id: string }>(ENDPOINTS.submit, data);
       try {
         window.localStorage.removeItem(DRAFT_KEY);
       } catch {}
