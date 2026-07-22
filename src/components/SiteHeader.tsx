@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/directory", label: "Directory" },
-  { href: "mailto:startups@pasha.org.pk", label: "Contact" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function SiteHeader({ variant = "default" }: { variant?: "default" | "transparent" }) {
@@ -36,9 +36,9 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
       {/* Announcement bar */}
       <div className="hidden sm:block bg-pasha-ink text-white/70">
         <div className="site-container">
-          <div className="flex items-center justify-between h-8 text-xs"  style={{ fontSize: "0.65rem" }}>
-            <span className="font-mono ">
-              <strong className="text-white">P@SHA Startup Hub</strong>  · Discover ambitious startups across Pakistan
+          <div className="flex items-center justify-between h-9 text-[13px]">
+            <span className="font-mono">
+              <strong className="text-white">{/* P@SHA */}Startup Hub</strong> · Discover ambitious startups across Pakistan
             </span>
             <Link href="/apply" className="inline-flex items-center gap-1.5 text-white hover:text-pasha-red-light transition-colors">
               Applications are open
@@ -85,7 +85,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
               </nav>
 
               <div className="flex items-center gap-3">
-                {/* Community link — icon-only so it stays out of the way of the */}
+                {/* Community link — icon-only so it stays out of the way of the
                 <a
                   href={PASHA_FACEBOOK}
                   target="_blank"
@@ -96,6 +96,7 @@ export function SiteHeader({ variant = "default" }: { variant?: "default" | "tra
                 >
                   <FacebookGlyph className="h-4 w-4" />
                 </a>
+                */}
                 <PillButton
                   href="/directory"
                   variant="outline"

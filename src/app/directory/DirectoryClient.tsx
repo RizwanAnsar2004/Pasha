@@ -876,9 +876,11 @@ export function DirectoryClient({
             <QuickChip active={filters.womenLed} onClick={() => updateParams({ women_led: filters.womenLed ? null : "1", page: null })}>
               Women-led
             </QuickChip>
+            {/* Hiring quick filter — hidden for now.
             <QuickChip active={filters.hiring} onClick={() => updateParams({ hiring: filters.hiring ? null : "1", page: null })}>
               Hiring
             </QuickChip>
+            */}
             <QuickChip active={filters.fundraising} onClick={() => updateParams({ fundraising: filters.fundraising ? null : "1", page: null })}>
               Fundraising
             </QuickChip>
