@@ -6,7 +6,7 @@ import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { FacebookGlyph } from "@/components/community/FacebookGlyph";
-import { TwitterGlyph, YouTubeGlyph, LinkedInGlyph } from "@/components/community/SocialGlyphs";
+import { TwitterGlyph, InstagramGlyph, YouTubeGlyph, LinkedInGlyph } from "@/components/community/SocialGlyphs";
 import { PASHA_SOCIALS } from "@/lib/content/community";
 import {
   CONTACT_PHONE_DISPLAY,
@@ -22,6 +22,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const SOCIAL_GLYPH = {
   facebook: FacebookGlyph,
   twitter: TwitterGlyph,
+  instagram: InstagramGlyph,
   youtube: YouTubeGlyph,
   linkedin: LinkedInGlyph,
 } as const;

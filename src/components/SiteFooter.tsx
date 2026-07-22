@@ -2,11 +2,12 @@ import Link from "next/link";
 import { PashaLogo } from "./PashaLogo";
 import { PASHA_SOCIALS } from "@/lib/content/community";
 import { FacebookGlyph } from "./community/FacebookGlyph";
-import { TwitterGlyph, YouTubeGlyph, LinkedInGlyph } from "./community/SocialGlyphs";
+import { TwitterGlyph, InstagramGlyph, YouTubeGlyph, LinkedInGlyph } from "./community/SocialGlyphs";
 
 const SOCIAL_GLYPH = {
   facebook: FacebookGlyph,
   twitter: TwitterGlyph,
+  instagram: InstagramGlyph,
   youtube: YouTubeGlyph,
   linkedin: LinkedInGlyph,
 } as const;
