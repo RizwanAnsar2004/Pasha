@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { emailOrigin } from "@/lib/utils/site-url";
 import {
   clearAdminSessionCookie,
   makeAdminSessionCookie,
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
     const { supabase, applyCookies } = createRouteHandlerClient(req);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${req.nextUrl.origin}/apply/auth/callback?redirect=/admin/reset-password`,
+      redirectTo: `${emailOrigin()}/apply/auth/callback?redirect=/admin/reset-password`,
     });
     if (error) {
       return NextResponse.json(

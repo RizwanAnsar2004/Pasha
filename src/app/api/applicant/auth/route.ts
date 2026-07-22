@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { emailOrigin } from "@/lib/utils/site-url";
 import { clearAdminSessionCookie } from "@/lib/auth/admin/admin-session";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
     }
     const { supabase, applyCookies } = createRouteHandlerClient(req);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${req.nextUrl.origin}/apply/auth/callback?redirect=/apply/reset-password`,
+      redirectTo: `${emailOrigin()}/apply/auth/callback?redirect=/apply/reset-password`,
     });
     if (error) {
       return NextResponse.json(
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { supabase, applyCookies } = createRouteHandlerClient(req);
-  const origin = req.nextUrl.origin;
+  const origin = emailOrigin();
   const emailRedirectTo = `${origin}/apply/auth/callback`;
 
   // ── Resend the verification email ───────────────────────────────────────
