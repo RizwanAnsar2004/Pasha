@@ -231,8 +231,18 @@ export function computeCompletion(
   const publicLevel = LEVELS.find((l) => l.key === "public_ready")!;
   const publicProfileMet = levels.find((l) => l.key === "public_ready")!.met;
 
+  // Headline percent is PROPORTIONAL to requirements actually met across all
+  // levels — so a mostly-complete profile isn't shown as 0% just because one
+  // field at an early gate is missing. The milestone chips + next-level hint
+  // still use the cumulative gating above.
+  const totalReqs = LEVELS.reduce((n, l) => n + l.fields.length, 0);
+  const metReqs = LEVELS.reduce((n, l) => n + l.fields.filter((f) => reqMet(f, d)).length, 0);
+  const proportional = totalReqs === 0 ? 0 : Math.round((metReqs / totalReqs) * 100);
+  // Never understate a fully-gated profile: take whichever is higher.
+  const headlinePercent = Math.max(current?.percent ?? 0, proportional);
+
   return {
-    percent: current?.percent ?? 0,
+    percent: headlinePercent,
     levelKey: current?.key ?? null,
     levelLabel: current?.label ?? "Getting started",
     benefit: current?.benefit ?? "Add your basics to reach Draft (25%).",

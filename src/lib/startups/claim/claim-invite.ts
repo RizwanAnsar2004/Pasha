@@ -13,11 +13,14 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// Email a freshly-provisioned company owner their login email + password.
+// Email a company owner after a successful claim. When `password` is provided
+// (a freshly-provisioned or reset account) it's included so they can sign in;
+// when omitted (the claimant was already signed in with this email) we send a
+// confirmation instead and tell them to use their existing password.
 export function sendClaimCredentials(opts: {
   email: string;
   company: string;
-  password: string;
+  password?: string | null;
   createdBy?: string | null;
   // Public origin of the request, for the login link.
   origin: string;
@@ -28,21 +31,29 @@ export function sendClaimCredentials(opts: {
   // Where the new owner signs in.
   const loginUrl = `${origin.replace(/\/$/, "")}/apply/login`;
 
+  const intro = password
+    ? "Your claim was verified and an account has been created for you. Use the details below to sign in and manage your company profile."
+    : "Your claim was verified. Sign in with your existing password to manage your company profile.";
+
+  const passwordRow = password
+    ? `
+      <tr>
+        <td style="padding:8px 12px;background:#f5f5f4;border:1px solid #e7e5e4;color:#666;">Password</td>
+        <td style="padding:8px 12px;border:1px solid #e7e5e4;font-family:monospace;font-size:15px;letter-spacing:0.5px;">${escapeHtml(password)}</td>
+      </tr>`
+    : "";
+
   const content = `
     <h1 style="font-family:'Poppins',sans-serif;font-size:20px;font-weight:700;margin:0 0 8px;color:#0E0E10;">You're now the owner of ${escapeHtml(company)}</h1>
     <p style="font-family:'Poppins',sans-serif;font-size:14px;line-height:1.6;color:#444;margin:0 0 20px;">
-      Your claim was verified and an account has been created for you. Use the
-      details below to sign in and manage your company profile.
+      ${intro}
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 20px;font-family:'Poppins',sans-serif;">
       <tr>
         <td style="padding:8px 12px;background:#f5f5f4;border:1px solid #e7e5e4;width:120px;color:#666;">Email</td>
         <td style="padding:8px 12px;border:1px solid #e7e5e4;font-weight:600;">${escapeHtml(email)}</td>
       </tr>
-      <tr>
-        <td style="padding:8px 12px;background:#f5f5f4;border:1px solid #e7e5e4;color:#666;">Password</td>
-        <td style="padding:8px 12px;border:1px solid #e7e5e4;font-family:monospace;font-size:15px;letter-spacing:0.5px;">${escapeHtml(password)}</td>
-      </tr>
+      ${passwordRow}
     </table>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
       <tr>

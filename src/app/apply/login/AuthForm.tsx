@@ -48,7 +48,12 @@ function AuthInner({
   const [mode, setMode] = useState<"login" | "register">(DEV_PREFILL ? "register" : "login");
   const [regStep, setRegStep] = useState<1 | 2>(1);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [screen, setScreen] = useState<"form" | "verify" | "forgot">("form");
+  // ?forgot=1 deep-links here from an unusable recovery link, so the user can
+  // request a fresh one without hunting for the option.
+  const [screen, setScreen] = useState<"form" | "verify" | "forgot">(
+    sp.get("forgot") === "1" ? "forgot" : "form"
+  );
+  const linkExpired = sp.get("error") === "link_expired";
   const [email, setEmail] = useState(() => (DEV_PREFILL ? devEmail() : ""));
   const [password, setPassword] = useState(DEV_PREFILL ? "Admin.321" : "");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -370,6 +375,13 @@ function AuthInner({
           <Rocket className="w-5 h-5 text-pasha-red" />
         </div>
         <h1 className="font-serif text-2xl tracking-tight text-pasha-ink">Reset your password</h1>
+        {linkExpired && (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 leading-relaxed">
+            That reset link couldn&apos;t be used — it may have already been opened, expired, or
+            been opened on a different device than the one that requested it. Enter your email
+            below and we&apos;ll send a fresh one.
+          </p>
+        )}
         <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
           Enter the email for your applicant account and we&apos;ll send a link to set a new
           password.

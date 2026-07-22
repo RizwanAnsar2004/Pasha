@@ -23,6 +23,9 @@ const csp = [
   // to region-specific *.google-analytics.com / *.analytics.google.com hosts).
   `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com`,
   `frame-ancestors 'none'`,
+  // The contact page embeds the Secretariat location as a Google Maps iframe;
+  // without this, default-src 'self' blocks it.
+  `frame-src https://www.google.com https://maps.google.com`,
   `object-src 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,

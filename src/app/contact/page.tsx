@@ -6,14 +6,14 @@ import { ContactContent } from "@/components/contact/ContactContent";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with the PASHA Startup Hub team — questions about listings, verification, partnerships or the wider Pakistani startup ecosystem.",
+    "Contact the P@SHA Secretariat — phone, email, and office address for the Pakistan Software Houses Association Startup Hub.",
   alternates: { canonical: "/contact" },
   openGraph: {
-    title: "Contact · PASHA Startup Hub",
+    title: "Contact · P@SHA Startup Hub",
     url: "/contact",
   },
   twitter: {
-    title: "Contact · PASHA Startup Hub",
+    title: "Contact · P@SHA Startup Hub",
   },
 };
 

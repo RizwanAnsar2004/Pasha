@@ -22,6 +22,7 @@ import {
   getApplicantSubmissionStatus,
 } from "@/lib/auth/applicant/applicant-auth";
 import { getFormConfig } from "@/lib/forms/form-config.server";
+import { ensureClaimedProfileSeeded } from "@/lib/startups/claim/seed-application.server";
 import { buildDevPrefill } from "@/lib/forms/form-config";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/forms/profile-completion";
@@ -98,6 +99,10 @@ export default async function ApplicantOverviewPage({
     redirect(ctx.status === "admin" ? "/apply/login?error=admin" : "/apply/login?redirect=/apply");
   }
   const user = ctx.user;
+  // Self-heal: if this account claimed a directory profile but its application
+  // hasn't been materialised yet, seed it now so the portal shows that startup
+  // (filled + submitted) instead of a blank draft.
+  await ensureClaimedProfileSeeded(user.id, user.email ?? null);
   const [draft, config, optionLists] = await Promise.all([
     getApplicantDraft(user.id),
     getFormConfig(),
