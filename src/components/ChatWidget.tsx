@@ -1,7 +1,7 @@
 "use client";
 import { api, ApiError } from "@/lib/api/client";
 
-// Floating chat widget wired to the P@SHA RAG assistant (/api/chat).
+// Floating chat widget wired to Kai, the P@SHA RAG assistant (/api/chat).
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
@@ -13,7 +13,7 @@ const STORAGE_KEY = "pasha-chat-history";
 const GREETING: Message = {
   id: 0,
   role: "bot",
-  text: "Hi! 👋 I'm the P@SHA assistant. Ask me anything about the community, the application, or the directory.",
+  text: "Hi! 👋 I'm Kai, the P@SHA assistant. Ask me anything about the community, the application, or the directory.",
 };
 
 export function ChatWidget() {
@@ -76,7 +76,7 @@ export function ChatWidget() {
       const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } catch (e) {
-      const botText = e instanceof ApiError ? e.message : "Could not reach the assistant. Please try again.";
+      const botText = e instanceof ApiError ? e.message : "Could not reach Kai. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } finally {
       setLoading(false);
@@ -90,7 +90,7 @@ export function ChatWidget() {
         <div
           className="fixed bottom-24 right-5 z-[60] flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-black/10"
           role="dialog"
-          aria-label="Chat"
+          aria-label="Kai"
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 bg-pasha-red px-4 py-3 text-white">
@@ -99,7 +99,7 @@ export function ChatWidget() {
                 <MessageCircle className="h-4 w-4" />
               </span>
               <div className="leading-tight">
-                <p className="text-sm font-semibold">P@SHA Assistant</p>
+                <p className="text-sm font-semibold">Kai</p>
                 <p className="text-[11px] text-white/70">Typically replies in a few minutes</p>
               </div>
             </div>
@@ -183,7 +183,7 @@ export function ChatWidget() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close chat" : "Open chat"}
+        aria-label={open ? "Close Kai" : "Open Kai"}
         className="fixed bottom-5 right-5 z-[60] grid h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
