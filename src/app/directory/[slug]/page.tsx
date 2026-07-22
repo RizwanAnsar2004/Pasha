@@ -67,7 +67,7 @@ import { cn, initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 import { getOptionItems } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { optionLabelOf, resolveOptionLabel } from "@/lib/options/resolve";
+import { isOptionId, optionLabelOf, resolveOptionLabel } from "@/lib/options/resolve";
 import { ClaimProfile } from "@/components/directory/ClaimProfile";
 
 // New records store revenue / funding as select bands (not numeric columns), so
@@ -528,9 +528,17 @@ export default async function StartupDetailPage({
         ? "Disclosed"
         : null) ?? bandLabel(answers.total_funding_raised, raisedBandLabel);
 
-  const secondaries = splitMulti(row.secondary_industries);
-  const bizTypes = splitMulti(row.business_types);
-  const sdgs = splitMulti(row.sdgs);
+  // Multi-value columns store option ids since the backfill, so they need the same label
+  // resolution the single-value fields get. An id that no longer resolves is dropped rather
+  // than printed — a raw UUID on a public profile is worse than a missing chip.
+  const resolveMulti = (v: string | null | undefined): string[] =>
+    splitMulti(v)
+      .map((entry) => optionLabelOf(optionIndex, entry) ?? entry)
+      .filter((label) => !isOptionId(label));
+
+  const secondaries = resolveMulti(row.secondary_industries);
+  const bizTypes = resolveMulti(row.business_types);
+  const sdgs = resolveMulti(row.sdgs);
   const certifications = splitMulti(row.certifications);
 
   const logoOk = isSelfHostedImage(row.logo_url);
@@ -554,6 +562,8 @@ export default async function StartupDetailPage({
     primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry),
     product_stage: resolveOptionLabel(optionIndex, "STAGES", r.product_stage),
     city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city),
+    // The card splits this again for its "Business model" stat, so hand it labels not ids.
+    business_types: resolveMulti(r.business_types).join("|") || null,
   }));
 
   // Section numbering is computed up front (not hardcoded) so the "01 / 02 …" labels stay contiguous even when a startup is missing some optional data.
@@ -602,12 +612,13 @@ export default async function StartupDetailPage({
               <strong className="text-white font-bold normal-case tracking-normal">{row.startup_name}</strong>
             </nav>
 
-            {row.source !== "submission" && (
-              <ClaimProfile
-                databankId={row.id}
-                alreadyClaimed={Boolean((row as { verified_claimed?: boolean }).verified_claimed)}
-              />
-            )}
+            {/* Claimability is decided by verified_claimed, not by origin: a submission can
+                still be unclaimed, and gating on source made those profiles permanently
+                unclaimable in the UI even though the claim API would accept them. */}
+            <ClaimProfile
+              databankId={row.id}
+              alreadyClaimed={Boolean((row as { verified_claimed?: boolean }).verified_claimed)}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 lg:gap-16 items-end">
               <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-7 sm:gap-9 items-start">
