@@ -6,7 +6,6 @@ import { PashaLogo } from "./PashaLogo";
 import { cn } from "@/lib/utils";
 import styles from "./landing/HeroPhotoSlider.module.css";
 
-<<<<<<< HEAD
 // Same header everywhere: logo + brand, "Join the Hub" pill, hamburger trigger
 // and full-screen menu overlay — ported from the homepage hero so every page
 // shares one navigation pattern instead of two different header designs.
@@ -16,13 +15,6 @@ const MENU_LINKS = [
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Join the Hub", href: "/apply" },
-=======
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/directory", label: "Directory" },
-  { href: "/contact", label: "Contact" },
->>>>>>> 859b1d9477bfe207aa56e45b3d153a450a7afcb8
 ];
 
 export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay" }) {
@@ -116,21 +108,14 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full">
-      {/* Announcement bar */}
-      <div className="hidden sm:block bg-pasha-ink text-white/70">
-        <div className="site-container">
-          <div className="flex items-center justify-between h-9 text-[13px]">
-            <span className="font-mono">
-              <strong className="text-white">{/* P@SHA */}Startup Hub</strong> · Discover ambitious startups across Pakistan
-            </span>
-            <Link href="/apply" className="inline-flex items-center gap-1.5 text-white hover:text-pasha-red-light transition-colors">
-              Applications are open
-              <span aria-hidden>&rarr;</span>
-            </Link>
-          </div>
-        </div>
-      </div>
+    <>
+      {variant === "overlay" ? (
+        <div className="absolute inset-x-0 top-0 z-20 pt-7">{overlayBar}</div>
+      ) : (
+        <header className="sticky top-0 z-40 w-full bg-white py-4 shadow-[0_2px_16px_rgba(23,23,23,0.08)]">
+          {solidBar}
+        </header>
+      )}
 
       <div
         aria-hidden={!menuOpen}
@@ -151,65 +136,18 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
           </span>
         </button>
 
-            <div className="hidden lg:flex items-center gap-9">
-              <nav className="flex items-center gap-9">
-                {NAV_LINKS.map((link) => {
-                  const active =
-                    link.href === "/"
-                      ? pathname === "/"
-                      : pathname === link.href || pathname?.startsWith(`${link.href}/`);
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "relative text-[12px] font-semibold transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-[2px] after:w-0 after:bg-pasha-red after:transition-all hover:after:w-full",
-                        active ? "text-pasha-red" : "text-pasha-ink/80 hover:text-pasha-ink"
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <div className="flex items-center gap-3">
-                {/* Community link — icon-only so it stays out of the way of the
-                <a
-                  href={PASHA_FACEBOOK}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  title="Join the P@SHA community on Facebook"
-                  aria-label="Join the P@SHA community on Facebook"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-pasha-ink/10 bg-white text-pasha-ink/60 shadow-sm transition-all duration-200 hover:scale-105 hover:border-pasha-red/30 hover:text-pasha-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red"
-                >
-                  <FacebookGlyph className="h-4 w-4" />
-                </a>
-                */}
-                <PillButton
-                  href="/directory"
-                  variant="outline"
-                  dot={false}
-                  arrow={false}
-                  className="border-pasha-ink/10 pl-5 pr-6 py-2.5 text-xs font-semibold shadow-sm"
-                >
-                  <Search className="h-4 w-4" />
-                  Search directory
-                </PillButton>
-                <PillButton href="/apply" variant="solid" dot={false} className="pl-6 pr-6 py-2.5 text-xs font-semibold">
-                  List your startup
-                </PillButton>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="lg:hidden rounded-full p-2 -mr-2 text-pasha-ink"
-              onClick={() => setOpen((v) => !v)}
-              aria-label="Toggle menu"
-            >
-              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+        <div className={styles["hub-menu-intro"]}>
+          <div>
+            <span className={styles["hub-menu-eyebrow"]}>PASHA Startup Hub</span>
+            <h2>Explore the Hub.</h2>
+            <p>
+              Discover startups, understand the Hub, connect with PASHA, or bring your startup into
+              Pakistan&apos;s national startup network.
+            </p>
+          </div>
+          <div className={styles["hub-menu-small"]}>
+            <span>Connecting Pakistan&apos;s startup ecosystem.</span>
+            <span>Navigation</span>
           </div>
         </div>
 
