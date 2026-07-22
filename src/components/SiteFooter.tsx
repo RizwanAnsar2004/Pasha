@@ -31,7 +31,7 @@ export function SiteFooter() {
               <li><Link href="/about" className="hover:text-white transition-colors">Partner with us</Link></li>
               <li><a href="https://www.linkedin.com/company/pashapk/" target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">LinkedIn</a></li>
               <li><a href={PASHA_FACEBOOK} target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">Facebook community</a></li>
-              <li><a href="mailto:hello@pasha.org.pk" className="hover:text-white transition-colors">Contact</a></li>
+              <li><a href="mailto:startups@pasha.org.pk" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>
         </div>

@@ -50,7 +50,7 @@ export function FAQ() {
               </h2>
               <p className="mt-4 text-pasha-muted leading-relaxed max-w-sm">
                 Can&apos;t find what you&apos;re looking for?{" "}
-                <a href="mailto:hello@pasha.org.pk" className="text-pasha-red hover:underline underline-offset-2">
+                <a href="mailto:startups@pasha.org.pk" className="text-pasha-red hover:underline underline-offset-2">
                   Email us
                 </a>
                 .
