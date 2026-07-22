@@ -109,7 +109,7 @@ export function Hero({
           >
             <span className="grid h-5 w-5 place-items-center rounded-full bg-pasha-red text-[10px] font-bold text-white">@</span>
             <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-white/70">
-              Pakistan&apos;s national startup directory
+            P@SHA Startup Hub
             </span>
           </motion.div>
 
@@ -120,7 +120,7 @@ export function Hero({
               transition={{ duration: 0.65, delay: 0.2, ease: EASE }}
               className="block"
             >
-              Discover the startups
+              Connecting Pakistan&apos;s
             </motion.span>
             <motion.span
               initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
@@ -128,7 +128,7 @@ export function Hero({
               transition={{ duration: 0.65, delay: 0.35, ease: EASE }}
               className="block text-pasha-red-light"
             >
-              shaping Pakistan&apos;s future.
+              Startup Ecosystem
             </motion.span>
           </h1>
 
