@@ -21,6 +21,9 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // Epoch ms until which the rate limit blocks sending; 0 = not limited.
+  const [limitedUntil, setLimitedUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
 
@@ -63,9 +66,24 @@ export function ChatWidget() {
     }
   };
 
+  // Ticks once a second only while a cooldown is active, so the countdown stays live.
+  useEffect(() => {
+    if (!limitedUntil) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [limitedUntil]);
+
+  const secondsLeft = limitedUntil ? Math.max(0, Math.ceil((limitedUntil - now) / 1000)) : 0;
+  const rateLimited = secondsLeft > 0;
+
+  // mm:ss while under an hour, else a rounded hour count.
+  const cooldownLabel = secondsLeft >= 3600
+    ? `${Math.ceil(secondsLeft / 3600)}h`
+    : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   const send = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || rateLimited) return;
     const userMsg: Message = { id: nextId.current++, role: "user", text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
@@ -76,7 +94,14 @@ export function ChatWidget() {
       const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } catch (e) {
-      const botText = e instanceof ApiError ? e.message : "Could not reach Kai. Please try again.";
+      // A 429 is a quota message, not a failure — start the cooldown so the
+      // composer locks instead of letting the user retry into the same wall.
+      if (e instanceof ApiError && e.status === 429) {
+        const retryAfter = typeof e.data.retryAfter === "number" ? e.data.retryAfter : 3600;
+        setNow(Date.now());
+        setLimitedUntil(Date.now() + retryAfter * 1000);
+      }
+      const botText = e instanceof ApiError ? e.message : "Kai is offline at the moment. Please try again in a few minutes.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } finally {
       setLoading(false);
@@ -162,16 +187,16 @@ export function ChatWidget() {
                   send();
                 }
               }}
-              placeholder="Type a message…"
-              disabled={loading}
+              placeholder={rateLimited ? `Question limit reached — try again in ${cooldownLabel}` : "Type a message…"}
+              disabled={loading || rateLimited}
               className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-pasha-red focus:outline-none focus:ring-2 focus:ring-pasha-red/10 disabled:opacity-60"
             />
             <button
               type="button"
               onClick={send}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || rateLimited}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-pasha-red text-white hover:bg-pasha-red-dark disabled:opacity-40"
-              aria-label="Send"
+              aria-label={rateLimited ? `Question limit reached, try again in ${cooldownLabel}` : "Send"}
             >
               <Send className="h-4 w-4" />
             </button>

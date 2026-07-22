@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { RAG_URL, RAG_KEY } from "@/lib/ai/rag-config";
 
-// Proxies chat questions to the P@SHA RAG service.
+// Proxies chat questions to the P@SHA RAG service (Kai).
+
+// "in about 20 minutes" / "in a few seconds" — for the rate-limit message.
+function humanizeWait(seconds: number): string {
+  if (seconds <= 60) return "in less than a minute";
+  const mins = Math.ceil(seconds / 60);
+  if (mins < 60) return `in about ${mins} minute${mins === 1 ? "" : "s"}`;
+  const hours = Math.ceil(mins / 60);
+  return `in about ${hours} hour${hours === 1 ? "" : "s"}`;
+}
 
 export async function POST(req: Request) {
   let body: { question?: unknown; top_k?: unknown };
@@ -31,10 +40,36 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(30_000),
     });
 
+    // Rate limited upstream — surface it as a limit, not as a service failure.
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get("retry-after")) || 3600;
+      return NextResponse.json(
+        {
+          error:
+            `You've reached the question limit for now. You can ask again ${humanizeWait(retryAfter)}.`,
+          retryAfter,
+        },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
+    // Key missing or rejected — a misconfiguration on our side, not the user's fault.
+    if (res.status === 401 || res.status === 403) {
+      return NextResponse.json(
+        { error: "Kai isn't available right now. Please contact startups@pasha.org.pk if this continues." },
+        { status: 503 }
+      );
+    }
+
     if (!res.ok) {
       return NextResponse.json(
-        { error: `RAG service error (${res.status}).` },
-        { status: 502 }
+        {
+          error:
+            res.status >= 500
+              ? "Kai is temporarily offline while the service restarts. Please try again in a few minutes."
+              : "Kai couldn't handle that request. Please try rephrasing your question.",
+        },
+        { status: res.status >= 500 ? 503 : 400 }
       );
     }
 
@@ -44,10 +79,16 @@ export async function POST(req: Request) {
       grounded: data.grounded ?? false,
       refused: data.refused ?? false,
     });
-  } catch {
+  } catch (e) {
+    // Distinguish "took too long" from "couldn't connect at all" — they need different advice.
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
     return NextResponse.json(
-      { error: "Could not reach Kai. Please try again." },
-      { status: 502 }
+      {
+        error: timedOut
+          ? "Kai took too long to answer that one. Please try again, or ask something more specific."
+          : "Kai is offline at the moment. Please try again in a few minutes.",
+      },
+      { status: timedOut ? 504 : 503 }
     );
   }
 }

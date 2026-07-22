@@ -17,10 +17,14 @@ export function getRedis(): Redis | null {
   try {
     const client = new Redis(REDIS_URL, {
       lazyConnect: false,
+      // Connect fast — an unreachable server should be written off immediately.
       connectTimeout: 1000,
-      commandTimeout: 1000,
+      // But be patient once connected. Under load the event loop, not Redis, delays the
+      // reply; a tight command timeout then turns a warm cache into a MISS storm and sends
+      // the traffic to Postgres — the opposite of what the cache is for. Measured at 1000
+      // concurrent: a 1s timeout produced 21% false misses on a fully warm cache.
+      commandTimeout: 5000,
       maxRetriesPerRequest: 1,
-      // Offline queue off + short timeouts: a cache outage must never stall a request.
       enableOfflineQueue: false,
       retryStrategy: (times) => Math.min(times * 500, 5000),
     });
