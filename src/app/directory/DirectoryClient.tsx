@@ -11,7 +11,7 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { RichText } from "@/components/ui/RichText";
 import { usePageReady } from "@/components/PageReady";
-import { EMPTY_OPTION_INDEX, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
+import { EMPTY_OPTION_INDEX, optionLabelOf, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
 
 export type DirectoryRow = {
   id: string;
@@ -1014,7 +1014,10 @@ export function DirectoryClient({
             : bandLabel(a.total_funding_raised, raisedBandLabel);
           const productStage = resolveOptionLabel(optionIndex, "STAGES", clean(r.product_stage));
           const teamSize = r.total_employees && r.total_employees > 0 ? compact(r.total_employees) : null;
-          const businessModel = splitMulti(r.business_types).join(" · ") || null;
+          const businessModel =
+            splitMulti(r.business_types)
+              .map((v) => optionLabelOf(optionIndex, v) ?? v)
+              .join(" · ") || null;
           const linkedin = isSafeUrl(r.company_linkedin) ? r.company_linkedin : null;
           // Card facts row — Stage / Team size / Business model, in that order.
           const statItems = (

@@ -7,6 +7,8 @@ import {
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { getAwardsForAdmin } from "@/lib/startups/awards/awards.server";
 import { parsePagination } from "@/lib/utils/pagination";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const addSchema = z.object({
@@ -78,7 +80,14 @@ async function getHandler(req: Request) {
       .ilike("startup_name", `%${q}%`)
       .order("startup_name", { ascending: true })
       .limit(20);
-    return NextResponse.json({ candidates: data ?? [] });
+    const optionIndex = await getOptionIndex();
+    // Choice columns hold option ids — the picker must show labels.
+    const candidates = (data ?? []).map((r) => ({
+      ...r,
+      primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry as string | null),
+      city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city as string | null),
+    }));
+    return NextResponse.json({ candidates });
   }
 
   const listQ = url.searchParams.get("listQ")?.trim() ?? "";

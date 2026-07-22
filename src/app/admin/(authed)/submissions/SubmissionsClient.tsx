@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
@@ -14,6 +14,7 @@ import { RichText } from "@/components/ui/RichText";
 import { createClient } from "@/lib/supabase/client";
 import { safeHref, safeImageSrc } from "@/lib/validators/safe-url";
 import { deriveStage, STAGE_META, type WorkflowStage } from "@/lib/startups/vetting/workflow";
+import { EMPTY_OPTION_INDEX, optionLabelOf, type OptionIndex } from "@/lib/options/resolve";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
@@ -50,20 +51,30 @@ function renderPashaMember(row: Record<string, unknown>): React.ReactNode {
 }
 
 // New form: `answers.total_funding_raised`; legacy: raised_funding + funding_stage.
-function renderRaisedFunding(row: Record<string, unknown>): React.ReactNode {
+function renderRaisedFunding(row: Record<string, unknown>, index: OptionIndex): React.ReactNode {
   const raised = answerOf(row, "total_funding_raised");
-  if (raised != null && raised !== "") return String(raised);
+  if (raised != null && raised !== "") return optionLabelOf(index, raised) ?? String(raised);
   if (row.raised_funding === true) {
-    return row.funding_stage ? `Yes · ${String(row.funding_stage)}` : "Yes";
+    const stage = optionLabelOf(index, row.funding_stage);
+    return stage ? `Yes · ${stage}` : "Yes";
   }
   if (row.raised_funding === false) return "No";
   return "—";
 }
 
-function renderAnswerField(row: Record<string, unknown>, key: string): React.ReactNode {
+// Choice answers are stored as option ids; every renderer needs the index to
+// turn them back into labels.
+const OptionIndexContext = createContext<OptionIndex>(EMPTY_OPTION_INDEX);
+const useOptionIndex = () => useContext(OptionIndexContext);
+
+function renderAnswerField(
+  row: Record<string, unknown>,
+  key: string,
+  index: OptionIndex
+): React.ReactNode {
   const val = answerOf(row, key);
   if (val == null || val === "") return "—";
-  return renderAnswerValue(val);
+  return renderAnswerValue(val, index);
 }
 
 // KV row for a form field — omitted when no API label or empty value.
@@ -91,11 +102,12 @@ function AnswerKV({
   fieldKey: string;
   labels: FieldLabelMap;
 }) {
+  const index = useOptionIndex();
   const k = labels[fieldKey];
   if (!k) return null;
   const val = answerOf(row, fieldKey);
   if (val == null || val === "") return null;
-  return <KV k={k} v={renderAnswerValue(val)} />;
+  return <KV k={k} v={renderAnswerValue(val, index)} />;
 }
 
 function answerUrl(row: Record<string, unknown>, key: string): string | null {
@@ -156,12 +168,14 @@ export function SubmissionsClient({
   page,
   pageSize,
   filters,
+  optionIndex = EMPTY_OPTION_INDEX,
 }: {
   initial: Row[];
   total: number;
   page: number;
   pageSize: number;
   filters: { q: string; status: string };
+  optionIndex?: OptionIndex;
 }) {
   const { isPending, setParams } = useListNav();
   const [rows, setRows] = useState<Row[]>(initial);
@@ -221,6 +235,7 @@ export function SubmissionsClient({
   const filtered = rows;
 
   return (
+   <OptionIndexContext.Provider value={optionIndex}>
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -298,10 +313,10 @@ export function SubmissionsClient({
                       </div>
                     </Td>
                     <Td>
-                      <span className="text-pasha-muted">{r.primary_sector ?? "—"}</span>
+                      <span className="text-pasha-muted">{optionLabelOf(optionIndex, r.primary_sector) ?? "—"}</span>
                     </Td>
                     <Td>
-                      <span className="text-pasha-muted">{r.hq_city ?? "—"}</span>
+                      <span className="text-pasha-muted">{optionLabelOf(optionIndex, r.hq_city) ?? "—"}</span>
                     </Td>
                     <Td>
                       {r.vetting_tier ? (
@@ -371,6 +386,7 @@ export function SubmissionsClient({
         )}
       </AnimatePresence>
     </div>
+   </OptionIndexContext.Provider>
   );
 }
 
@@ -473,6 +489,9 @@ function SubmissionDrawer({
   onUpdated: (r: Partial<Row> & { id: string }) => void;
   onToast: (text: string, ok: boolean) => void;
 }) {
+  const optionIndex = useOptionIndex();
+  // Choice columns hold option ids; show the label, never the raw id.
+  const label = (v: unknown) => optionLabelOf(optionIndex, v) ?? "—";
   const [row, setRow] = useState<FullRow | null>(null);
   const [acting, setActing] = useState<null | "approve" | "reject" | "needs_update" | "verify">(null);
   const [notes, setNotes] = useState("");
@@ -699,20 +718,20 @@ function SubmissionDrawer({
                 labels={fieldLabels}
                 v={
                   (row as Record<string, unknown>).outside_pakistan
-                    ? `${String((row as Record<string, unknown>).hq_country ?? "—")} (outside Pakistan)`
-                    : String(row.hq_city ?? row.hq_other ?? "—")
+                    ? `${label((row as Record<string, unknown>).hq_country)} (outside Pakistan)`
+                    : label(row.hq_city ?? row.hq_other)
                 }
               />
-              <FieldKV fieldKey="stage" labels={fieldLabels} v={String(row.stage ?? "—")} />
-              <FieldKV fieldKey="primary_sector" labels={fieldLabels} v={String(row.primary_sector ?? "—")} />
-              <FieldKV fieldKey="secondary_sector" labels={fieldLabels} v={String((row as Record<string, unknown>).secondary_sector ?? "—")} />
-              <FieldKV fieldKey="business_model" labels={fieldLabels} v={String(row.business_model ?? "—")} />
+              <FieldKV fieldKey="stage" labels={fieldLabels} v={label(row.stage)} />
+              <FieldKV fieldKey="primary_sector" labels={fieldLabels} v={label(row.primary_sector)} />
+              <FieldKV fieldKey="secondary_sector" labels={fieldLabels} v={label((row as Record<string, unknown>).secondary_sector)} />
+              <FieldKV fieldKey="business_model" labels={fieldLabels} v={label(row.business_model)} />
               <FieldKV
                 fieldKey="revenue_models"
                 labels={fieldLabels}
                 v={
                   Array.isArray(row.revenue_models)
-                    ? (row.revenue_models as string[]).join(", ")
+                    ? (row.revenue_models as string[]).map((v) => label(v)).join(", ")
                     : "—"
                 }
               />
@@ -723,30 +742,30 @@ function SubmissionDrawer({
             <Section title="Team & traction" cols={2}>
               <FieldKV fieldKey="total_employees" labels={fieldLabels} v={String(row.total_employees ?? "—")} />
               <FieldKV fieldKey="female_employees" labels={fieldLabels} v={String(row.female_employees ?? "—")} />
-              <FieldKV fieldKey="revenue_band" labels={fieldLabels} v={String(row.revenue_band ?? "—")} />
+              <FieldKV fieldKey="revenue_band" labels={fieldLabels} v={label(row.revenue_band)} />
             </Section>
 
             <Section title="Funding" cols={2}>
               <FieldKV
                 fieldKey="total_funding_raised"
                 labels={fieldLabels}
-                v={renderRaisedFunding(row as Record<string, unknown>)}
+                v={renderRaisedFunding(row as Record<string, unknown>, optionIndex)}
               />
               <FieldKV
                 fieldKey="funding_status"
                 labels={fieldLabels}
-                v={renderAnswerField(row as Record<string, unknown>, "funding_status")}
+                v={renderAnswerField(row as Record<string, unknown>, "funding_status", optionIndex)}
               />
               <FieldKV fieldKey="currently_raising" labels={fieldLabels} v={renderYesNo(row.currently_raising)} />
               <FieldKV
                 fieldKey="amount_raising"
                 labels={fieldLabels}
-                v={renderAnswerField(row as Record<string, unknown>, "amount_raising")}
+                v={renderAnswerField(row as Record<string, unknown>, "amount_raising", optionIndex)}
               />
               <FieldKV
                 fieldKey="open_to_investor_contact"
                 labels={fieldLabels}
-                v={renderAnswerField(row as Record<string, unknown>, "open_to_investor_contact")}
+                v={renderAnswerField(row as Record<string, unknown>, "open_to_investor_contact", optionIndex)}
               />
             </Section>
 
@@ -767,13 +786,13 @@ function SubmissionDrawer({
                 labels={fieldLabels}
                 v={
                   row.incubated_in_nic
-                    ? `Yes${row.nic_name ? ` · ${row.nic_name}` : ""}`
+                    ? `Yes${row.nic_name ? ` · ${label(row.nic_name)}` : ""}`
                     : row.incubated_in_nic === false
                       ? "No"
                       : "—"
                 }
               />
-              <FieldKV fieldKey="nic_cohort" labels={fieldLabels} v={String(row.nic_cohort ?? "—")} />
+              <FieldKV fieldKey="nic_cohort" labels={fieldLabels} v={label(row.nic_cohort)} />
               <FieldKV
                 fieldKey="has_patents"
                 labels={fieldLabels}
@@ -888,7 +907,7 @@ function SubmissionDrawer({
                       <dt className="text-[11px] uppercase tracking-wide text-pasha-muted">
                         {fieldLabels[key]}
                       </dt>
-                      <dd className="text-sm text-pasha-ink break-words">{renderAnswerValue(val)}</dd>
+                      <dd className="text-sm text-pasha-ink break-words">{renderAnswerValue(val, optionIndex)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -1219,7 +1238,7 @@ function renderMultilineText(text: string): React.ReactNode {
   return <span className="whitespace-pre-line">{trimmed}</span>;
 }
 
-function renderAnswerValue(val: unknown): React.ReactNode {
+function renderAnswerValue(val: unknown, index: OptionIndex): React.ReactNode {
   if (val == null || val === "") return "—";
 
   if (typeof val === "boolean") {
@@ -1238,11 +1257,12 @@ function renderAnswerValue(val: unknown): React.ReactNode {
         </div>
       );
     }
-    return urls.join(", ");
+    // Multiselect answers — each entry may be an option id.
+    return urls.map((v) => optionLabelOf(index, v) ?? v).join(", ");
   }
 
   if (typeof val === "string") {
-    return renderMultilineText(val);
+    return renderMultilineText(optionLabelOf(index, val) ?? val);
   }
 
   if (typeof val === "object") return JSON.stringify(val);

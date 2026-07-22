@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { clearAdminSessionCookie } from "@/lib/auth/admin/admin-session";
+import { SITE_URL } from "@/lib/utils/site-url";
 
 // Applicant email-verification callback. Supabase sends the signup confirmation
 export async function GET(request: NextRequest) {
@@ -14,8 +15,10 @@ export async function GET(request: NextRequest) {
   const linkError =
     url.searchParams.get("error") ?? url.searchParams.get("error_code");
 
+  // Behind a reverse proxy request.url carries the internal host:port, which
+  // would send the browser to the origin server instead of the public domain.
   const verifiedUrl = (failed: boolean) =>
-    new URL(failed ? "/apply/verified?error=1" : redirect, url.origin);
+    new URL(failed ? "/apply/verified?error=1" : redirect, SITE_URL);
 
   // Default to the success destination; downgrade to the error page if the exchange/verify fails below.
   const response = NextResponse.redirect(verifiedUrl(Boolean(linkError)));

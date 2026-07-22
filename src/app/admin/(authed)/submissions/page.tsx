@@ -71,7 +71,10 @@ export default async function SubmissionsPage({
     q: pickOne(sp, "q"),
     status: pickOne(sp, "status") || "all",
   };
-  const { rows, total } = await load(pagination, filters);
+  const [{ rows, total }, optionIndex] = await Promise.all([
+    load(pagination, filters),
+    getOptionIndex(),
+  ]);
   return (
     <SubmissionsClient
       initial={rows}
@@ -79,6 +82,7 @@ export default async function SubmissionsPage({
       page={pagination.page}
       pageSize={pagination.pageSize}
       filters={filters}
+      optionIndex={optionIndex}
     />
   );
 }

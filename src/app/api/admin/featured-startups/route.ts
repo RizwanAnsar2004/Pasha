@@ -1,5 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
@@ -103,7 +105,14 @@ async function getHandler(req: Request) {
       .ilike("startup_name", `%${q}%`)
       .order("startup_name", { ascending: true })
       .limit(20);
-    candidates = (data ?? []) as Record<string, unknown>[];
+    const optionIndex = await getOptionIndex();
+    // Choice columns hold option ids — the picker must show labels.
+    candidates = (data ?? []).map((r) => ({
+      ...r,
+      primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry as string | null),
+      city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city as string | null),
+      product_stage: resolveOptionLabel(optionIndex, "STAGES", r.product_stage as string | null),
+    })) as Record<string, unknown>[];
   }
 
   return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { SITE_URL } from "@/lib/utils/site-url";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -8,7 +9,8 @@ export async function GET(request: NextRequest) {
   const type = url.searchParams.get("type");
   const redirect = url.searchParams.get("redirect") ?? "/admin";
 
-  const response = NextResponse.redirect(new URL(redirect, url.origin));
+  // request.url is the internal host:port behind a proxy — redirect to the public origin.
+  const response = NextResponse.redirect(new URL(redirect, SITE_URL));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

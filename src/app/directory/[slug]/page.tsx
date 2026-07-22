@@ -67,7 +67,7 @@ import { cn, initials } from "@/lib/utils";
 import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 import { getOptionItems } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { resolveOptionLabel } from "@/lib/options/resolve";
+import { optionLabelOf, resolveOptionLabel } from "@/lib/options/resolve";
 import { ClaimProfile } from "@/components/directory/ClaimProfile";
 
 // New records store revenue / funding as select bands (not numeric columns), so
@@ -450,7 +450,15 @@ export default async function StartupDetailPage({
   const answerLabels = formConfig ? fieldLabelMap(formConfig) : {};
   const businessItems = PUBLIC_ANSWER_KEYS.filter((k) => !DEDICATED_ANSWER_KEYS.has(k))
     .map((key) => {
-      const value = answers[key];
+      const raw = answers[key];
+      // Choice answers are stored as option ids — never render one publicly.
+      const value = ANSWER_URL_KEYS.has(key)
+        ? raw
+        : Array.isArray(raw)
+          ? raw.map((v) => optionLabelOf(optionIndex, v) ?? v)
+          : typeof raw === "string"
+            ? optionLabelOf(optionIndex, raw) ?? raw
+            : raw;
       return { key, label: PUBLIC_ANSWER_LABEL_OVERRIDES[key] ?? answerLabels[key] ?? key.replace(/_/g, " "), value };
     })
     .filter(

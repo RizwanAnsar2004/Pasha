@@ -9,7 +9,7 @@ import { sanitizeHtml } from "@/lib/validators/sanitize-html";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import type { DynamicFieldDef } from "@/lib/forms/form-config";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { resolveOptionLabel } from "@/lib/options/resolve";
+import { optionLabelOf, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -140,7 +140,7 @@ function FileChip({ url, fallbackLabel }: { url: string; fallbackLabel: string }
   );
 }
 
-function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | null {
+function dynamicNode(def: DynamicFieldDef, value: unknown, index: OptionIndex): React.ReactNode | null {
   if (isEmpty(value) && def.input_type !== InputType.YES_NO) return null;
   const t = def.input_type;
 
@@ -150,11 +150,13 @@ function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | nu
   }
   if (t === InputType.SELECT || t === InputType.RADIO_CARDS) {
     const opt = def.options.find((o) => o.value === value);
-    return opt?.label ?? str(value);
+    return opt?.label ?? optionLabelOf(index, value) ?? str(value);
   }
   if (t === InputType.MULTISELECT) {
     const arr = Array.isArray(value) ? (value as string[]) : [];
-    const labels = arr.map((v) => def.options.find((o) => o.value === v)?.label ?? v);
+    const labels = arr.map(
+      (v) => def.options.find((o) => o.value === v)?.label ?? optionLabelOf(index, v) ?? v
+    );
     return labels.length ? labels.join(", ") : null;
   }
   if (t === InputType.FILE_UPLOAD) {
@@ -192,7 +194,11 @@ const CHOICE_COLUMNS: [string, string][] = [
   ["hq_country", "COUNTRIES"],
   ["primary_industry", "SECTORS"],
   ["product_stage", "STAGES"],
+  ["nic_name", "NIC_CENTERS"],
 ];
+
+// business_types is a delimited multi-select, so each part resolves separately.
+const MULTI_CHOICE_COLUMNS = ["business_types"];
 
 // Static field groups mirroring the edit page layout.
 const STATIC_GROUPS: { title: string; fields: [string, string, ("text" | "number" | "currency" | "bool" | "html" | "url")?][] }[] = [
@@ -286,6 +292,16 @@ export default async function ViewDatabankPage({ params }: { params: Promise<{ i
   for (const [key, type] of CHOICE_COLUMNS) {
     row[key] = resolveOptionLabel(optionIndex, type, typeof row[key] === "string" ? (row[key] as string) : null);
   }
+  for (const key of MULTI_CHOICE_COLUMNS) {
+    const raw = typeof row[key] === "string" ? (row[key] as string) : "";
+    if (!raw) continue;
+    row[key] = raw
+      .split(/[|;,]+/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => optionLabelOf(optionIndex, part) ?? part)
+      .join(" · ");
+  }
 
   const answers = (row.answers ?? {}) as Row;
   const keyPersons = Array.isArray(row.key_persons) ? (row.key_persons as Row[]) : [];
@@ -293,7 +309,7 @@ export default async function ViewDatabankPage({ params }: { params: Promise<{ i
   // Dynamic fields grouped by their form section, only those with a value.
   const groupedDynamic = new Map<string, { def: DynamicFieldDef; node: React.ReactNode }[]>();
   for (const def of dynamicFields) {
-    const node = dynamicNode(def, answers[def.field_key]);
+    const node = dynamicNode(def, answers[def.field_key], optionIndex);
     if (node === null) continue;
     const arr = groupedDynamic.get(def.section) ?? [];
     arr.push({ def, node });

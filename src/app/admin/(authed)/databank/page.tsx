@@ -87,6 +87,7 @@ async function load(
     rows: (data ?? []).map((r) => ({
       ...r,
       primary_industry: resolveOptionLabel(optionIndex, "SECTORS", r.primary_industry as string | null),
+      nic_name: resolveOptionLabel(optionIndex, "NIC_CENTERS", r.nic_name as string | null),
       city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city as string | null),
     })),
     total: count ?? 0,

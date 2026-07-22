@@ -47,6 +47,13 @@ export function resolveOptionLabel(
   return index.labelByValue[key(type, raw)] ?? raw;
 }
 
+// Display label for a stored choice, without needing to know its option type.
+export function optionLabelOf(index: OptionIndex, stored: unknown): string | null {
+  const raw = typeof stored === "string" ? stored.trim() : "";
+  if (!raw) return null;
+  return index.byId[raw]?.label ?? raw;
+}
+
 // The underlying value for a stored choice held as an option id or legacy text.
 export function resolveOptionValue(
   index: OptionIndex,
