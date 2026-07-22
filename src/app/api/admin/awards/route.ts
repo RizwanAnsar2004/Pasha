@@ -7,6 +7,7 @@ import {
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { getAwardsForAdmin } from "@/lib/startups/awards/awards.server";
 import { parsePagination } from "@/lib/utils/pagination";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const addSchema = z.object({
   databank_id: z.string().uuid(),
@@ -62,7 +63,7 @@ async function safeJson(req: Request): Promise<unknown> {
 }
 
 // GET ?q= → { candidates } startup search (modal picker).
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -88,7 +89,7 @@ export async function GET(req: Request) {
 }
 
 // POST → add an award to a startup.
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -134,7 +135,7 @@ export async function POST(req: Request) {
 }
 
 // PATCH → edit an existing award entry.
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -165,7 +166,7 @@ export async function PATCH(req: Request) {
 }
 
 // DELETE → remove an award entry.
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -185,3 +186,9 @@ export async function DELETE(req: Request) {
   }
   return NextResponse.json({ ok: true });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.awards, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.awards, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.awards, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.awards, deleteHandler);

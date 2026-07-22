@@ -4,6 +4,7 @@ import { createClient as createSessionClient, createServiceClient } from "@/lib/
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { parsePagination } from "@/lib/utils/pagination";
 import { fetchAllRowsBatched } from "@/lib/utils/csv";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const audienceItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -77,7 +78,7 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -119,7 +120,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ events: data ?? [], total: count ?? 0, page, pageSize });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ event: data });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -186,7 +187,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ event: data });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -204,3 +205,9 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.events, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.events, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.events, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.events, deleteHandler);

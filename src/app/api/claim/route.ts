@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getApplicantContext } from "@/lib/auth/applicant/applicant-auth";
 import { sendRawEmail } from "@/lib/email/mailer";
 import { emailOrigin } from "@/lib/utils/site-url";
+import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -31,7 +32,7 @@ async function loadProfile(supabase: ReturnType<typeof createServiceClient>, id:
   return data ?? null;
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const supabase = createServiceClient();
 
@@ -156,3 +157,6 @@ function claimEmailHtml(company: string, code: string): string {
       <p style="color:#666;font-size:13px;margin-top:24px">${emailOrigin()}</p>
     </div>`;
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const POST = withInvalidate(CACHE_NS.databank, postHandler);

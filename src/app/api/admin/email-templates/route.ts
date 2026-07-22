@@ -4,6 +4,7 @@ import { createClient as createSessionClient, createServiceClient } from "@/lib/
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { parsePagination } from "@/lib/utils/pagination";
 import { EMAIL_TEMPLATE_COLS } from "@/lib/email/email-templates";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 // placeholders: object mapping token -> sample value, e.g.
 const placeholdersSchema = z.record(z.string(), z.string().max(500)).default({});
@@ -47,7 +48,7 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -69,7 +70,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ templates: data ?? [], total: count ?? 0, page, pageSize });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ template: data });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -132,7 +133,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ template: data });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -161,3 +162,9 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.emailTemplates, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.emailTemplates, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.emailTemplates, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.emailTemplates, deleteHandler);

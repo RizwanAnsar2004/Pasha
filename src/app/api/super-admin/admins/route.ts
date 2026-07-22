@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { readSuperAdminSession } from "@/lib/auth/admin/super-admin";
 import { bustAdminAllowlistCache } from "@/lib/auth/admin/admin-allowlist";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const addSchema = z.object({
   email: z.string().email(),
@@ -26,7 +27,7 @@ async function requireSuperAdmin() {
   return { sub, error: null };
 }
 
-export async function GET() {
+async function getHandler() {
   const { sub, error } = await requireSuperAdmin();
   if (!sub) return error!;
   const supabase = createServiceClient();
@@ -40,7 +41,7 @@ export async function GET() {
   return NextResponse.json({ admins: data ?? [] });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { sub, error } = await requireSuperAdmin();
   if (!sub) return error!;
 
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, email });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { sub, error } = await requireSuperAdmin();
   if (!sub) return error!;
 
@@ -158,3 +159,8 @@ export async function DELETE(req: Request) {
   bustAdminAllowlistCache();
   return NextResponse.json({ ok: true, email });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.superAdmins, getHandler, { guard: requireSuperAdmin });
+export const POST = withInvalidate(CACHE_NS.superAdmins, postHandler);
+export const DELETE = withInvalidate(CACHE_NS.superAdmins, deleteHandler);

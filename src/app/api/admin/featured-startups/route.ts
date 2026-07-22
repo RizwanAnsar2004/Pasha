@@ -7,6 +7,7 @@ import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId
 import { parsePagination } from "@/lib/utils/pagination";
 import { EXPORT_MAX_ROWS } from "@/lib/utils/csv";
 import { emailOrigin } from "@/lib/utils/site-url";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const DATABANK_SELECT =
   "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage";
@@ -54,7 +55,7 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -115,7 +116,7 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -185,7 +186,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ entry: data });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -234,7 +235,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ settings: data });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -254,3 +255,9 @@ export async function DELETE(req: Request) {
   }
   return NextResponse.json({ ok: true });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.featuredStartups, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.featuredStartups, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.featuredStartups, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.featuredStartups, deleteHandler);

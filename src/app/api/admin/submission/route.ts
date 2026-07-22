@@ -13,6 +13,7 @@ import { notifyRagDatabank } from "@/lib/ai/rag-sync";
 import { syncAwardsFromText, syncAwardsFromStructured } from "@/lib/startups/awards/awards-sync.server";
 import { getOptionIndex } from "@/lib/options/index.server";
 import { resolveOptionLabel } from "@/lib/options/resolve";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 // Coerce an answers-bag value to a finite number, else null.
 function toNum(v: unknown): number | null {
@@ -69,7 +70,7 @@ async function resolveDatabankId(
   return (byName?.id as string | undefined) ?? null;
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -115,7 +116,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ submission, databank_id, featured, field_labels, verified });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   let body: unknown;
@@ -404,3 +405,7 @@ export async function PATCH(req: Request) {
 
   return NextResponse.json({ ok: true, id, status });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.submission, getHandler, { guard: requireAdmin });
+export const PATCH = withInvalidate(CACHE_NS.submission, patchHandler);

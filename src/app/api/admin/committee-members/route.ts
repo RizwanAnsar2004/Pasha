@@ -6,6 +6,7 @@ import { parsePagination } from "@/lib/utils/pagination";
 import { provisionSupabaseAuthUser, deleteSupabaseAuthUser } from "@/lib/auth/admin/admin-auth-provision";
 import { generatePassword, sendCommitteeInvite } from "@/lib/committee/committee-invite";
 import { emailOrigin } from "@/lib/utils/site-url";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const memberTypeSchema = z.enum(["chairman", "member", "admin"]);
 
@@ -87,7 +88,7 @@ async function safeJson(req: Request): Promise<unknown> {
   }
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -116,7 +117,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ members, total: count ?? 0, page, pageSize });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireOperator();
   if (!user) return error!;
 
@@ -202,7 +203,7 @@ export async function POST(req: Request) {
   });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireOperator();
   if (!user) return error!;
 
@@ -240,7 +241,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ member: mapMember(data as Record<string, unknown>) });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireOperator();
   if (!user) return error!;
 
@@ -283,3 +284,9 @@ export async function DELETE(req: Request) {
   bustAdminAllowlistCache();
   return NextResponse.json({ ok: true, email: target, authDeleted });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.committeeMembers, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.committeeMembers, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.committeeMembers, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.committeeMembers, deleteHandler);

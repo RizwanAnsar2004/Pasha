@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { getAdminOptionTypes, saveOptionType, deleteOptionType } from "@/lib/options/admin.server";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 async function requireAdmin() {
   const sessionClient = await createSessionClient();
@@ -24,7 +25,7 @@ const upsertSchema = z.object({
 });
 
 // GET — every option list, sourced from the options/countries tables.
-export async function GET() {
+async function getHandler() {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   return NextResponse.json({ lists: await getAdminOptionTypes() });
@@ -50,7 +51,7 @@ export const POST = upsert;
 export const PATCH = upsert;
 
 // DELETE — deactivate every option in a list (existing rows keep resolving their label).
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const body = (await safeJson(req)) as { name?: string };
@@ -71,3 +72,7 @@ async function safeJson(req: Request): Promise<unknown> {
     return {};
   }
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.optionLists, getHandler, { guard: requireAdmin });
+export const DELETE = withInvalidate(CACHE_NS.optionLists, deleteHandler);

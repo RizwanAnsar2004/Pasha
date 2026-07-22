@@ -7,6 +7,7 @@ import {
 } from "@/lib/supabase/server";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const SECTION_COLS = new Set([
   "key",
@@ -76,7 +77,7 @@ async function audit(
 }
 
 // GET — return the raw config (all sections + all fields) for the builder.
-export async function GET() {
+async function getHandler() {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const supabase = createServiceClient();
@@ -93,7 +94,7 @@ const createSchema = z.object({
 });
 
 // POST — create a section or field.
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const parsed = createSchema.safeParse(await safeJson(req));
@@ -125,7 +126,7 @@ const patchSchema = z.object({
 });
 
 // PATCH — update a section or field.
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const parsed = patchSchema.safeParse(await safeJson(req));
@@ -155,7 +156,7 @@ const deleteSchema = z.object({
 });
 
 // DELETE — remove a section (cascades its fields) or a single field.
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
   const parsed = deleteSchema.safeParse(await safeJson(req));
@@ -193,3 +194,9 @@ async function safeJson(req: Request): Promise<unknown> {
     return {};
   }
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.forms, getHandler, { guard: requireAdmin });
+export const POST = withInvalidate(CACHE_NS.forms, postHandler);
+export const PATCH = withInvalidate(CACHE_NS.forms, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.forms, deleteHandler);

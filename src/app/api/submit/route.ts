@@ -9,8 +9,9 @@ import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
+import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   try {
     // The apply form lives behind the applicant auth wall — an application is always tied to the signed-in user who created it.
     const user = await getApplicantUser();
@@ -312,3 +313,6 @@ function validationError(
   const summary = firstField ? fieldErrors[firstField] : "Validation failed";
   return NextResponse.json({ error: summary, fieldErrors }, { status: 400 });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const POST = withInvalidate(CACHE_NS.submission, postHandler);

@@ -1,18 +1,19 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { formatNumber } from "@/lib/utils";
 
-export function DirectoryHero({
-  totalStartups,
-  sectorCount,
-  cityCount,
-}: {
+export type DirectoryHeroStats = {
   totalStartups: number;
   sectorCount: number;
   cityCount: number;
-}) {
+};
+
+// The hero is static apart from three counters, so the counters are the only
+// part that waits on the database — everything else paints on first flush.
+export function DirectoryHero({ stats }: { stats: Promise<DirectoryHeroStats> }) {
   return (
     <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
       <div
@@ -79,27 +80,9 @@ export function DirectoryHero({
                 <span className="h-2 w-2 rounded-full bg-[#31B57B] shadow-[0_0_0_6px_rgba(49,181,123,0.15)]" />
               </div>
 
-              <div className="px-5 pt-6 pb-5">
-                <div className="font-serif text-5xl sm:text-6xl font-extrabold tracking-tight text-white">
-                  {formatNumber(totalStartups)}
-                </div>
-                <div className="mt-2 text-sm text-white/50">verified startup profiles</div>
-              </div>
-
-              <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-t border-white/10">
-                <div className="p-4">
-                  <strong className="block font-serif text-xl font-bold text-white">{sectorCount}</strong>
-                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">technology sectors</span>
-                </div>
-                <div className="p-4">
-                  <strong className="block font-serif text-xl font-bold text-white">{cityCount}</strong>
-                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">startup cities</span>
-                </div>
-                <div className="p-4">
-                  <strong className="block font-serif text-xl font-bold text-white">5+</strong>
-                  <span className="mt-1.5 block text-[13px] leading-snug text-white/55">verification sources</span>
-                </div>
-              </div>
+              <Suspense fallback={<HeroStatsFallback />}>
+                <HeroStats stats={stats} />
+              </Suspense>
 
               <div className="flex items-center justify-between px-5 py-4 text-xs text-white/55">
                 <span>Searchable by sector, location and stage</span>
@@ -110,5 +93,55 @@ export function DirectoryHero({
         </div>
       </div>
     </section>
+  );
+}
+
+// Resolves once the counts land; React streams it into the shell already on screen.
+async function HeroStats({ stats }: { stats: Promise<DirectoryHeroStats> }) {
+  const { totalStartups, sectorCount, cityCount } = await stats;
+  return (
+    <>
+      <div className="px-5 pt-6 pb-5">
+        <div className="font-serif text-5xl sm:text-6xl font-extrabold tracking-tight text-white">
+          {formatNumber(totalStartups)}
+        </div>
+        <div className="mt-2 text-sm text-white/50">verified startup profiles</div>
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-t border-white/10">
+        <div className="p-4">
+          <strong className="block font-serif text-xl font-bold text-white">{sectorCount}</strong>
+          <span className="mt-1.5 block text-[13px] leading-snug text-white/55">technology sectors</span>
+        </div>
+        <div className="p-4">
+          <strong className="block font-serif text-xl font-bold text-white">{cityCount}</strong>
+          <span className="mt-1.5 block text-[13px] leading-snug text-white/55">startup cities</span>
+        </div>
+        <div className="p-4">
+          <strong className="block font-serif text-xl font-bold text-white">5+</strong>
+          <span className="mt-1.5 block text-[13px] leading-snug text-white/55">verification sources</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Same box metrics as HeroStats so the card never resizes when the counts land.
+function HeroStatsFallback() {
+  return (
+    <div aria-hidden className="animate-pulse">
+      <div className="px-5 pt-6 pb-5">
+        <div className="h-[3.75rem] w-40 rounded-lg bg-white/10" />
+        <div className="mt-2 h-5 w-44 rounded bg-white/[0.06]" />
+      </div>
+      <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-t border-white/10">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="p-4">
+            <div className="h-7 w-8 rounded bg-white/10" />
+            <div className="mt-1.5 h-[2.4rem] w-full rounded bg-white/[0.06]" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

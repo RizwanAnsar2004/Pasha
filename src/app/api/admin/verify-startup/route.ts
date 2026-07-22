@@ -5,13 +5,14 @@ import { createClient as createSessionClient, createServiceClient } from "@/lib/
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { notifyRagDatabank } from "@/lib/ai/rag-sync";
+import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 
 const patchSchema = z.object({
   id: z.string().uuid(),
   verified: z.boolean(),
 });
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const sessionClient = await createSessionClient();
   const {
     data: { user },
@@ -77,3 +78,6 @@ export async function PATCH(req: Request) {
 
   return NextResponse.json({ ok: true, id, verified });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const PATCH = withInvalidate(CACHE_NS.databank, patchHandler);

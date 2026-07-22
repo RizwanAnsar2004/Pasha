@@ -17,6 +17,7 @@ import {
   optionIdFor,
   resolveOptionLabel,
 } from "@/lib/options/resolve";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 // Whitelist of columns an admin can edit.
 const EDITABLE_COLUMNS = new Set([
@@ -108,7 +109,7 @@ async function requireAdmin() {
   return { user, error: null };
 }
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -188,7 +189,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ rows: data ?? [], total: count ?? 0, page, pageSize });
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -266,7 +267,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ ok: true, id });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -318,3 +319,8 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true, id });
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.databank, getHandler, { guard: requireAdmin });
+export const PATCH = withInvalidate(CACHE_NS.databank, patchHandler);
+export const DELETE = withInvalidate(CACHE_NS.databank, deleteHandler);

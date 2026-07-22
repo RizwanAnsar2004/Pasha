@@ -5,7 +5,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DirectoryClient } from "./DirectoryClient";
 import type { DirectoryRow, DirectoryFilters } from "./DirectoryClient";
-import { DirectoryHero } from "@/components/directory/DirectoryHero";
+import { DirectoryHero, type DirectoryHeroStats } from "@/components/directory/DirectoryHero";
+import { DirectorySkeleton } from "./DirectorySkeleton";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
@@ -13,6 +14,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
 import { matchingOptionIds, optionFilterValues, type OptionIndex , optionIdFor} from "@/lib/options/resolve";
+import type { OptionItem } from "@/lib/options/types";
 import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 
 export const metadata: Metadata = {
@@ -204,21 +206,28 @@ function inMemory(
   return { rows: matched.slice(offset, offset + PAGE_SIZE), total: matched.length };
 }
 
-export default async function DirectoryPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const sp = await searchParams;
-  const filters = parseFilters(sp);
-  const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
-  const page = Math.max(1, Number(pageRaw) || 1);
+type DirectoryData = {
+  rows: DirectoryRow[];
+  total: number;
+  totalAll: number;
+  sectors: OptionItem[];
+  cities: OptionItem[];
+  stages: OptionItem[];
+  fundingBands: OptionItem[];
+  optionIndex: OptionIndex;
+};
+
+// Everything the listing needs, resolved off the critical path. The three
+// queries that don't depend on the option index start before we await it.
+async function loadDirectory(filters: DirectoryFilters, page: number): Promise<DirectoryData> {
+  const metaPromise = getDirectoryMeta();
+  const registryPromise = getFormOptionRegistry();
 
   const optionIndex = await getOptionIndex();
   const [pageResult, meta, optionRegistry] = await Promise.all([
     loadPage(filters, page, optionIndex),
-    getDirectoryMeta(),
-    getFormOptionRegistry(),
+    metaPromise,
+    registryPromise,
   ]);
 
   let rows = pageResult?.rows ?? [];
@@ -239,28 +248,76 @@ export default async function DirectoryPage({
     totalAll = all.length;
   }
 
+  return {
+    rows,
+    total,
+    totalAll,
+    sectors,
+    cities,
+    stages,
+    fundingBands: optionRegistry.FUNDING_AMOUNT_RANGES ?? [],
+    optionIndex,
+  };
+}
+
+// Suspends until the queries land; the shell around it is already on screen.
+async function DirectoryResults({
+  data,
+  filters,
+  page,
+}: {
+  data: Promise<DirectoryData>;
+  filters: DirectoryFilters;
+  page: number;
+}) {
+  const d = await data;
+  return (
+    <DirectoryClient
+      rows={d.rows}
+      total={d.total}
+      totalAll={d.totalAll}
+      sectors={d.sectors}
+      cities={d.cities}
+      stages={d.stages}
+      fundingBands={d.fundingBands}
+      optionIndex={d.optionIndex}
+      filters={filters}
+      page={page}
+      pageSize={PAGE_SIZE}
+    />
+  );
+}
+
+export default async function DirectoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const filters = parseFilters(sp);
+  const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const page = Math.max(1, Number(pageRaw) || 1);
+
+  // Deliberately NOT awaited: kicking the work off and handing the promises to
+  // Suspense boundaries lets the header/hero/footer flush immediately, then the
+  // counters and the card grid stream in as their queries resolve.
+  const data = loadDirectory(filters, page);
+  const heroStats: Promise<DirectoryHeroStats> = data.then((d) => ({
+    totalStartups: d.totalAll,
+    sectorCount: d.sectors.length,
+    cityCount: d.cities.length,
+  }));
+
   return (
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone">
-        <DirectoryHero totalStartups={totalAll} sectorCount={sectors.length} cityCount={cities.length} />
+        <DirectoryHero stats={heroStats} />
         <section id="directory" className="py-16 sm:py-24">
           <div className="site-container">
-            {/* useSearchParams in the client needs a Suspense boundary; route */}
-            <Suspense fallback={<div className="text-pasha-muted">Loading…</div>}>
-              <DirectoryClient
-                rows={rows}
-                total={total}
-                totalAll={totalAll}
-                sectors={sectors}
-                cities={cities}
-                stages={stages}
-                fundingBands={optionRegistry.FUNDING_AMOUNT_RANGES ?? []}
-                optionIndex={optionIndex}
-                filters={filters}
-                page={page}
-                pageSize={PAGE_SIZE}
-              />
+            {/* Also the boundary useSearchParams in DirectoryClient requires. */}
+            <Suspense fallback={<DirectorySkeleton cards={PAGE_SIZE} />}>
+              <DirectoryResults data={data} filters={filters} page={page} />
             </Suspense>
           </div>
         </section>

@@ -53,12 +53,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
 
-  // Admins belong in the committee portal — keep the audiences separate.
+  // Admins belong in the committee portal — keep the audiences separate. Answer exactly as
+  // an ordinary already-registered address would, so the response never reveals that this
+  // email is privileged. A credential-shaped error here is also just wrong on the signup
+  // path: `check` carries no password at all, so there is nothing to call invalid.
   if (action !== "forgot" && (await isAdminEmail(email))) {
-    return NextResponse.json(
-      { error: "Invalid Email And Password." },
-      { status: 403 }
-    );
+    if (action === "check") {
+      return NextResponse.json({ exists: true });
+    }
+    if (action === "register") {
+      return NextResponse.json(
+        { error: "An account with this email already exists. Please sign in instead." },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
   // ── Email existence check (signup step 1) ────────────────────────────────── Lets the UI flag an already-registered email before the applicant.

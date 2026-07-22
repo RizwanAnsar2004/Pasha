@@ -11,6 +11,7 @@ import {
   isSiteContentSlug,
   type SiteContentSlug,
 } from "@/lib/content/site-content";
+import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const putSchema = z.object({
   slug: z.enum(SITE_CONTENT_SLUGS),
@@ -41,7 +42,7 @@ async function safeJson(req: Request): Promise<unknown> {
 }
 
 // GET /api/admin/site-content?slug=privacy_policy → current content (or default).
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -71,7 +72,7 @@ export async function GET(req: Request) {
 }
 
 // PUT /api/admin/site-content → upsert the content block.
-export async function PUT(req: Request) {
+async function putHandler(req: Request) {
   const { user, error } = await requireAdmin();
   if (!user) return error!;
 
@@ -99,3 +100,7 @@ export async function PUT(req: Request) {
   }
   return NextResponse.json(data);
 }
+
+// --- Redis cache wiring: read-through on GET, namespace invalidation on writes. ---
+export const GET = withCache(CACHE_NS.siteContent, getHandler, { guard: requireAdmin });
+export const PUT = withInvalidate(CACHE_NS.siteContent, putHandler);
