@@ -8,6 +8,7 @@ import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 import { provisionApplicantAuthUser, resetApplicantPassword } from "@/lib/auth/admin/admin-auth-provision";
 import { generatePassword } from "@/lib/committee/committee-invite";
 import { sendClaimCredentials } from "@/lib/startups/claim/claim-invite";
+import { seedClaimedApplication } from "@/lib/startups/claim/seed-application.server";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -218,9 +219,13 @@ async function postHandler(req: NextRequest) {
     const ctx = await getApplicantContext();
     const now = new Date().toISOString();
 
-    // Resolve the owner account. A signed-in applicant claims with their existing
-    // login; otherwise provision a fresh applicant account and email credentials.
-    let ownerId: string | null = ctx.status === "applicant" ? ctx.user.id : null;
+    // Ownership is proven by the OTP on `addr`, so the owner account must be the
+    // one for `addr` — NOT whoever happens to be signed in. Only when the signed-in
+    // applicant IS this email do we reuse their session account (and keep their
+    // existing password). Otherwise provision or reset the account for `addr` and
+    // email fresh credentials, so the claimant always gets a way to sign in.
+    const sessionEmail = ctx.status === "applicant" ? ctx.user.email?.toLowerCase() ?? null : null;
+    let ownerId: string | null = sessionEmail === addr ? ctx.user!.id : null;
     let newPassword: string | null = null;
     if (!ownerId) {
       const password = generatePassword();
@@ -236,6 +241,8 @@ async function postHandler(req: NextRequest) {
         if (resetId) {
           ownerId = resetId;
           newPassword = password;
+        } else {
+          console.error("[claim] could not provision or reset account for", addr);
         }
       }
     }
@@ -255,6 +262,10 @@ async function postHandler(req: NextRequest) {
       .eq("verified_claimed", false);
     if (updErr) return NextResponse.json({ error: "Could not complete the claim." }, { status: 500 });
 
+    // Populate the claimant's portal with this startup (fields filled + marked
+    // submitted) so they don't land on a blank application after signing in.
+    await seedClaimedApplication({ ownerId, email: addr, databankId });
+
     await supabase.from("audit_log").insert({
       actor_id: ownerId,
       actor_email: addr,
@@ -264,9 +275,10 @@ async function postHandler(req: NextRequest) {
       payload: { email: addr, ip: clientIp(req), at: now },
     });
 
-    // Email the new owner their sign-in credentials — only when we just created
-    // the account (an already-signed-in applicant keeps their existing password).
-    if (newPassword) {
+    // Always confirm a successful claim by email. Include the generated/reset
+    // password when we made one; otherwise it's a confirmation pointing the
+    // already-signed-in owner at the portal (their existing password stands).
+    if (ownerId) {
       const sent = await sendClaimCredentials({
         email: addr,
         company: profile.startup_name,
