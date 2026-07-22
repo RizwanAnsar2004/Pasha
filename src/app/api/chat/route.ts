@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Could not reach the assistant. Please try again." },
+      { error: "Could not reach Kai. Please try again." },
       { status: 502 }
     );
   }
