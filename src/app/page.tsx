@@ -12,7 +12,7 @@ import { Ecosystem } from "@/components/landing/Ecosystem";
 import { NewsCarousel } from "@/components/landing/NewsCarousel";
 import { UpcomingEvents } from "@/components/landing/UpcomingEvents";
 import { getUpcomingPublishedEvents } from "@/lib/events/events.server";
-import { getHomepageFeaturedWatchlist, getHomepageVerifiedWatchlist, getHomepageRecentWatchlist } from "@/lib/startups/directory/featured-startups.server";
+import { getHomepageFeaturedWatchlist } from "@/lib/startups/directory/featured-startups.server";
 import { getWomenLedStartups } from "@/lib/startups/directory/women-led.server";
 import { getHomepageAwardWinners } from "@/lib/startups/awards/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
@@ -30,8 +30,7 @@ export const dynamic = "force-dynamic";
 
 // Homepage carousels pull a small, capped slice of the databank (≤20 each) rather than the full list — keeps the home query light.
 const HOME_CAROUSEL_LIMIT = 20;
-// The directory bento shows 1 spotlight + 4 mini cards.
-const BENTO_MIN = 5;
+// The directory bento shows up to 1 spotlight + 4 mini cards.
 
 async function loadHomeData(): Promise<{
   databankCount: number;
@@ -50,19 +49,10 @@ async function loadHomeData(): Promise<{
       getWomenLedStartups(HOME_CAROUSEL_LIMIT),
     ]);
 
-    // Top up with verified startups when curation hasn't filled the bento yet, so the "Featured startups" section never looks sparse.
-    let watchlist = curatedWatchlist;
-    if (watchlist.length < BENTO_MIN) {
-      const verified = await getHomepageVerifiedWatchlist(HOME_CAROUSEL_LIMIT);
-      const seen = new Set(watchlist.map((s) => s.id));
-      watchlist = [...watchlist, ...verified.filter((s) => !seen.has(s.id))];
-    }
-    // Still short (curated + verified pool is small)?
-    if (watchlist.length < BENTO_MIN) {
-      const recent = await getHomepageRecentWatchlist(HOME_CAROUSEL_LIMIT);
-      const seen = new Set(watchlist.map((s) => s.id));
-      watchlist = [...watchlist, ...recent.filter((s) => !seen.has(s.id))];
-    }
+    // Only admin-curated entries appear under "Featured startups" — padding the
+    // bento with verified/recent rows presented startups as featured that no one
+    // had featured. The bento renders 1-5 cards and hides itself at zero.
+    const watchlist = curatedWatchlist;
 
     // Prefer the curated awards table; fall back to the legacy databank.awards text column when nothing has been curated yet (or pre-migration).
     let awardWinners = curatedAwards;

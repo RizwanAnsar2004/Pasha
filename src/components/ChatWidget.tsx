@@ -94,8 +94,7 @@ export function ChatWidget() {
       const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } catch (e) {
-      // A 429 is a quota message, not a failure — start the cooldown so the
-      // composer locks instead of letting the user retry into the same wall.
+      // A 429 is a quota message, not a failure — lock the composer.
       if (e instanceof ApiError && e.status === 429) {
         const retryAfter = typeof e.data.retryAfter === "number" ? e.data.retryAfter : 3600;
         setNow(Date.now());

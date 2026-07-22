@@ -47,6 +47,34 @@ export function resolveOptionLabel(
   return index.labelByValue[key(type, raw)] ?? raw;
 }
 
+// The underlying value for a stored choice held as an option id or legacy text.
+export function resolveOptionValue(
+  index: OptionIndex,
+  stored: string | null | undefined
+): string | null {
+  const raw = typeof stored === "string" ? stored.trim() : "";
+  if (!raw) return null;
+  const hit = index.byId[raw];
+  if (hit) return hit.value;
+  // An unknown id would violate an enum column — drop it rather than fail the insert.
+  if (isOptionId(raw)) return null;
+  return raw;
+}
+
+// Array form, for multiselect answers written to value-typed columns.
+export function resolveOptionValues(
+  index: OptionIndex,
+  stored: unknown
+): string[] {
+  if (!Array.isArray(stored)) return [];
+  const out: string[] = [];
+  for (const entry of stored) {
+    const value = resolveOptionValue(index, typeof entry === "string" ? entry : null);
+    if (value && !out.includes(value)) out.push(value);
+  }
+  return out;
+}
+
 // The option id for a filter param that may already be an id or a legacy value.
 export function optionIdFor(index: OptionIndex, type: string, param: string): string | null {
   const raw = typeof param === "string" ? param.trim() : "";

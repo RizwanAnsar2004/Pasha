@@ -4,7 +4,7 @@ import type { StepProps } from "../ApplyForm";
 import { Field } from "../Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { CheckboxGroup, YesNo } from "@/components/ui/RadioCard";
-import { ENGAGEMENT_INTERESTS } from "@/lib/options";
+import { ENGAGEMENT_INTERESTS, coerceOptionValues } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
 
 // Step 3 — Recognition & Community
@@ -17,9 +17,7 @@ export function Step3Recognition({ form }: StepProps) {
   } = form;
   const v = watch();
   // Single source of truth: admin-managed list, code constant as fallback.
-  const engagementInterests = useOptionList("ENGAGEMENT_INTERESTS", ENGAGEMENT_INTERESTS).map(
-    (o) => o.value
-  );
+  const engagementInterests = useOptionList("ENGAGEMENT_INTERESTS", ENGAGEMENT_INTERESTS);
 
   return (
     <div className="space-y-10">
@@ -76,7 +74,7 @@ export function Step3Recognition({ form }: StepProps) {
         subtitle="Pick all that apply. Helps the committee match you to the right opportunities."
       >
         <CheckboxGroup
-          value={v.engagement_interests ?? []}
+          value={coerceOptionValues(v.engagement_interests, engagementInterests)}
           onChange={(arr) =>
             setValue("engagement_interests", arr, { shouldValidate: true })
           }

@@ -9,6 +9,8 @@ import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionValue } from "@/lib/options/resolve";
 import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 
 async function postHandler(req: Request) {
@@ -33,7 +35,11 @@ async function postHandler(req: Request) {
     }
 
     // The form structure may be admin-defined; loading the registry also teaches the schema which ids mean "Other".
-    const [config] = await Promise.all([getFormConfig(), getFormOptionRegistry()]);
+    const [config, , optionIndex] = await Promise.all([
+      getFormConfig(),
+      getFormOptionRegistry(),
+      getOptionIndex(),
+    ]);
     const labelMap = config ? buildFieldLabelMap(config) : {};
     let cols: Record<string, unknown>;
     let answers: Record<string, unknown> = {};
@@ -74,8 +80,11 @@ async function postHandler(req: Request) {
     // Primary founder populates the legacy flat founder_* columns so existing admin tooling keeps working.
     const primary = founders.find((f) => f.is_primary) ?? founders[0];
     const totalFoundersDerived = founders.length || undefined;
+
+    // founder_gender rejects option ids — normalise before counting or writing.
+    const genderOf = (f: Founder) => resolveOptionValue(optionIndex, f.gender ?? null);
     const femaleFoundersDerived =
-      founders.filter((f) => f.gender === "female").length || undefined;
+      founders.filter((f) => genderOf(f) === "female").length || undefined;
 
     // Vetting — reads core columns + primary founder.
     const vetting = scoreVetting({
@@ -134,7 +143,7 @@ async function postHandler(req: Request) {
       founder_mobile: primary?.mobile ?? null,
       founder_linkedin: primary?.linkedin ?? null,
       founder_photo_url: primary?.photo_url ?? null,
-      founder_gender: primary?.gender ?? null,
+      founder_gender: primary ? genderOf(primary) : null,
       founder_role: primary?.role ?? null,
 
       // ---- startup
@@ -188,7 +197,8 @@ async function postHandler(req: Request) {
       company_youtube: col("company_youtube"),
 
       // ---- founders array (source of truth — JSONB) + derived counts
-      founders: founders,
+      // Normalised so women-led detection never resolves an id out of JSONB.
+      founders: founders.map((f) => (f.gender ? { ...f, gender: genderOf(f) ?? f.gender } : f)),
       total_founders: totalFoundersDerived ?? null,
       female_founders: femaleFoundersDerived ?? null,
 

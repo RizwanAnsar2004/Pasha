@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(30_000),
     });
 
-    // Rate limited upstream — surface it as a limit, not as a service failure.
+    // Surface an upstream rate limit as a limit, not a service failure.
     if (res.status === 429) {
       const retryAfter = Number(res.headers.get("retry-after")) || 3600;
       return NextResponse.json(
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Key missing or rejected — a misconfiguration on our side, not the user's fault.
+    // Key missing or rejected — our misconfiguration, not the user's fault.
     if (res.status === 401 || res.status === 403) {
       return NextResponse.json(
         { error: "Kai isn't available right now. Please contact startups@pasha.org.pk if this continues." },
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       refused: data.refused ?? false,
     });
   } catch (e) {
-    // Distinguish "took too long" from "couldn't connect at all" — they need different advice.
+    // "Took too long" and "couldn't connect" need different advice.
     const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
     return NextResponse.json(
       {

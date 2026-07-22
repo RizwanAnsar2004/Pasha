@@ -17,6 +17,7 @@ import {
   SECTORS,
   STAGES,
   isOtherPicked,
+  coerceOptionValues,
 } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
 
@@ -65,8 +66,8 @@ export function Step1Startup({ form }: StepProps) {
   const revenueBands = useOptionList("REVENUE_BANDS", REVENUE_BANDS);
   const fundingStages = useOptionList("FUNDING_STAGES", FUNDING_STAGES);
   const nicCenters = useOptionList("NIC_CENTERS", NIC_CENTERS);
-  // CheckboxGroup stores plain strings, so pass values only.
-  const revenueModels = useOptionList("REVENUE_MODELS", REVENUE_MODELS).map((o) => o.value);
+  // Stores the option value, displays the option label.
+  const revenueModels = useOptionList("REVENUE_MODELS", REVENUE_MODELS);
 
   return (
     <div className="space-y-10">
@@ -215,7 +216,7 @@ export function Step1Startup({ form }: StepProps) {
           hint="Pick all that apply."
         >
           <CheckboxGroup
-            value={v.revenue_models ?? []}
+            value={coerceOptionValues(v.revenue_models, revenueModels)}
             onChange={(arr) =>
               setValue("revenue_models", arr, { shouldValidate: true })
             }

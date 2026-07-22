@@ -1,5 +1,4 @@
-// Streamed placeholder for the directory listing. Shape mirrors the real
-// toolbar + card grid so nothing jumps when the data arrives.
+// Streamed placeholder mirroring the real toolbar + card grid, so nothing jumps.
 export function DirectorySkeleton({ cards = 12 }: { cards?: number }) {
   return (
     <div aria-hidden className="animate-pulse">

@@ -59,3 +59,18 @@ export function coerceOptionValue(
   }
   return match || stored;
 }
+
+// Array form of coerceOptionValue, for multiselect answers saved before the
+// option lists moved to ids — each legacy label maps back onto its option id.
+export function coerceOptionValues(
+  stored: unknown,
+  options: readonly (string | ChoiceOption)[]
+): string[] {
+  if (!Array.isArray(stored)) return [];
+  const out: string[] = [];
+  for (const entry of stored) {
+    const mapped = coerceOptionValue(entry, options);
+    if (mapped && !out.includes(mapped)) out.push(mapped);
+  }
+  return out;
+}

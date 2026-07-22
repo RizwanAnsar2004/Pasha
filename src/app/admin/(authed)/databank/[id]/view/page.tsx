@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Pencil, CheckCircle2, FileText, Paperclip } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getDatabankDynamicFields } from "@/lib/forms/form-config.server";
 import { getAwardTitlesForDatabank } from "@/lib/startups/awards/awards.server";
@@ -102,6 +102,44 @@ function colNode(row: Row, key: string, kind: "text" | "number" | "currency" | "
 }
 
 // Render a dynamic answers-bag value by its input type — only the SELECTED value(s), never the unselected options/checkboxes.
+// The human filename out of a storage URL, minus the upload timestamp prefix.
+function fileNameFromUrl(url: string, fallback: string): string {
+  try {
+    const path = decodeURIComponent(new URL(url).pathname);
+    const last = path.split("/").filter(Boolean).pop() ?? "";
+    // Uploads are stored as "<timestamp>-<original name>".
+    const stripped = last.replace(/^\d{10,}-/, "");
+    return stripped || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// A document link shown as an icon + filename rather than a raw storage URL.
+function FileChip({ url, fallbackLabel }: { url: string; fallbackLabel: string }) {
+  if (!url) return null;
+  const name = fileNameFromUrl(url, fallbackLabel);
+  const isPdf = /\.pdf(\?|$)/i.test(url);
+  const Icon = isPdf ? FileText : Paperclip;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title={name}
+      className="mt-1 inline-flex max-w-full items-center gap-2 rounded-lg border border-pasha-line bg-white px-3 py-2 text-sm text-pasha-ink transition-colors hover:border-pasha-red hover:text-pasha-red"
+    >
+      <Icon className={`h-4 w-4 shrink-0 ${isPdf ? "text-pasha-red" : "text-pasha-muted"}`} aria-hidden />
+      <span className="truncate">{name}</span>
+      {isPdf && (
+        <span className="shrink-0 rounded bg-pasha-red/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-pasha-red">
+          PDF
+        </span>
+      )}
+    </a>
+  );
+}
+
 function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | null {
   if (isEmpty(value) && def.input_type !== InputType.YES_NO) return null;
   const t = def.input_type;
@@ -122,14 +160,13 @@ function dynamicNode(def: DynamicFieldDef, value: unknown): React.ReactNode | nu
   if (t === InputType.FILE_UPLOAD) {
     const url = str(value);
     const isImg = /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(url);
-    return isImg ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={url} alt={def.label} className="mt-1 max-h-40 rounded-lg border border-pasha-line" />
-    ) : (
-      <a href={url} target="_blank" rel="noreferrer" className="text-pasha-red hover:underline break-all">
-        {url}
-      </a>
-    );
+    if (isImg) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={def.label} className="mt-1 max-h-40 rounded-lg border border-pasha-line" />
+      );
+    }
+    return <FileChip url={url} fallbackLabel={def.label} />;
   }
   if (t === InputType.RICH_TEXT) {
     return <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(str(value)) }} />;

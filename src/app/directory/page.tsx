@@ -217,8 +217,7 @@ type DirectoryData = {
   optionIndex: OptionIndex;
 };
 
-// Everything the listing needs, resolved off the critical path. The three
-// queries that don't depend on the option index start before we await it.
+// Everything the listing needs; the two index-independent queries start first.
 async function loadDirectory(filters: DirectoryFilters, page: number): Promise<DirectoryData> {
   const metaPromise = getDirectoryMeta();
   const registryPromise = getFormOptionRegistry();

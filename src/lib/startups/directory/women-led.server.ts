@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { startupSlug } from "@/lib/utils/slug";
 import type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
+import { resolveOptionLabel, resolveOptionValue, type OptionIndex } from "@/lib/options/resolve";
 
 export type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 
@@ -31,11 +31,16 @@ function coverFromAnswers(answers: Record<string, unknown> | null | undefined): 
   return typeof v === "string" && v.trim() ? v : null;
 }
 
-function founderNameFromKeyPersons(keyPersons: unknown): string | null {
+// key_persons.gender may hold an option id (admin editor) or legacy text.
+function isFemale(person: unknown, index: OptionIndex): boolean {
+  if (typeof person !== "object" || person === null) return false;
+  const raw = (person as KeyPerson).gender;
+  return resolveOptionValue(index, raw ?? null)?.toLowerCase() === "female";
+}
+
+function founderNameFromKeyPersons(keyPersons: unknown, index: OptionIndex): string | null {
   if (!Array.isArray(keyPersons)) return null;
-  const woman = keyPersons.find(
-    (p) => typeof p === "object" && p !== null && (p as KeyPerson).gender?.toLowerCase() === "female"
-  ) as KeyPerson | undefined;
+  const woman = keyPersons.find((p) => isFemale(p, index)) as KeyPerson | undefined;
   if (woman?.name) return woman.name;
   const first = keyPersons.find((p) => typeof p === "object" && p !== null && (p as KeyPerson).name) as
     | KeyPerson
@@ -43,11 +48,9 @@ function founderNameFromKeyPersons(keyPersons: unknown): string | null {
   return first?.name ?? null;
 }
 
-function founderMobileFromKeyPersons(keyPersons: unknown): string | null {
+function founderMobileFromKeyPersons(keyPersons: unknown, index: OptionIndex): string | null {
   if (!Array.isArray(keyPersons)) return null;
-  const woman = keyPersons.find(
-    (p) => typeof p === "object" && p !== null && (p as KeyPerson).gender?.toLowerCase() === "female"
-  ) as KeyPerson | undefined;
+  const woman = keyPersons.find((p) => isFemale(p, index)) as KeyPerson | undefined;
   if (woman?.mobile) return woman.mobile;
   const first = keyPersons.find((p) => typeof p === "object" && p !== null && (p as KeyPerson).mobile) as
     | KeyPerson
@@ -59,8 +62,8 @@ function toWomenLedStartup(row: DatabankRow, index: OptionIndex): WomenLedStartu
   return {
     id: row.id,
     startup_name: row.startup_name,
-    founder_name: founderNameFromKeyPersons(row.key_persons),
-    founder_mobile: founderMobileFromKeyPersons(row.key_persons),
+    founder_name: founderNameFromKeyPersons(row.key_persons, index),
+    founder_mobile: founderMobileFromKeyPersons(row.key_persons, index),
     primary_industry: resolveOptionLabel(index, "SECTORS", row.primary_industry),
     city: resolveOptionLabel(index, "HQ_CITIES", row.city),
     tagline: row.tagline,

@@ -11,8 +11,7 @@ export type DirectoryHeroStats = {
   cityCount: number;
 };
 
-// The hero is static apart from three counters, so the counters are the only
-// part that waits on the database — everything else paints on first flush.
+// Only the three counters wait on the database; the rest paints on first flush.
 export function DirectoryHero({ stats }: { stats: Promise<DirectoryHeroStats> }) {
   return (
     <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
@@ -126,7 +125,7 @@ async function HeroStats({ stats }: { stats: Promise<DirectoryHeroStats> }) {
   );
 }
 
-// Same box metrics as HeroStats so the card never resizes when the counts land.
+// Same box metrics as HeroStats so the card never resizes when counts land.
 function HeroStatsFallback() {
   return (
     <div aria-hidden className="animate-pulse">

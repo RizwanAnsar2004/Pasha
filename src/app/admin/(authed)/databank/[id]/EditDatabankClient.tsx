@@ -21,6 +21,7 @@ import {
   STAGES,
   FOUNDER_GENDERS,
   coerceOptionValue,
+  coerceOptionValues,
   normalizeOptions,
   type OptionList,
 } from "@/lib/options";
@@ -952,12 +953,11 @@ function DynamicFieldControl({
   }
 
   if (t === InputType.MULTISELECT) {
-    const arr = Array.isArray(value) ? (value as string[]) : [];
     return (
       <CheckboxGroup
-        value={arr}
+        value={coerceOptionValues(value, def.options)}
         onChange={(next) => onChange(next)}
-        options={def.options.map((o) => o.value)}
+        options={def.options}
       />
     );
   }

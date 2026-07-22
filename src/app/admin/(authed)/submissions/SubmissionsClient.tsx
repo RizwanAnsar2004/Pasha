@@ -561,6 +561,8 @@ function SubmissionDrawer({
 
   const status = String(row?.status ?? "pending");
   const isApproved = status === "approved";
+  // Already rejected — re-rejecting is a no-op that re-emails the applicant.
+  const isRejected = status === "rejected";
 
   // The note already emailed to the applicant.
   const sentNote =
@@ -934,15 +936,17 @@ function SubmissionDrawer({
           <div className={row ? "flex flex-wrap items-center gap-2" : "hidden"}>
             {!isApproved && row ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => act("rejected")}
-                  disabled={!!acting}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
-                >
-                  {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                  Reject
-                </button>
+                {!isRejected ? (
+                  <button
+                    type="button"
+                    onClick={() => act("rejected")}
+                    disabled={!!acting}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-pasha-line bg-white px-4 py-2 text-xs font-medium text-pasha-red hover:bg-pasha-red/4 disabled:opacity-50 transition-colors"
+                  >
+                    {acting === "reject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                    Reject
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => act("needs_update")}

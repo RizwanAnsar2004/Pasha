@@ -63,6 +63,11 @@ export function RadioCardGroup<T extends string>({
   );
 }
 
+// Accepts either bare strings (value doubles as the label) or {value,label}
+// pairs. The pair form matters for option-registry lists, where the stored
+// value is a UUID that must never be shown to the user.
+export type CheckboxOption = string | { value: string; label: string };
+
 export function CheckboxGroup({
   value,
   onChange,
@@ -71,7 +76,7 @@ export function CheckboxGroup({
 }: {
   value: string[];
   onChange: (v: string[]) => void;
-  options: readonly string[];
+  options: readonly CheckboxOption[];
   "aria-label"?: string;
 }) {
   const toggle = (v: string) => {
@@ -80,7 +85,9 @@ export function CheckboxGroup({
   };
   return (
     <div role="group" aria-label={ariaLabel} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-      {options.map((opt) => {
+      {options.map((option) => {
+        const opt = typeof option === "string" ? option : option.value;
+        const label = typeof option === "string" ? option : option.label;
         const active = value.includes(opt);
         return (
           <button
@@ -109,7 +116,7 @@ export function CheckboxGroup({
                 </svg>
               )}
             </span>
-            <span>{opt}</span>
+            <span>{label}</span>
           </button>
         );
       })}

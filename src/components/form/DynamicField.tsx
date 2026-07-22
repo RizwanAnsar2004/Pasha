@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormContext, useWatch, useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "@/components/form/Field";
@@ -19,7 +20,7 @@ import {
   type FormFieldConfig,
 } from "@/lib/forms/form-config";
 import { useOptionRegistry } from "@/components/form/OptionListsContext";
-import { coerceOptionValue } from "@/lib/options/choice";
+import { coerceOptionValue, coerceOptionValues } from "@/lib/options/choice";
 
 // Read a nested error message off RHF's errors object by dotted path.
 function errorAt(errors: unknown, path: string): string | undefined {
@@ -138,11 +139,11 @@ export function DynamicField({
     case InputType.MULTISELECT:
       return withOther(
         <Field label={label} hint={hint} required={required} error={error}>
-          <CheckboxGroup
-            value={(value as string[]) ?? []}
-            onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
-            options={resolveOptions(field, optionRegistry).map((o) => o.value)}
-            aria-label={label}
+          <MultiSelectControl
+            path={path}
+            value={value}
+            options={resolveOptions(field, optionRegistry)}
+            label={label}
           />
         </Field>
       );
@@ -150,11 +151,11 @@ export function DynamicField({
     case InputType.RADIO_CARDS:
       return withOther(
         <Field label={label} hint={hint} required={required} error={error}>
-          <RadioCardGroup
-            value={coerceOptionValue(value, resolveOptions(field, optionRegistry)) || undefined}
-            onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
+          <RadioCardControl
+            path={path}
+            value={value}
             options={resolveOptions(field, optionRegistry)}
-            aria-label={label}
+            label={label}
           />
         </Field>
       );
@@ -218,6 +219,77 @@ export function DynamicField({
       );
     }
   }
+}
+
+type ChoiceOptions = { value: string; label: string; description?: string }[];
+
+// Multiselect that shows labels and upgrades legacy text answers to option ids.
+function MultiSelectControl({
+  path,
+  value,
+  options,
+  label,
+}: {
+  path: string;
+  value: unknown;
+  options: ChoiceOptions;
+  label?: string;
+}) {
+  const form = useFormContext();
+  const resolved = coerceOptionValues(value, options);
+  // Serialized so the effect compares by content, not by array identity.
+  const resolvedKey = JSON.stringify(resolved);
+  const storedKey = JSON.stringify(Array.isArray(value) ? value : []);
+
+  useEffect(() => {
+    if (resolvedKey !== "[]" && resolvedKey !== storedKey) {
+      form.setValue(path, JSON.parse(resolvedKey) as string[], {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [resolvedKey, storedKey, form, path]);
+
+  return (
+    <CheckboxGroup
+      value={resolved}
+      onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
+      options={options}
+      aria-label={label}
+    />
+  );
+}
+
+// Same legacy-to-id upgrade for single-choice cards.
+function RadioCardControl({
+  path,
+  value,
+  options,
+  label,
+}: {
+  path: string;
+  value: unknown;
+  options: ChoiceOptions;
+  label?: string;
+}) {
+  const form = useFormContext();
+  const current = typeof value === "string" ? value : "";
+  const resolved = coerceOptionValue(current, options);
+
+  useEffect(() => {
+    if (resolved && resolved !== current) {
+      form.setValue(path, resolved, { shouldDirty: false, shouldValidate: false });
+    }
+  }, [resolved, current, form, path]);
+
+  return (
+    <RadioCardGroup
+      value={resolved || undefined}
+      onChange={(v) => form.setValue(path, v, { shouldDirty: true, shouldValidate: true })}
+      options={options}
+      aria-label={label}
+    />
+  );
 }
 
 function NumberField({
