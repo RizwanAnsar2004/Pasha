@@ -1,4 +1,4 @@
-// Connection details for the P@SHA RAG service, resolved once so the read path
+// Connection details for the PASHA RAG service, resolved once so the read path
 
 // Base URL of the RAG service, without a trailing slash.
 export const RAG_URL = (

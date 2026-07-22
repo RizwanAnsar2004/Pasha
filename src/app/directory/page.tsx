@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { DirectoryClient } from "./DirectoryClient";
 import type { DirectoryRow, DirectoryFilters } from "./DirectoryClient";
-import { DirectoryHero, type DirectoryHeroStats } from "@/components/directory/DirectoryHero";
+import { DirectoryTitle } from "@/components/directory/DirectoryTitle";
 import { DirectorySkeleton } from "./DirectorySkeleton";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
@@ -20,14 +20,14 @@ import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
 export const metadata: Metadata = {
   title: "Directory",
   description:
-    "P@SHA Startup Hub — browse 2,481 startups across cities and sectors. Maintained by the Pakistan Software Houses Association (P@SHA).",
+    "PASHA Startup Hub — browse 2,481 startups across cities and sectors. Maintained by the Pakistan Software Houses Association (PASHA).",
   alternates: { canonical: "/directory" },
   openGraph: {
-    title: "Directory · P@SHA Startup Hub",
+    title: "Directory · PASHA Startup Hub",
     url: "/directory",
   },
   twitter: {
-    title: "Directory · P@SHA Startup Hub",
+    title: "Directory · PASHA Startup Hub",
   },
 };
 
@@ -297,22 +297,17 @@ export default async function DirectoryPage({
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const page = Math.max(1, Number(pageRaw) || 1);
 
-  // Deliberately NOT awaited: kicking the work off and handing the promises to
-  // Suspense boundaries lets the header/hero/footer flush immediately, then the
-  // counters and the card grid stream in as their queries resolve.
+  // Deliberately NOT awaited: kicking the work off and handing the promise to
+  // the Suspense boundary lets the header/title/footer flush immediately, then
+  // the card grid streams in as the query resolves.
   const data = loadDirectory(filters, page);
-  const heroStats: Promise<DirectoryHeroStats> = data.then((d) => ({
-    totalStartups: d.totalAll,
-    sectorCount: d.sectors.length,
-    cityCount: d.cities.length,
-  }));
 
   return (
     <>
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone">
-        <DirectoryHero stats={heroStats} />
-        <section id="directory" className="py-16 sm:py-24">
+        <DirectoryTitle />
+        <section id="directory" className="py-16 sm:py-16">
           <div className="site-container">
             {/* Also the boundary useSearchParams in DirectoryClient requires. */}
             <Suspense fallback={<DirectorySkeleton cards={PAGE_SIZE} />}>
@@ -343,7 +338,7 @@ export default async function DirectoryPage({
                 </p>
               </div>
               <PillButton href="/apply" variant="solid" dot={false} className="relative shrink-0">
-                Start your application
+                Register Your Startup
               </PillButton>
             </Reveal>
           </div>

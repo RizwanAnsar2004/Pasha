@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/utils/site-url";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-poppins",
   display: "swap",
 });
@@ -22,9 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 // Google Analytics 4 measurement ID (G-XXXXXXXXXX).
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-const SITE_NAME = "P@SHA Startup Hub";
+const SITE_NAME = "PASHA Startup Hub";
 const SITE_DESCRIPTION =
-  "Pakistan's curated network of product-native startups. Apply to join the P@SHA Startups & Entrepreneurship Committee for the directory, mentorship, and ecosystem partnerships.";
+  "Pakistan's curated network of product-native startups. Apply to join the PASHA Startup & Entrepreneurship Committee for the directory, mentorship, and ecosystem partnerships.";
 export const viewport: Viewport = {
   themeColor: "#E92127",
   width: "device-width",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "P@SHA",
+    "PASHA",
     "PASHA",
     "Pakistan Software Houses Association",
     "Pakistan startups",
@@ -52,9 +52,9 @@ export const metadata: Metadata = {
     "Pakistan technology",
     "Startups & Entrepreneurship Committee",
   ],
-  authors: [{ name: "P@SHA Startups & Entrepreneurship Committee" }],
-  creator: "P@SHA",
-  publisher: "P@SHA",
+  authors: [{ name: "PASHA Startup & Entrepreneurship Committee" }],
+  creator: "PASHA",
+  publisher: "PASHA",
   alternates: {
     canonical: SITE_URL,
   },
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1500,
         height: 375,
-        alt: "P@SHA Startup Hub — EOI Join the P@SHA Startup Hub",
+        alt: "PASHA Startup Hub — EOI Join the PASHA Startup Hub",
         type: "image/png",
       },
     ],

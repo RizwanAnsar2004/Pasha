@@ -93,7 +93,7 @@ const EMPTY_FORM: FormState = {
   venue: "",
   location: "",
   format: "in_person",
-  organizer: "P@SHA Committee",
+  organizer: "PASHA Committee",
   expected_attendees: "",
   capacity: "",
   capacity_note: "",

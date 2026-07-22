@@ -13,7 +13,7 @@ export function trackEvent(name: string, params?: Record<string, unknown>) {
   }
 }
 
-// Application funnel milestones — the numbers P@SHA actually cares about.
+// Application funnel milestones — the numbers PASHA actually cares about.
 export const funnel = {
   // Applicant opened the multi-step application form.
   started: () => trackEvent("application_started"),

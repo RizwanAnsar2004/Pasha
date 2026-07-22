@@ -55,7 +55,7 @@ CROSS JOIN (VALUES
 ) AS x(parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
 WHERE s.key = 'identity' AND (s.form_key = 'application' OR s.form_key IS NULL);
 
--- Step 2 — Founders & team: legal / P@SHA toggles
+-- Step 2 — Founders & team: legal / PASHA toggles
 INSERT INTO form_fields
   (section_id, parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
 SELECT s.id, x.parent_field_id, x.field_key, x.label, x.hint, x.placeholder, x.input_type, x.required, x.validation, x.options, x.options_source, x.repeatable, x.min_items, x.max_items, x.item_label, x.column_map, x.visible, x.sort_order, x.conditional
@@ -65,7 +65,7 @@ CROSS JOIN (VALUES
   (NULL,'founding_team_composition','Founding team composition',NULL,'Select…',6,false,'{}'::jsonb,NULL,'FOUNDING_TEAM_COMPOSITIONS',false,NULL,NULL,NULL,'founding_team_composition',true,7,NULL),
   (NULL,'fbr_registered','FBR registration',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'fbr_registered',true,8,NULL),
   (NULL,'secp_registered','SECP registration',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'secp_registered',true,9,NULL),
-  (NULL,'is_pasha_member','P@SHA membership',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'is_pasha_member',true,10,NULL)
+  (NULL,'is_pasha_member','PASHA membership',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'is_pasha_member',true,10,NULL)
 ) AS x(parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
 WHERE s.key = 'founders' AND (s.form_key = 'application' OR s.form_key IS NULL);
 

@@ -787,7 +787,7 @@ export function DirectoryClient({
   return (
     <>
       {/* ─────────────────────────────────────────────────────── */}
-      <div className="sticky top-[112px] z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
+      <div className="sticky top-20 z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
         {/* Search */}
         <div className="relative flex h-11 items-center gap-2.5 rounded-[14px] border border-pasha-ink/10 bg-pasha-stone px-3.5">
           <Search className="h-4 w-4 shrink-0 text-pasha-ink/45" />

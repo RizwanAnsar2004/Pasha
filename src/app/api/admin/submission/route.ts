@@ -29,7 +29,7 @@ const updateSchema = z.object({
   reviewer_notes: z.string().max(2000).optional(),
 });
 
-// "Verify" toggles the P@SHA verified badge on the published databank row (spec §12 — Verified state).
+// "Verify" toggles the PASHA verified badge on the published databank row (spec §12 — Verified state).
 const verifySchema = z.object({
   id: z.string().uuid(),
   action: z.literal("verify"),

@@ -39,7 +39,7 @@ export type CommitteeMemberRow = {
 };
 
 export const COMMITTEE_MEMBER_TAG = "Committee Member";
-export const COMMITTEE_CHAIR_TAG = "P@SHA Startups & Entrepreneurship Committee";
+export const COMMITTEE_CHAIR_TAG = "PASHA Startup & Entrepreneurship Committee";
 
 export const COMMITTEE_ACTIVITY_TYPES: { value: CommitteeActivityType; label: string }[] = [
   { value: "verification", label: "Verification" },

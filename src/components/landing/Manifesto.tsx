@@ -3,39 +3,42 @@ import { Reveal } from "./shared/Reveal";
 const PILLARS = [
   {
     n: "01",
-    title: "Make discovery easier",
-    body: "One searchable index instead of scattered LinkedIn threads and cold outreach — every verified startup, one place.",
+    title: "Discover potential",
+    body: "Make credible startups, founders and locally built solutions easier to find.",
   },
   {
     n: "02",
-    title: "Build market trust",
-    body: "The P@SHA verified badge tells investors and partners a real committee has looked at the basics.",
+    title: "Build capability",
+    body: "Equip founders with practical knowledge, visibility and pathways to become market-ready.",
   },
   {
     n: "03",
     title: "Connect opportunity",
-    body: "Featured tier startups get warm introductions to investors, corporate buyers, and pilot programs.",
+    body: "Bring startups closer to customers, investors, mentors, talent and ecosystem partners.",
   },
   {
     n: "04",
-    title: "Show global ambition",
-    body: "Award-winning founders and women-led teams get the spotlight they've earned on the world stage.",
+    title: "Global Visibility",
+    body: "Showcase Pakistan's startup innovation nationally and internationally.",
   },
 ];
 
 export function Manifesto() {
   return (
-    <section className="relative bg-white py-20 sm:py-28 overflow-hidden">
+    <section className="relative bg-white py-20 sm:py-28 lg:py-36">
       <div className="site-container">
-        <Reveal className="">
-          <p className="mt-4 font-serif text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
-            A startup directory should do more than list names.{" "}
-            <em className="not-italic text-pasha-red">It should open doors.</em>
-          </p>
+        <Reveal>
+          <h2 className="max-w-5xl font-serif text-2xl sm:text-6xl font-bold leading-[0.94] tracking-[-0.03em] text-pasha-ink text-balance">
+            A startup ecosystem grows when{" "}
+            <em className="not-italic text-pasha-red">opportunity is easier to reach.</em>
+          </h2>
         </Reveal>
 
-        <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-          <Reveal delay={0.05} className="relative min-h-[320px] overflow-hidden rounded-[28px] bg-pasha-ink p-8 sm:p-10 flex flex-col justify-between">
+        <div className="mt-14 sm:mt-20 grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-24 items-start">
+          <Reveal
+            delay={0.05}
+            className="relative flex min-h-[320px] sm:min-h-[420px] lg:min-h-[510px] flex-col justify-between overflow-hidden rounded-2xl bg-pasha-ink p-8 sm:p-10"
+          >
             <div aria-hidden className="absolute inset-0">
               <div className="absolute inset-0 bg-gradient-to-br from-pasha-red/25 via-transparent to-accent-teal/25" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.1)_1px,transparent_0)] bg-[size:26px_26px]" />
@@ -57,12 +60,14 @@ export function Manifesto() {
             </p>
           </Reveal>
 
-          <Reveal delay={0.1} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <Reveal delay={0.1} className="grid grid-cols-1 sm:grid-cols-2 border-t border-l border-pasha-line">
             {PILLARS.map((p) => (
-              <div key={p.n}>
-                <span className="font-mono text-lg text-pasha-red font-semibold">{p.n}</span>
-                <h3 className="mt-2 font-serif text-lg font-bold text-pasha-ink">{p.title}</h3>
-                <p className="mt-2 text-[12px] text-pasha-muted leading-relaxed">{p.body}</p>
+              <div key={p.n} className="min-h-[200px] sm:min-h-[255px] border-r border-b border-pasha-line p-7 sm:p-8">
+                <span className="font-serif text-3xl sm:text-4xl font-bold tracking-[-0.05em] text-pasha-red">
+                  {p.n}
+                </span>
+                <h3 className="mt-6 font-serif text-lg font-bold text-pasha-ink">{p.title}</h3>
+                <p className="mt-2.5 text-[13px] text-pasha-muted leading-relaxed">{p.body}</p>
               </div>
             ))}
           </Reveal>

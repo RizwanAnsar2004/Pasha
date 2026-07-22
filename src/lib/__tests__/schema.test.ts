@@ -67,7 +67,7 @@ describe("submissionSchema v2 — happy paths", () => {
       company_x: "https://x.com/bearplex",
       has_patents: true,
       patents_count: 3,
-      awards: "P@SHA ICT Award 2024",
+      awards: "PASHA ICT Award 2024",
       certifications: "ISO 27001",
       engagement_interests: ["Mentorship (receive)"],
       whatsapp_optin: true,

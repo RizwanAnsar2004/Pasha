@@ -28,7 +28,7 @@ const SECTIONS = [
     num: "02",
     icon: Users,
     title: "Who's eligible",
-    body: "Startups across sectors — FinTech, AI, AgriTech, SaaS, HealthTech, EdTech, ClimateTech, Gaming, and more. Founders building scalable solutions with verifiable IP. Services-led companies have their own home at other P@SHA committees.",
+    body: "Startups across sectors — FinTech, AI, AgriTech, SaaS, HealthTech, EdTech, ClimateTech, Gaming, and more. Founders building scalable solutions with verifiable IP. Services-led companies have their own home at other PASHA committees.",
   },
   {
     num: "03",
@@ -73,10 +73,10 @@ export function AboutContent() {
           <Reveal>
             <Kicker tone="light">About the directory</Kicker>
             <h1 className="mt-5 font-serif font-bold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
-              P@SHA Startup <span className="text-pasha-red-light">Directory.</span>
+              PASHA Startup <span className="text-pasha-red-light">Directory.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
-              The Pakistan Software Houses Association (P@SHA) maintains the
+              The Pakistan Software Houses Association (PASHA) maintains the
               country&apos;s curated directory of Pakistani startups, founders,
               investors, and ecosystem enablers.
             </p>
@@ -84,7 +84,7 @@ export function AboutContent() {
             <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/10">
               <Meta label="Established" value="2026" />
               <Divider />
-              <Meta label="Stewarded by" value="P@SHA" />
+              <Meta label="Stewarded by" value="PASHA" />
               <Divider />
               <span className="inline-flex items-center gap-2 text-white/45">
                 <Compass className="w-3.5 h-3.5 text-pasha-red-light" />

@@ -33,7 +33,7 @@ INSERT INTO form_fields
 SELECT a.section_id, a.id, v.field_key, v.label, v.input_type, v.required, v.validation, v.placeholder, v.sort_order, true
 FROM form_fields a
 CROSS JOIN (VALUES
-  ('title',       'Award title', 0, true,  '{"maxLength":200}'::jsonb,                      'e.g. Winner — P@SHA ICT Awards',      0),
+  ('title',       'Award title', 0, true,  '{"maxLength":200}'::jsonb,                      'e.g. Winner — PASHA ICT Awards',      0),
   ('year',        'Year',        4, false, '{"min":1900,"max":2100,"integer":true}'::jsonb, '2024',                                1),
   ('description', 'Description', 5, false, '{"maxLength":300}'::jsonb,                      'What it was awarded for (optional)…', 2)
 ) AS v(field_key, label, input_type, required, validation, placeholder, sort_order)

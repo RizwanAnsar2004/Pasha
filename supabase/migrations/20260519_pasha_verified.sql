@@ -1,4 +1,4 @@
--- P@SHA verified flag on databank rows.
+-- PASHA verified flag on databank rows.
 --
 -- Admins can toggle this from the admin databank table. The frontend renders
 -- a small check badge next to the startup name on both the listing and the
@@ -18,6 +18,6 @@ CREATE INDEX IF NOT EXISTS databank_pasha_verified_idx
   WHERE pasha_verified = true;
 
 COMMENT ON COLUMN databank.pasha_verified IS
-  'True when a P@SHA admin has marked the row as "P@SHA verified". '
+  'True when a PASHA admin has marked the row as "PASHA verified". '
   'Indicates good-faith review of public profile data only — not due-diligence '
   'verification or warranty of company claims.';

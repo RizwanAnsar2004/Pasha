@@ -10,14 +10,14 @@ import {
 export const metadata: Metadata = {
   title: "Committee",
   description:
-    "The P@SHA Startups & Entrepreneurship Committee brings together Pakistan's top founders, investors, corporates, and government leaders to grow, connect, and support the national startup ecosystem.",
+    "The PASHA Startup & Entrepreneurship Committee brings together Pakistan's top founders, investors, corporates, and government leaders to grow, connect, and support the national startup ecosystem.",
   alternates: { canonical: "/committee" },
   openGraph: {
-    title: "Committee · P@SHA Startup Hub",
+    title: "Committee · PASHA Startup Hub",
     url: "/committee",
   },
   twitter: {
-    title: "Committee · P@SHA Startup Hub",
+    title: "Committee · PASHA Startup Hub",
   },
 };
 

@@ -1,7 +1,7 @@
 "use client";
 import { api, ApiError } from "@/lib/api/client";
 
-// Floating chat widget wired to Kai, the P@SHA RAG assistant (/api/chat).
+// Floating chat widget wired to Kai, the PASHA RAG assistant (/api/chat).
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
@@ -13,7 +13,7 @@ const STORAGE_KEY = "pasha-chat-history";
 const GREETING: Message = {
   id: 0,
   role: "bot",
-  text: "Hi! 👋 I'm Kai, the P@SHA assistant. Ask me anything about the community, the application, or the directory.",
+  text: "Hi! 👋 I'm Kai, the PASHA assistant. Ask me anything about the community, the application, or the directory.",
 };
 
 export function ChatWidget() {

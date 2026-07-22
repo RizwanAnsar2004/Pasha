@@ -6,7 +6,7 @@
 }
 
 @theme {
-  /* P@SHA brand */
+  /* PASHA brand */
   --color-pasha-red: #E92127;
   --color-pasha-red-dark: #C01319;
   --color-pasha-red-light: #FF4B51;
@@ -41,6 +41,17 @@
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-serif: var(--font-poppins), ui-sans-serif, Georgia, "Times New Roman", serif;
+
+  /* Typography refinement — display headings leaned on very heavy weights
+     (800/900) at default tracking, which reads dense at this scale. Redefining
+     the two heaviest weight tokens (rather than editing every `font-black` /
+     `font-extrabold` call site) and tightening the shared `tracking-tight`
+     token gives every heading in the project a lighter, more refined feel
+     from one place. `font-bold` (700) and below are untouched — buttons,
+     labels and nav text keep their current weight. */
+  --font-weight-black: 800;
+  --font-weight-extrabold: 700;
+  --tracking-tight: -0.035em;
 
   --radius-sm: 0.5rem;
   --radius-md: 0.875rem;

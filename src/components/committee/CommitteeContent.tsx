@@ -47,33 +47,23 @@ const STATIC_COMMITTEE: CommitteeMemberRow[] = [
 const OBJECTIVES = [
   {
     icon: CheckCircle2,
-    title: "Verify & Curate",
+    title: "Policy Advocacy",
     body: "Maintain the highest standards for startup verification and directory quality.",
   },
   {
     icon: Globe2,
-    title: "Connect Ecosystem",
+    title: "Startup Enablement",
     body: "Bridge startups with investors, corporates, partners, and global opportunities.",
   },
   {
     icon: Users,
-    title: "Amplify Women Founders",
+    title: "Awareness & Eduation",
     body: "Reduce barriers and create tailored support for women-led startups.",
   },
   {
     icon: Target,
-    title: "Drive Policy",
+    title: "Promote Collaboration",
     body: "Engage government to shape startup-friendly regulation and national programs.",
-  },
-  {
-    icon: Zap,
-    title: "Build Programs",
-    body: "Organise events, accelerators, and capacity-building initiatives year-round.",
-  },
-  {
-    icon: Compass,
-    title: "Enable Export",
-    body: "Help Pakistan's tech startups access international markets and export leads.",
   },
 ];
 
@@ -102,11 +92,11 @@ function MemberCard({
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay: index * 0.07, ease: EASE }}
+      transition={{ duration: 0.5, delay: index * 0.05, ease: EASE }}
       whileHover={{ y: -6 }}
-      className="group"
+      className="group h-full"
     >
-      <div className="flex flex-col rounded-2xl border border-pasha-line/60 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_20px_48px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-400 p-5">
+      <div className="flex h-full flex-col rounded-2xl border border-pasha-line/60 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_20px_48px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-400 p-5">
         {/* Member chip */}
         <span className="self-start inline-flex items-center rounded-full bg-pasha-stone/80 border border-pasha-line/60 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-ink/40">
           {COMMITTEE_MEMBER_TAG}
@@ -131,6 +121,58 @@ function MemberCard({
               <p className="text-[11px] text-pasha-muted/70 truncate">{member.org}</p>
             </div>
           )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ChairCard({ chair, index }: { chair: CommitteeMemberRow; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay: index * 0.08, ease: EASE }}
+      whileHover={{ y: -4 }}
+      className="group"
+    >
+      <div className="relative flex flex-col overflow-hidden rounded-[28px] border border-pasha-red/25 bg-white shadow-[0_8px_32px_rgba(14,14,16,0.10)] group-hover:shadow-[0_28px_70px_-16px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/40 transition-all duration-500 p-7 sm:p-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-10 select-none font-serif font-black leading-none text-pasha-red/[0.05]"
+          style={{ fontSize: "9rem" }}
+        >
+          @
+        </span>
+
+        {/* Chair badge */}
+        <span className="relative self-start inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-3 py-1 text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
+          <Crown className="w-3 h-3" /> Chair
+        </span>
+
+        {/* Avatar */}
+        <div className="relative mt-6 w-16 h-16 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-lg text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
+          {initials(chair.name)}
+        </div>
+
+        {/* Content */}
+        <div className="relative mt-5 flex flex-col gap-1">
+          <h3 className="font-serif text-xl text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
+            {chair.name}
+          </h3>
+          {chair.role && (
+            <p className="text-sm font-semibold text-pasha-red/70">{chair.role}</p>
+          )}
+          {chair.org && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <Building2 className="w-3.5 h-3.5 text-pasha-muted/50 shrink-0" />
+              <p className="text-sm text-pasha-muted/70">{chair.org}</p>
+            </div>
+          )}
+          <p className="mt-5 pt-5 border-t border-pasha-line text-xs text-pasha-muted/60 leading-relaxed">
+            {COMMITTEE_CHAIR_TAG}
+          </p>
         </div>
       </div>
     </motion.div>
@@ -171,12 +213,12 @@ export function CommitteeContent({
 
         <div className="relative site-container">
           <Reveal>
-            <Kicker tone="light">P@SHA Startups &amp; Entrepreneurship Committee</Kicker>
+            <Kicker tone="light">PASHA Startup &amp; Entrepreneurship Committee</Kicker>
             <h1 className="mt-5 font-serif font-extrabold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
               Building Pakistan&apos;s <span className="text-pasha-red-light">startup ecosystem.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
-              The P@SHA Startups &amp; Entrepreneurship Committee brings
+              The PASHA Startup &amp; Entrepreneurship Committee brings
               together Pakistan&apos;s top founders, investors, corporates, and
               government leaders to actively grow, connect, and support the
               national startup ecosystem.
@@ -187,7 +229,7 @@ export function CommitteeContent({
                 <Mail className="w-4 h-4" />
                 Contact Committee
               </PillButton>
-              <PillButton href="/apply" variant="outline-light" dot={false} arrow={false}>
+              <PillButton href="mailto:startups@pasha.org.pk" variant="outline-light" dot={false} arrow={false}>
                 <Handshake className="w-4 h-4 opacity-60" />
                 Propose Collaboration
               </PillButton>
@@ -216,7 +258,7 @@ export function CommitteeContent({
                 discoverable, more connected, and more globally competitive.
                 Our committee drives policy, curates the directory, supports
                 women founders, and facilitates investment — all under the
-                P@SHA umbrella.
+                PASHA umbrella.
               </p>
               <p className="mt-4 text-pasha-muted leading-relaxed text-pretty">
                 Every quarter we publish progress updates, verify new
@@ -253,11 +295,10 @@ export function CommitteeContent({
       </section>
 
       {/* ─────────────────────────────────────────────────────── */}
-      <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28 overflow-hidden">
-        <div
-          aria-hidden
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-accent-coral/[0.08] to-pasha-red/[0.06] blur-3xl"
-        />
+      <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28">
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-gradient-to-r from-pasha-red/[0.06] via-accent-coral/[0.08] to-pasha-red/[0.06] blur-3xl" />
+        </div>
         <div className="relative site-container">
 
           {/* Section header */}
@@ -275,104 +316,36 @@ export function CommitteeContent({
               Meet the Committee
             </h2>
             <p className="mt-4 text-pasha-muted text-lg leading-relaxed text-pretty">
-              The founders and operators steering P@SHA&apos;s startup
+              The founders and operators steering PASHA&apos;s startup
               programmes, verification standards, and ecosystem partnerships.
             </p>
           </motion.div>
 
-          {/* ── ORGANOGRAM ── */}
-          {chairs.length > 0 ? (
-            <div className="flex flex-col items-center">
-
-              {/* TIER 1: Chair(s) — one card per chairman */}
-              <div className="flex flex-wrap justify-center gap-5">
-                {chairs.map((chair, ci) => (
-                  <motion.div
-                    key={chair.email}
-                    initial={{ opacity: 0, y: 28 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ duration: 0.6, delay: ci * 0.08, ease: EASE }}
-                    whileHover={{ y: -4 }}
-                    className="group w-[220px]"
-                  >
-                    <div className="flex flex-col rounded-2xl border border-pasha-red/25 bg-white shadow-[0_4px_24px_rgba(14,14,16,0.10)] group-hover:shadow-[0_24px_64px_-12px_rgba(14,14,16,0.18)] group-hover:border-pasha-red/40 transition-all duration-500 p-5">
-
-                      {/* Chair badge */}
-                      <span className="self-start inline-flex items-center gap-1.5 rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-3 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
-                        <Crown className="w-2.5 h-2.5" /> Chair
-                      </span>
-
-                      {/* Avatar */}
-                      <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-sm text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
-                        {initials(chair.name)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="mt-3 flex flex-col gap-0.5">
-                        <h3 className="font-serif text-[15px] text-pasha-ink leading-snug group-hover:text-pasha-red transition-colors duration-200">
-                          {chair.name}
-                        </h3>
-                        {chair.role && (
-                          <p className="text-[11px] font-semibold text-pasha-red/70">{chair.role}</p>
-                        )}
-                        {chair.org && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Building2 className="w-3 h-3 text-pasha-muted/50 shrink-0" />
-                            <p className="text-[11px] text-pasha-muted/70">{chair.org}</p>
-                          </div>
-                        )}
-                        <p className="mt-2 text-[10px] text-pasha-muted/40 leading-relaxed">
-                          {COMMITTEE_CHAIR_TAG}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Connector: vertical stem from chair */}
-              {committeeMembers.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scaleY: 0 }}
-                  whileInView={{ opacity: 1, scaleY: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: 0.3 }}
-                  style={{ transformOrigin: "top" }}
-                  className="w-px h-8 bg-gradient-to-b from-pasha-red/40 to-pasha-line"
-                />
+          {/* ── CHAIR + MEMBERS ── */}
+          {chairs.length > 0 || committeeMembers.length > 0 ? (
+            <div
+              className={cn(
+                "grid gap-8 lg:gap-10 items-start",
+                chairs.length > 0 ? "lg:grid-cols-[300px_minmax(0,1fr)]" : "lg:grid-cols-1"
+              )}
+            >
+              {/* Left: Chair(s) */}
+              {chairs.length > 0 && (
+                <div className="flex flex-col gap-5 lg:sticky lg:top-20">
+                  {chairs.map((chair, ci) => (
+                    <ChairCard key={chair.email} chair={chair} index={ci} />
+                  ))}
+                </div>
               )}
 
-              {/* TIER 2: Members — single row with horizontal bus + drop lines */}
+              {/* Right: All other committee members */}
               {committeeMembers.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                  className="relative w-full"
-                >
-                  {/* Horizontal bus spanning full width */}
-                  <div className="absolute top-0 left-0 right-0 h-px bg-pasha-line" />
-
-                  {/* Single-row flex — overflow-x-auto on small screens */}
-                  <div className="flex flex-nowrap gap-4 overflow-x-auto pb-2 scrollbar-none">
-                    {committeeMembers.map((member, i) => (
-                      <div
-                        key={member.email}
-                        className="relative shrink-0 w-[220px] pt-8"
-                      >
-                        {/* Drop line from bus to card */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-8 bg-pasha-line" />
-                        {/* Junction dot */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-pasha-line" />
-                        <MemberCard member={member} index={i} />
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {committeeMembers.map((member, i) => (
+                    <MemberCard key={member.email} member={member} index={i} />
+                  ))}
+                </div>
               )}
-
             </div>
           ) : (
             <p className="text-sm text-pasha-muted text-center">Committee profiles will appear here soon.</p>

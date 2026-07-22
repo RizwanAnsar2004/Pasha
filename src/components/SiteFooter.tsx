@@ -10,7 +10,7 @@ export function SiteFooter() {
           <div className="md:col-span-2 md:pr-10">
             <PashaLogo width={130} href="/" className="brightness-0 invert" />
             <p className="mt-5 text-sm leading-relaxed text-white/50 max-w-md">
-              The Pakistan Software Houses Association (P@SHA) maintains the P@SHA Startup
+              The Pakistan Software Houses Association (PASHA) maintains the PASHA Startup
               Hub — a curated network of founders, mentors, and investors shaping
               Pakistan&apos;s product economy.
             </p>
@@ -31,12 +31,12 @@ export function SiteFooter() {
               <li><Link href="/about" className="hover:text-white transition-colors">Partner with us</Link></li>
               <li><a href="https://www.linkedin.com/company/pashapk/" target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">LinkedIn</a></li>
               <li><a href={PASHA_FACEBOOK} target="_blank" rel="noreferrer noopener" className="hover:text-white transition-colors">Facebook community</a></li>
-              <li><a href="mailto:startups@pasha.org.pk" className="hover:text-white transition-colors">Contact</a></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
             </ul>
           </div>
         </div>
         <div className="mt-14 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} P@SHA. All rights reserved.</p>
+          <p className="text-xs text-white/40">© {new Date().getFullYear()} PASHA. All rights reserved.</p>
           <p className="text-xs text-white/40">Pakistan&apos;s vetted home for product-native startups.</p>
         </div>
       </div>

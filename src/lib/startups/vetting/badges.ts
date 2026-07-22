@@ -16,11 +16,11 @@ export type BadgeDef = {
 
 export const BADGE_DEFS: Record<BadgeKey, BadgeDef> = {
   verified: {
-    label: "P@SHA Verified",
+    label: "PASHA Verified",
     short: "Verified",
-    description: "A P@SHA admin has reviewed this profile in good faith.",
+    description: "A PASHA admin has reviewed this profile in good faith.",
     tone: "verified",
-    howTo: "Awarded by the P@SHA committee after your profile is approved.",
+    howTo: "Awarded by the PASHA committee after your profile is approved.",
   },
   featured: {
     label: "Featured",

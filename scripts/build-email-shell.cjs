@@ -56,10 +56,10 @@ const footer = html
     ""
   );
 
-// Common P@SHA brand header injected on every email between the banner and the
+// Common PASHA brand header injected on every email between the banner and the
 // content (see EMAIL_COMMON_HEADER in the generated module / email-preview.html).
 const COMMON_HEADER = `
-                        <!-- COMMON P@SHA HEADER -->
+                        <!-- COMMON PASHA HEADER -->
                         <table align="center" border="0" bgcolor="#ffffff" class="mlContentTable mlContentTableDefault" cellpadding="0" cellspacing="0" width="640">
                           <tr>
                             <td class="mlContentTableCardTd">
@@ -96,7 +96,7 @@ const COMMON_HEADER = `
                             </td>
                           </tr>
                         </table>
-                        <!-- /COMMON P@SHA HEADER -->
+                        <!-- /COMMON PASHA HEADER -->
 `;
 
 // Content-block wrapper: mirrors the original body block (40px side padding,
@@ -162,17 +162,17 @@ const CONTENT_BLOCK_OPEN = ${JSON.stringify(CONTENT_OPEN)};
 
 const CONTENT_BLOCK_CLOSE = ${JSON.stringify(CONTENT_CLOSE)};
 
-// Common P@SHA brand header shown on every email, directly below the banner
+// Common PASHA brand header shown on every email, directly below the banner
 // image and above the admin-authored content: a thin brand-red accent rule, the
-// P@SHA wordmark + tagline, and a hairline divider. Mirrors email-preview.html.
+// PASHA wordmark + tagline, and a hairline divider. Mirrors email-preview.html.
 const EMAIL_COMMON_HEADER = ${JSON.stringify(COMMON_HEADER)};
 
 /**
- * Wrap admin-authored email body HTML in the P@SHA header/footer shell.
+ * Wrap admin-authored email body HTML in the PASHA header/footer shell.
  * \`contentHtml\` is the already-rendered template body (placeholders substituted
  * and sanitized). It is dropped into a content block matching the template's
  * 40px padding + Poppins base styling so it looks native to the email. The
- * common P@SHA header sits between the banner and the content on every email.
+ * common PASHA header sits between the banner and the content on every email.
  */
 export function wrapEmail(contentHtml: string): string {
   const block = CONTENT_BLOCK_OPEN + contentHtml + CONTENT_BLOCK_CLOSE;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { RAG_URL, RAG_KEY } from "@/lib/ai/rag-config";
 
-// Proxies chat questions to the P@SHA RAG service (Kai).
+// Proxies chat questions to the PASHA RAG service (Kai).
 
 // "in about 20 minutes" / "in a few seconds" — for the rate-limit message.
 function humanizeWait(seconds: number): string {

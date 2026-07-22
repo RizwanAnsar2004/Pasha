@@ -3,11 +3,11 @@ import { ArrowUpRight } from "lucide-react";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
 
-const BENEFITS = ["Verified profile", "National visibility", "Buyer discovery"];
+const BENEFITS = ["Trusted startup profile", "Global visibility", "Opportunity pathways"];
 
 const STEPS = [
   { n: "01", title: "Build your profile", body: "Tell us about your product, team, and traction — takes about 8 minutes." },
-  { n: "02", title: "Complete review", body: "The P@SHA committee reviews submissions in fortnightly batches." },
+  { n: "02", title: "Complete review", body: "The PASHA committee reviews submissions in fortnightly batches." },
   { n: "03", title: "Start getting discovered", body: "Go live in the directory, searchable by investors, buyers, and press." },
 ];
 
@@ -27,10 +27,10 @@ export function JoinCTA() {
             <div>
               <Kicker tone="light">Join the directory</Kicker>
               <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance">
-                Put your startup where the right people can find it.
+                Bring your startup into Pakistan’s national startup network.
               </h2>
               <p className="mt-5 text-white/55 text-base sm:text-md leading-relaxed max-w-md text-pretty">
-                No fee, no equity — just a real committee review and a public profile built to convert.
+                Create a credible profile, strengthen your visibility and become discoverable to customers, investors, partners, talent and ecosystem programmes.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-2.5">
@@ -66,8 +66,8 @@ export function JoinCTA() {
                 <div key={s.n} className="flex items-start gap-6 rounded-[20px] bg-white/[0.04] p-6 sm:p-8">
                   <span className="font-serif text-2xl font-black text-pasha-red-light shrink-0">{s.n}</span>
                   <div>
-                    <h3 className="font-serif text-xl sm:text-1xl font-bold text-white">{s.title}</h3>
-                    <p className="mt-1.5 text-xs sm:text-xs text-white/50 leading-relaxed">{s.body}</p>
+                    <h3 className="font-serif text-2xl sm:text-1xl font-bold text-white">{s.title}</h3>
+                    <p className="mt-1.5 text-sm sm:text-sm text-white/50 leading-relaxed">{s.body}</p>
                   </div>
                 </div>
               ))}

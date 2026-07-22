@@ -410,7 +410,7 @@ export function EditDatabankClient({
         </div>
         {has(row.pasha_verified) && (
         <Field
-          label="P@SHA verified"
+          label="PASHA verified"
           hint="Flip on to publish the badge + tooltip on the public profile."
         >
           <YesNo

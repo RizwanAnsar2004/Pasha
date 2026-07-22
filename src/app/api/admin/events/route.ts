@@ -37,7 +37,7 @@ const eventFieldsSchema = z.object({
   venue: z.string().trim().max(200).default(""),
   location: z.string().trim().max(300).default(""),
   format: z.enum(["in_person", "online"]),
-  organizer: z.string().trim().max(200).default("P@SHA Committee"),
+  organizer: z.string().trim().max(200).default("PASHA Committee"),
   expected_attendees: z.string().trim().max(100).default(""),
   capacity: z.number().int().positive().nullable().optional(),
   capacity_note: z.string().trim().max(200).default(""),

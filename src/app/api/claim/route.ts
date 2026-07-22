@@ -41,7 +41,7 @@ async function ownershipConflict(
     .neq("id", currentId)
     .limit(1)
     .maybeSingle<{ id: string }>();
-  if (claimed) return "This email already manages another company on the P@SHA Startup Hub.";
+  if (claimed) return "This email already manages another company on the PASHA Startup Hub.";
 
   const { data: sub } = await supabase
     .from("submissions")
@@ -287,7 +287,7 @@ async function postHandler(req: NextRequest) {
 function claimEmailHtml(company: string, code: string): string {
   return `
     <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <p>Use this code to claim <strong>${company}</strong> on the P@SHA Startup Hub:</p>
+      <p>Use this code to claim <strong>${company}</strong> on the PASHA Startup Hub:</p>
       <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:20px 0">${code}</p>
       <p style="color:#666;font-size:14px">This code expires in 10 minutes. If you didn't request it, ignore this email.</p>
       <p style="color:#666;font-size:13px;margin-top:24px">${emailOrigin()}</p>

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function PashaLogo({
   className,
   href = "/",
-  alt = "P@SHA",
+  alt = "PASHA",
   width = 50,
   priority = false,
 }: {

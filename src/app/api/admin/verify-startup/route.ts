@@ -1,4 +1,4 @@
-// Admin-only endpoint for toggling P@SHA-verified flag on a databank row.
+// Admin-only endpoint for toggling PASHA-verified flag on a databank row.
 
 import { NextResponse } from "next/server";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";

@@ -34,14 +34,14 @@ export function sendCommitteeInvite(opts: {
 }): Promise<SendTemplateResult> {
   const { email, role, password, createdBy = null, origin } = opts;
   const roleLabel = role?.trim() || "Committee member";
-  const subject = "Your P@SHA committee admin access";
+  const subject = "Your PASHA committee admin access";
 
   // Where the new member signs in. Uses the real public origin (same approach
   const loginUrl = `${origin.replace(/\/$/, "")}/admin`;
 
-  // Inner content only — the shared P@SHA header/footer chrome (banner, brand
+  // Inner content only — the shared PASHA header/footer chrome (banner, brand
   const content = `
-    <h1 style="font-family:'Poppins',sans-serif;font-size:20px;font-weight:700;margin:0 0 8px;color:#0E0E10;">Welcome to the P@SHA committee portal</h1>
+    <h1 style="font-family:'Poppins',sans-serif;font-size:20px;font-weight:700;margin:0 0 8px;color:#0E0E10;">Welcome to the PASHA committee portal</h1>
     <p style="font-family:'Poppins',sans-serif;font-size:14px;line-height:1.6;color:#444;margin:0 0 20px;">
       An administrator has created a committee account for you. Use the details
       below to sign in to the admin portal.

@@ -275,7 +275,7 @@ export function EmailTemplatesClient({
             </div>
             <div>
               <p className="text-xs font-mono uppercase tracking-[1px] text-pasha-muted mb-2">
-                Body <span className="normal-case tracking-normal text-pasha-muted/70">— shown in the P@SHA header/footer shell</span>
+                Body <span className="normal-case tracking-normal text-pasha-muted/70">— shown in the PASHA header/footer shell</span>
               </p>
               <iframe
                 title="Email preview"
@@ -354,7 +354,7 @@ export function EmailTemplatesClient({
             <div className="lg:col-span-2">
               <Section title="Content">
                 <Field label="Subject">
-                  <input className={inputCls} value={form.subject} onChange={(e) => set("subject", e.target.value)} placeholder="Welcome to P@SHA, {{first_name}}!" />
+                  <input className={inputCls} value={form.subject} onChange={(e) => set("subject", e.target.value)} placeholder="Welcome to PASHA, {{first_name}}!" />
                 </Field>
                 <Field label="Body">
                   <RichTextEditor

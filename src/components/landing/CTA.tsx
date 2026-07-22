@@ -1,6 +1,7 @@
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
-import { PillButton } from "./shared/PillButton";
 
 export function CTA() {
   return (
@@ -17,19 +18,29 @@ export function CTA() {
 
           <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
             <div>
-              <Kicker tone="light">Build visibility that compounds</Kicker>
+              <Kicker tone="light">Join the Hub</Kicker>
               <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white text-balance">
-                Ready to make your startup easier to discover?
+                Ready to take your place in the Pasha Startup Hub?
               </h2>
             </div>
             <div>
               <p className="text-white/55 text-xl leading-relaxed text-pretty">
-                Takes about 8 minutes. Review by the committee within two weeks. Featured tier
-                startups get priority introductions and showcases.
+                Join a trusted national platform designed to help Pakistani startups be discovered, connected, recognised and taken to the world.
               </p>
-              <PillButton href="/apply" variant="solid" dot={false} className="mt-6">
-                Start your application
-              </PillButton>
+              <Link
+                href="/apply"
+                className="group mt-6 inline-flex items-center gap-6 rounded-2xl bg-white py-3 pl-7 pr-3 shadow-[0_18px_38px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5"
+              >
+                <span className="flex flex-col items-start">
+                  <span className="text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-red">
+                    Join the Hub
+                  </span>
+                  <span className="text-base sm:text-lg font-extrabold text-pasha-ink">Register Your Startup</span>
+                </span>
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-pasha-red text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <ArrowUpRight className="h-6 w-6" strokeWidth={2.5} />
+                </span>
+              </Link>
             </div>
           </div>
         </Reveal>

@@ -8,7 +8,7 @@ import { EventsHero } from "@/components/events/EventsHero";
 export const metadata: Metadata = {
   title: "Events",
   description:
-    "Webinars, seminars, and community events from the P@SHA Startup Ecosystem Community.",
+    "Webinars, seminars, and community events from the PASHA Startup Ecosystem Community.",
   alternates: { canonical: "/events" },
 };
 

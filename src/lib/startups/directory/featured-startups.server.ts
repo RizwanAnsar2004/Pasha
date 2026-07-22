@@ -161,7 +161,7 @@ export async function getHomepageFeaturedWatchlist(): Promise<WatchlistStartup[]
   }
 }
 
-// P@SHA-verified startups for the homepage "Verified Startups to Watch"
+// PASHA-verified startups for the homepage "Verified Startups to Watch"
 export async function getHomepageVerifiedWatchlist(limit = 20): Promise<WatchlistStartup[]> {
   try {
     const supabase = createServiceClient();

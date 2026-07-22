@@ -23,7 +23,7 @@ export function sendClaimCredentials(opts: {
   origin: string;
 }): Promise<SendTemplateResult> {
   const { email, company, password, createdBy = null, origin } = opts;
-  const subject = `You now manage ${company} on the P@SHA Startup Hub`;
+  const subject = `You now manage ${company} on the PASHA Startup Hub`;
 
   // Where the new owner signs in.
   const loginUrl = `${origin.replace(/\/$/, "")}/apply/login`;

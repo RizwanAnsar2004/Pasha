@@ -459,7 +459,7 @@ function VerifyToggle({
       onClick={onToggle}
       disabled={busy}
       aria-pressed={verified}
-      title={verified ? "Click to remove P@SHA-verified flag" : "Mark as P@SHA verified"}
+      title={verified ? "Click to remove PASHA-verified flag" : "Mark as PASHA verified"}
       className={cn(
         "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-mono uppercase tracking-[1px] transition-colors disabled:opacity-50",
         verified

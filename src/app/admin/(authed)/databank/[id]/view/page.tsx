@@ -209,7 +209,7 @@ const STATIC_GROUPS: { title: string; fields: [string, string, ("text" | "number
       ["tagline", "Tagline", "html"],
       ["website", "Website", "url"],
       ["founded_date", "Founded"],
-      ["pasha_verified", "P@SHA verified", "bool"],
+      ["pasha_verified", "PASHA verified", "bool"],
     ],
   },
   {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, MapPin, Search } from "lucide-react";
+import { ArrowUpRight, Globe, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
 import { safeImageSrc } from "@/lib/validators/safe-url";
 import { RichText } from "@/components/ui/RichText";
@@ -34,7 +34,7 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
   const [errored, setErrored] = useState(false);
   const showImage = safe && !errored;
   return (
-    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white font-bold text-sm text-pasha-ink shadow-sm">
+    <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[22px] bg-white p-2.5 font-bold text-base text-pasha-ink shadow-sm">
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -43,7 +43,7 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
           onError={() => setErrored(true)}
         />
       ) : (
@@ -53,24 +53,62 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
   );
 }
 
+// Larger circular variant of CardLogo for the spotlight card's radar panel
+// (h-64, rings up to 240px) — CardLogo's 80px box reads too small there.
+function SpotlightLogo({ src, name }: { src?: string | null; name: string }) {
+  const safe = safeImageSrc(src);
+  const [errored, setErrored] = useState(false);
+  const showImage = safe && !errored;
+  return (
+    <div className="relative z-10 grid h-32 w-32 place-items-center overflow-hidden rounded-full bg-white p-4 font-bold text-2xl text-pasha-ink shadow-xl">
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={safe}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-contain"
+          onError={() => setErrored(true)}
+        />
+      ) : (
+        <span aria-hidden>{initials(name)}</span>
+      )}
+    </div>
+  );
+}
+
+// Inline brand glyph — lucide 1.x dropped brand icons, so LinkedIn is kept as
+// a local SVG (same pattern used across the detail page and directory grid).
+function LinkedInGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M20.45 20.45h-3.55v-5.56c0-1.32-.03-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.65H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.61 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 110-4.13 2.06 2.06 0 010 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+    </svg>
+  );
+}
+
 function CardFooterLinks({ dark = false }: { dark?: boolean }) {
   const cls = dark
     ? "text-[10px] font-bold text-white hover:text-white/70"
     : "text-[10px] font-bold text-pasha-ink hover:text-pasha-ink/60";
   return (
     <div className={`mt-5 flex items-center justify-between border-t pt-4 ${dark ? "border-white/15" : "border-pasha-ink/10"}`}>
-      <Link href="/directory" className={`inline-flex items-center gap-1 transition-colors ${cls}`}>
+      <Link href="/directory" className={`inline-flex items-center gap-1.5 transition-colors ${cls}`}>
+        <Globe className="h-3.5 w-3.5" aria-hidden />
         Website
         <ArrowUpRight className="h-3.5 w-3.5" />
       </Link>
-      <Link href="/directory" className={`transition-colors ${cls}`}>
+      <Link href="/directory" className={`inline-flex items-center gap-1.5 transition-colors ${cls}`}>
+        <LinkedInGlyph className="h-3.5 w-3.5" />
         LinkedIn
       </Link>
     </div>
   );
 }
 
-function MiniCard({ startup, tint, index, optionIndex }: { startup: WatchlistStartup; tint: string; index: number; optionIndex: OptionIndex }) {
+function MiniCard({ startup, tint, optionIndex }: { startup: WatchlistStartup; tint: string; optionIndex: OptionIndex }) {
   const sectorLabel = resolveOptionLabel(optionIndex, "SECTORS", startup.primary_industry);
   return (
     <article
@@ -82,7 +120,6 @@ function MiniCard({ startup, tint, index, optionIndex }: { startup: WatchlistSta
     >
       <div className="flex items-start justify-between gap-3">
         <CardLogo src={startup.logo_url} name={startup.startup_name} />
-        <span className="font-mono text-xs text-pasha-ink/35">{String(index + 2).padStart(2, "0")}</span>
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-2">
@@ -129,22 +166,17 @@ function SpotlightCard({ startup, optionIndex }: { startup: WatchlistStartup; op
           </span>
         </div>
 
-        <span className="absolute top-5 right-5 font-mono text-xs text-white/30">01</span>
-
         <div className="relative grid place-items-center">
           {[0, 1, 2].map((i) => (
             <span
               key={i}
               aria-hidden
               className="absolute rounded-full border border-pasha-red/25"
-              style={{ width: `${96 + i * 56}px`, height: `${96 + i * 56}px` }}
+              style={{ width: `${128 + i * 56}px`, height: `${128 + i * 56}px` }}
             />
           ))}
-          <span aria-hidden className="absolute h-24 w-24 rounded-full bg-pasha-red/40 blur-2xl" />
-          <div className="relative grid h-20 w-20 place-items-center rounded-2xl bg-white font-serif text-lg font-bold text-pasha-ink shadow-xl">
-            {initials(startup.startup_name)}
-            <span aria-hidden className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-pasha-red ring-2 ring-pasha-ink" />
-          </div>
+          <span aria-hidden className="absolute h-28 w-28 rounded-full bg-pasha-red/40 blur-2xl" />
+          <SpotlightLogo src={startup.logo_url} name={startup.startup_name} />
         </div>
       </div>
 
@@ -255,7 +287,7 @@ export function DirectoryBento({
               </div>
             )}
             {minis.map((startup, i) => (
-              <MiniCard key={startup.id} startup={startup} tint={MINI_TINTS[i % MINI_TINTS.length]} index={i} optionIndex={optionIndex} />
+              <MiniCard key={startup.id} startup={startup} tint={MINI_TINTS[i % MINI_TINTS.length]} optionIndex={optionIndex} />
             ))}
           </motion.div>
         )}

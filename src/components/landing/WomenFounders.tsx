@@ -79,7 +79,7 @@ export function WomenFounders({
   const emptySlots = Math.max(0, 4 - shown.length);
 
   return (
-    <section id="women-led" className="relative overflow-hidden bg-accent-coral/[0.08] py-20 sm:py-28">
+    <section id="women-led" className="relative overflow-hidden bg-[#f7dfe0] py-20 sm:py-28">
       <span
         aria-hidden
         className="pointer-events-none absolute -right-[6vw] -top-[8vw] select-none font-serif font-black text-pasha-red/[0.05] leading-none"
@@ -93,7 +93,7 @@ export function WomenFounders({
           <div className="max-w-3xl">
             <Kicker>Women-led startups</Kicker>
             <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight text-pasha-ink text-balance">
-              Better visibility for the women building what comes next.
+              More visibility for the women building what comes next.
             </h2>
           </div>
           <div className="max-w-sm lg:pt-2">
@@ -109,11 +109,10 @@ export function WomenFounders({
               <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-pasha-red/25 blur-[90px]" />
             </div>
 
-            <div className="relative flex items-center justify-between">
+            <div className="relative">
               <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-white/45">
                 Spotlight collection
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-white/35">01&ndash;04</span>
             </div>
 
             <div className="relative">

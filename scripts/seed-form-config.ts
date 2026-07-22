@@ -101,7 +101,7 @@ const SECTIONS: SectionSeed[] = [
       { key: "founding_team_composition", label: "Founding team composition", type: T.SELECT, options_source: "FOUNDING_TEAM_COMPOSITIONS", placeholder: "Select…" },
       { key: "fbr_registered", label: "FBR registration", type: T.YES_NO },
       { key: "secp_registered", label: "SECP registration", type: T.YES_NO },
-      { key: "is_pasha_member", label: "P@SHA membership", type: T.YES_NO },
+      { key: "is_pasha_member", label: "PASHA membership", type: T.YES_NO },
 
       heading("h_traction", "Traction & Funding"),
       { key: "revenue_band", label: "Current revenue", type: T.SELECT, options_source: "REVENUE_BANDS", placeholder: "Select…" },

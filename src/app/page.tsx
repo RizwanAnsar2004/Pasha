@@ -1,8 +1,6 @@
-import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Hero } from "@/components/landing/Hero";
 import { HomeSearchProvider } from "@/components/landing/HomeSearchProvider";
-import { NewsTicker } from "@/components/landing/NewsTicker";
 import { DirectoryBento } from "@/components/landing/DirectoryBento";
 import { WomenFounders } from "@/components/landing/WomenFounders";
 import { AwardWinningStartups } from "@/components/landing/AwardWinningStartups";
@@ -18,7 +16,6 @@ import { getHomepageAwardWinners } from "@/lib/startups/awards/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
 import { resolveOptionLabel } from "@/lib/options/resolve";
 import { JoinCommunity } from "@/components/community/JoinCommunity";
@@ -33,15 +30,13 @@ const HOME_CAROUSEL_LIMIT = 20;
 // The directory bento shows up to 1 spotlight + 4 mini cards.
 
 async function loadHomeData(): Promise<{
-  databankCount: number;
   watchlist: WatchlistStartup[];
   awardWinners: AwardWinningStartup[];
   womenLed: { startups: WomenLedStartup[]; totalCount: number };
 }> {
   try {
     const supabase = createServiceClient();
-    const [countRes, curatedWatchlist, curatedAwards, womenLed] = await Promise.all([
-      supabase.from("databank").select("*", { count: "exact", head: true }),
+    const [curatedWatchlist, curatedAwards, womenLed] = await Promise.all([
       // Admin-curated featured startups (time-boxed) for the homepage bento.
       getHomepageFeaturedWatchlist(),
       // Admin-curated awards (startup_awards table).
@@ -73,44 +68,34 @@ async function loadHomeData(): Promise<{
     }
 
     return {
-      databankCount: countRes.count ?? 0,
       watchlist,
       awardWinners,
       womenLed,
     };
   } catch {
-    return { databankCount: 0, watchlist: [], awardWinners: [], womenLed: { startups: [], totalCount: 0 } };
+    return { watchlist: [], awardWinners: [], womenLed: { startups: [], totalCount: 0 } };
   }
 }
 
 export default async function Home() {
-  const [{ databankCount, watchlist, awardWinners, womenLed }, upcomingEvents, optionRegistry, optionIndex] =
-    await Promise.all([
-      loadHomeData(),
-      getUpcomingPublishedEvents(4),
-      getFormOptionRegistry(),
-      getOptionIndex(),
-    ]);
-  const count = databankCount > 0 ? databankCount : 2481;
+  const [{ watchlist, awardWinners, womenLed }, upcomingEvents, optionIndex] = await Promise.all([
+    loadHomeData(),
+    getUpcomingPublishedEvents(4),
+    getOptionIndex(),
+  ]);
 
   return (
     <>
-      <SiteHeader />
-      <main className="flex-1">
+      <main id="top" className="flex-1">
         <HomeSearchProvider>
-          <Hero
-            databankCount={count}
-            sectors={optionRegistry.SECTORS ?? []}
-            stages={optionRegistry.STAGES ?? []}
-          />
-          <NewsTicker />
-          <DirectoryBento startups={watchlist} optionIndex={optionIndex} />
+        <Hero />
+        <Manifesto />
+        <DirectoryBento startups={watchlist} optionIndex={optionIndex} />
         </HomeSearchProvider>
         {/* Community CTA sits high on the page, right after the directory */}
-        <JoinCommunity />
+        {/* <JoinCommunity /> */}
         <WomenFounders startups={womenLed.startups} totalCount={womenLed.totalCount} />
-        <AwardWinningStartups startups={awardWinners} />
-        <Manifesto />
+        {/* <AwardWinningStartups startups={awardWinners} /> */}
         <JoinCTA />
         <Ecosystem />
         {/* <NewsCarousel /> */}

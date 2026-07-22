@@ -10,28 +10,24 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 const FAQS = [
   {
-    q: "Who can apply to PSEC?",
-    a: "Any product-native startup founded or headquartered in Pakistan. We focus on companies building scalable, IP-owning solutions — SaaS, marketplaces, apps, platforms, deep tech. Services agencies are welcome at other P@SHA committees but not this one.",
+    q: "What is the benefit for founders?",
+    a: "Founders can create credible startup profiles, strengthen visibility and become discoverable to customers, investors, partners, talent, programmes and relevant recognition opportunities.",
   },
   {
-    q: "Is there a cost to apply or join?",
-    a: "No. There's no application fee, no membership fee, and we don't take equity. The directory and community are funded by P@SHA's ecosystem partners.",
+    q: "What can investors discover?",
+    a: "Investors can explore companies using sector, stage, city, verification and other profile context. Dedicated investor onboarding and interest workflows are planned as the platform expands.",
   },
   {
-    q: "What does 'P@SHA verified' actually mean?",
-    a: "The badge confirms that basic identifying details have been sighted by the committee. It is not a warranty of the company's claims, financials, performance, or compliance — and should not be read as due-diligence or endorsement.",
+    q: "How can enterprises participate?",
+    a: "Enterprises can identify locally built solutions, share relevant opportunities, support programmes and connect with startups working on real business challenges.",
   },
   {
-    q: "How long does review take?",
-    a: "Roughly two weeks. We review submissions in batches each fortnight. You'll get an email when the committee decides — approved, requested edits, or declined with reasoning.",
+    q: "How are startup profiles verified?",
+    a: "The verified indicator is shown only where PASHA has reviewed the relevant profile information under the Hub's verification process. It is not a commercial endorsement or investment recommendation.",
   },
   {
-    q: "What's the difference between Listed and Featured tier?",
-    a: "Listed means you're in the public directory and discoverable. Featured tier unlocks priority introductions to investors and corporate buyers, showcase placements, speaking opportunities, and access to private programs.",
-  },
-  {
-    q: "Can I update my profile later?",
-    a: "Yes. Approved companies get a portal to edit their profile, swap logos, update metrics, and add new founders/team members. Material changes go back through a lightweight review.",
+    q: "Can ecosystem partners contribute?",
+    a: "Mentors, community partners and global organisations can contribute expertise, opportunities, events, partnerships and market-access pathways through the Hub team.",
   },
 ];
 
@@ -43,17 +39,13 @@ export function FAQ() {
       <div className="site-container">
         <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-16">
           <Reveal>
-            <div className="lg:sticky lg:top-28">
-              <Kicker>Questions, answered</Kicker>
+            <div className="lg:sticky lg:top-20">
+              <Kicker>Frequently asked</Kicker>
               <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
-                Everything you need to know.
+                What does the Hub offer you?
               </h2>
               <p className="mt-4 text-pasha-muted leading-relaxed max-w-sm">
-                Can&apos;t find what you&apos;re looking for?{" "}
-                <a href="mailto:startups@pasha.org.pk" className="text-pasha-red hover:underline underline-offset-2">
-                  Email us
-                </a>
-                .
+                Clear questions for the people participating in the ecosystem.
               </p>
             </div>
           </Reveal>

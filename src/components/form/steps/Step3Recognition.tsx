@@ -48,12 +48,12 @@ export function Step3Recognition({ form }: StepProps) {
       <Section title="Awards & certifications">
         <Field
           label="Awards & recognition"
-          hint="P@SHA ICT Awards, accelerator alumni, regional / global recognition. One per line."
+          hint="PASHA ICT Awards, accelerator alumni, regional / global recognition. One per line."
         >
           <Textarea
             {...register("awards")}
             rows={4}
-            placeholder={`P@SHA ICT Award 2024 — Best AI Startup\nWinner, MIT Solve 2023\nForbes 30 Under 30 Asia, 2024`}
+            placeholder={`PASHA ICT Award 2024 — Best AI Startup\nWinner, MIT Solve 2023\nForbes 30 Under 30 Asia, 2024`}
           />
         </Field>
         <Field

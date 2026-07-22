@@ -1,7 +1,7 @@
 const TICKER_ITEMS = [
   "350+ verified Pakistani product startups",
   "New cohort of women-led founders spotlighted",
-  "P@SHA Startup Founders Forum — applications open",
+  "PASHA Startup Founders Forum — applications open",
   "Global award-winning startups added this quarter",
   "Investor introductions now open to Featured tier",
   "No fee · No equity · Just visibility",

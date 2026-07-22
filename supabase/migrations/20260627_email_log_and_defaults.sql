@@ -67,7 +67,7 @@ VALUES
     '<p>We''ve received your submission for <strong>{{startup_name}}</strong>. Our committee will review it and get back to you.</p>'
     '<p>You can track your application status any time from your dashboard:</p>'
     '<p><a href="{{link}}" style="background:#c8102e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">View application</a></p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup","{{link}}":"https://pasha.org/apply"}'::jsonb,
     'active', true,
@@ -79,9 +79,9 @@ VALUES
     'Great news — {{startup_name}} has been approved',
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.6;">'
     '<h2 style="color:#16a34a;">Congratulations, {{first_name}}!</h2>'
-    '<p><strong>{{startup_name}}</strong> has been <strong>approved</strong> and is now listed in the P@SHA directory.</p>'
+    '<p><strong>{{startup_name}}</strong> has been <strong>approved</strong> and is now listed in the PASHA directory.</p>'
     '<p><a href="{{link}}" style="background:#c8102e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">View your listing</a></p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup","{{link}}":"https://pasha.org/directory"}'::jsonb,
     'active', true,
@@ -96,7 +96,7 @@ VALUES
     '<p>Thank you for submitting <strong>{{startup_name}}</strong>. After review, we''re unable to approve it at this time.</p>'
     '<p>{{reviewer_notes}}</p>'
     '<p>You''re welcome to apply again in the future.</p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup","{{reviewer_notes}}":""}'::jsonb,
     'active', true,
@@ -111,7 +111,7 @@ VALUES
     '<p>We need a few more details before we can finish reviewing <strong>{{startup_name}}</strong>.</p>'
     '<p>{{reviewer_notes}}</p>'
     '<p><a href="{{link}}" style="background:#c8102e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Update your application</a></p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup","{{reviewer_notes}}":"","{{link}}":"https://pasha.org/apply"}'::jsonb,
     'active', true,
@@ -124,7 +124,7 @@ VALUES
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.6;">'
     '<h2>Hello {{first_name}},</h2>'
     '<p><strong>{{startup_name}}</strong> has been placed on our watchlist for further review. We''ll be in touch with next steps.</p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup"}'::jsonb,
     'active', true,
@@ -133,12 +133,12 @@ VALUES
   (
     'startup_featured',
     'Startup featured',
-    '{{startup_name}} is now featured on P@SHA',
+    '{{startup_name}} is now featured on PASHA',
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.6;">'
     '<h2 style="color:#c8102e;">You''re featured, {{first_name}}!</h2>'
-    '<p><strong>{{startup_name}}</strong> has been selected as a featured startup on the P@SHA directory.</p>'
+    '<p><strong>{{startup_name}}</strong> has been selected as a featured startup on the PASHA directory.</p>'
     '<p><a href="{{link}}" style="background:#c8102e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">See your feature</a></p>'
-    '<p style="color:#6b7280;font-size:13px;">— The P@SHA Startup Committee</p>'
+    '<p style="color:#6b7280;font-size:13px;">— The PASHA Startup Committee</p>'
     '</body></html>',
     '{"{{first_name}}":"there","{{startup_name}}":"your startup","{{link}}":"https://pasha.org/directory"}'::jsonb,
     'active', true,

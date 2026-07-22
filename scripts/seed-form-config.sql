@@ -55,7 +55,7 @@ CROSS JOIN (VALUES
   (NULL,'founding_team_composition','Founding team composition',NULL,'Select…',6,false,'{}'::jsonb,NULL,'FOUNDING_TEAM_COMPOSITIONS',false,NULL,NULL,NULL,'founding_team_composition',true,18,NULL),
   (NULL,'fbr_registered','FBR registration',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'fbr_registered',true,19,NULL),
   (NULL,'secp_registered','SECP registration',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'secp_registered',true,20,NULL),
-  (NULL,'is_pasha_member','P@SHA membership',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'is_pasha_member',true,21,NULL),
+  (NULL,'is_pasha_member','PASHA membership',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'is_pasha_member',true,21,NULL),
   (NULL,'h_traction','Traction & Funding',NULL,NULL,30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,22,NULL),
   (NULL,'revenue_band','Current revenue',NULL,'Select…',6,false,'{}'::jsonb,NULL,'REVENUE_BANDS',false,NULL,NULL,NULL,'revenue_band',true,23,NULL),
   (NULL,'raised_funding','Raised funding',NULL,NULL,8,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'raised_funding',true,24,NULL),

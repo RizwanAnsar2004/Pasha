@@ -307,13 +307,13 @@ export async function generateMetadata({
   const metaCity = resolveOptionLabel(index, "HQ_CITIES", row.city);
   const fallback = `${metaSector ?? "Pakistan startup"}${metaCity ? ` based in ${metaCity}` : ""}.`;
   const description = cleanTagline ?? fallback;
-  // The root layout already appends "· P@SHA Startup Hub" via its
+  // The root layout already appends "· PASHA Startup Hub" via its
   return {
     title: row.startup_name,
     description,
     alternates: { canonical: `/directory/${startupSlug(row.startup_name, row.id)}` },
     openGraph: {
-      title: `${row.startup_name} · P@SHA Startup Hub`,
+      title: `${row.startup_name} · PASHA Startup Hub`,
       description,
       url: `/directory/${startupSlug(row.startup_name, row.id)}`,
       images: row.logo_url ? [{ url: row.logo_url }] : undefined,
@@ -556,7 +556,6 @@ export default async function StartupDetailPage({
     city: resolveOptionLabel(optionIndex, "HQ_CITIES", r.city),
   }));
 
-  // Section numbering is computed up front (not hardcoded) so the "01 / 02 …" labels stay contiguous even when a startup is missing some optional data.
   const hasProblem = problemText.length > 0;
   const hasSolution = solutionText.length > 0;
   const hasMarket = !!tamDisplay || !!samDisplay || !!somDisplay;
@@ -564,15 +563,6 @@ export default async function StartupDetailPage({
   const hasCertifications = certifications.length > 0;
   const hasBusinessExtra = businessItems.length > 0;
   const hasImpact = !!impact || sdgs.length > 0;
-  let sectionCounter = 1;
-  const numAbout = String(sectionCounter++).padStart(2, "0");
-  const numProblem = hasProblem ? String(sectionCounter++).padStart(2, "0") : null;
-  const numSolution = hasSolution ? String(sectionCounter++).padStart(2, "0") : null;
-  const numMarket = hasMarket ? String(sectionCounter++).padStart(2, "0") : null;
-  const numRecognition = hasRecognition ? String(sectionCounter++).padStart(2, "0") : null;
-  const numCertifications = hasCertifications ? String(sectionCounter++).padStart(2, "0") : null;
-  const numBusinessExtra = hasBusinessExtra ? String(sectionCounter++).padStart(2, "0") : null;
-  const numImpact = hasImpact ? String(sectionCounter++).padStart(2, "0") : null;
 
   return (
     <>
@@ -737,7 +727,7 @@ export default async function StartupDetailPage({
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-14 lg:gap-16 items-start">
               {/* ── Main story column ── */}
               <article className="min-w-0">
-                <StorySection number={numAbout} label="About">
+                <StorySection label="About">
                   {tagline ? (
                     <AutoRichText
                       value={tagline}
@@ -781,7 +771,6 @@ export default async function StartupDetailPage({
                   <Reveal className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-16 sm:mb-20">
                     {hasProblem && (
                       <ProblemSolutionCard
-                        number={numProblem!}
                         label="Problem"
                         body={problemText}
                         icon={<AlertCircle className="h-5 w-5" aria-hidden />}
@@ -791,7 +780,6 @@ export default async function StartupDetailPage({
                     )}
                     {hasSolution && (
                       <ProblemSolutionCard
-                        number={numSolution!}
                         label="Solution"
                         body={solutionText}
                         icon={<Lightbulb className="h-5 w-5" aria-hidden />}
@@ -812,14 +800,11 @@ export default async function StartupDetailPage({
                       @
                     </span>
                     <div className="relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-                      <div className="flex items-start gap-4">
-                        <span className="font-serif text-4xl font-extrabold tracking-tight text-white/20">{numMarket}</span>
-                        <div>
-                          <small className="block text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-red-light">
-                            Market opportunity
-                          </small>
-                          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">TAM, SAM &amp; SOM</h2>
-                        </div>
+                      <div>
+                        <Kicker tone="light" className="text-pasha-red-light">
+                          Market opportunity
+                        </Kicker>
+                        <h2 className="mt-4 text-2xl sm:text-4xl font-bold tracking-tight text-white">TAM, SAM &amp; SOM</h2>
                       </div>
                       <p className="relative max-w-sm text-sm leading-relaxed text-white/55">
                         Market sizing for this category, as reported by the founding team.
@@ -871,7 +856,7 @@ export default async function StartupDetailPage({
                 )}
 
                 {hasRecognition && (
-                  <StorySection number={numRecognition!} label="Awards & recognition">
+                  <StorySection label="Awards & recognition">
                     <ol className="border-t border-pasha-ink/10">
                       {awardEntries.map((a, i) => (
                         <li
@@ -897,7 +882,7 @@ export default async function StartupDetailPage({
                 )}
 
                 {hasCertifications && (
-                  <StorySection number={numCertifications!} label="Certifications">
+                  <StorySection label="Certifications">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {certifications.map((cert) => (
                         <div key={cert} className="flex min-h-[108px] items-center gap-4 rounded-[20px] border border-pasha-ink/10 bg-white p-4.5">
@@ -912,7 +897,7 @@ export default async function StartupDetailPage({
                 )}
 
                 {hasBusinessExtra && (
-                  <StorySection number={numBusinessExtra!} label="Business profile">
+                  <StorySection label="Business profile">
                     <dl className="divide-y divide-pasha-ink/[0.08]">
                       {businessItems.map((it) => (
                         <div key={it.key} className="py-4 first:pt-0">
@@ -940,7 +925,7 @@ export default async function StartupDetailPage({
                 )}
 
                 {hasImpact && (
-                  <StorySection number={numImpact!} label="Impact">
+                  <StorySection label="Impact">
                     {impact && <p className="text-[15px] leading-relaxed text-pasha-ink/70 max-w-2xl">{impact}</p>}
                     {sdgs.length > 0 && (
                       <ul className={`flex flex-wrap gap-2 ${impact ? "mt-5" : ""}`}>
@@ -959,7 +944,7 @@ export default async function StartupDetailPage({
               </article>
 
               {/* ── Sidebar ── */}
-              <aside className="flex flex-col gap-6 lg:sticky lg:top-[112px]">
+              <aside className="flex flex-col gap-6 lg:sticky lg:top-20">
                 <Reveal className="rounded-[29px] border border-pasha-ink/10 bg-white p-4.5 shadow-[0_18px_50px_rgba(23,23,23,0.055)]">
                   <div className="flex items-end justify-between px-1 pb-3.5 border-b border-pasha-ink/[0.09] mb-0.5">
                     <div>
@@ -1209,36 +1194,27 @@ function RelatedBadges({ startup }: { startup: RelatedStartup }) {
 
 // Numbered editorial section — the big "01 / 02 …" label column paired with content, matching the reference's story-section rhythm.
 function StorySection({
-  number,
   label,
   children,
 }: {
-  number: string;
   label: string;
   children: React.ReactNode;
 }) {
   return (
-    <Reveal className="grid grid-cols-1 sm:grid-cols-[120px_minmax(0,1fr)] gap-5 sm:gap-9 pb-16 sm:pb-20">
-      <div className="flex sm:block items-center gap-3 pt-1">
-        <span className="block font-serif text-3xl sm:text-4xl font-extrabold tracking-tight text-pasha-ink/15">{number}</span>
-        <small className="block mt-0 sm:mt-3 text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-muted leading-snug">
-          {label}
-        </small>
-      </div>
+    <Reveal className="pb-16 sm:pb-20">
+      <Kicker className="mb-6">{label}</Kicker>
       <div className="min-w-0">{children}</div>
     </Reveal>
   );
 }
 
 function ProblemSolutionCard({
-  number,
   label,
   body,
   icon,
   tint,
   iconColor,
 }: {
-  number: string;
   label: string;
   body: string;
   icon: React.ReactNode;
@@ -1248,13 +1224,12 @@ function ProblemSolutionCard({
   return (
     <article className={`relative overflow-hidden rounded-[26px] p-7 min-h-[365px] flex flex-col ${tint}`}>
       <span aria-hidden className="pointer-events-none absolute -right-[100px] -bottom-[115px] h-[230px] w-[230px] rounded-full border border-pasha-ink/[0.13]" />
-      <div className="relative flex items-center justify-between mb-11">
-        <span className="text-xs font-bold tracking-[1.5px] text-pasha-ink/45">{number}</span>
+      <div className="relative flex items-center justify-between mb-8">
+        <Kicker>{label}</Kicker>
         <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-white ${iconColor}`}>{icon}</span>
       </div>
-      <small className="relative block text-base font-bold uppercase tracking-[2px] text-pasha-ink/60 mb-4">{label}</small>
       {/* The founder's real problem / solution statement — the card's hero copy */}
-      <p className="relative text-[13px] leading-[1.45] tracking-tight text-pasha-ink font-regular max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
+      <p className="relative mt-3 text-[13px] leading-[1.45] tracking-tight text-pasha-ink font-regular max-w-[460px] whitespace-pre-line [overflow-wrap:anywhere]">
         {body}
       </p>
     </article>

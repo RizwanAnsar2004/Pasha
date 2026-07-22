@@ -38,8 +38,8 @@ export function VerifiedBadge({
       <span
         ref={badgeRef}
         className={`inline-flex shrink-0 items-center justify-center leading-none ${className ?? ""}`}
-        title="P@SHA verified — see profile for what this means"
-        aria-label="P@SHA verified"
+        title="PASHA verified — see profile for what this means"
+        aria-label="PASHA verified"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onMouseEnter={() => setShowTooltip(true)}
@@ -52,7 +52,7 @@ export function VerifiedBadge({
           aria-hidden="true"
         />
 
-        <span className="sr-only">P@SHA verified</span>
+        <span className="sr-only">PASHA verified</span>
       </span>
 
       {showTooltip &&
@@ -66,7 +66,7 @@ export function VerifiedBadge({
             }}
           >
             <span className="block font-mono text-[10px] font-medium uppercase tracking-[2px] text-pasha-red">
-              P@SHA VERIFIED
+              PASHA VERIFIED
             </span>
 
             {/* Uncomment if you want the description */}

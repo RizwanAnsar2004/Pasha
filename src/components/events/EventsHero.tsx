@@ -29,7 +29,7 @@ export function EventsHero({ totalEvents }: { totalEvents: number }) {
             </h1>
             <p className="mt-6 max-w-xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
               Webinars, seminars, and gatherings for founders, investors, and
-              ecosystem enablers across Pakistan — curated by P@SHA.
+              ecosystem enablers across Pakistan — curated by PASHA.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-5">
@@ -37,7 +37,7 @@ export function EventsHero({ totalEvents }: { totalEvents: number }) {
                 href="/apply"
                 className="inline-flex items-center gap-3 rounded-2xl bg-pasha-red pl-5 pr-2.5 py-2.5 text-sm font-bold text-white shadow-[0_18px_38px_rgba(233,33,39,0.24)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
               >
-                Host an event with P@SHA
+                Host an event with PASHA
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-pasha-red">
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
@@ -51,7 +51,7 @@ export function EventsHero({ totalEvents }: { totalEvents: number }) {
             </div>
 
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2.5">
-              {["Curated by P@SHA", "Nationwide coverage", "Founder-first"].map((t) => (
+              {["Curated by PASHA", "Nationwide coverage", "Founder-first"].map((t) => (
                 <span key={t} className="inline-flex items-center gap-1.5 text-xs text-white/45">
                   <CheckCircle2 className="h-3.5 w-3.5 text-[#31B57B]" />
                   {t}

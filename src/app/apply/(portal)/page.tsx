@@ -208,7 +208,7 @@ export default async function ApplicantOverviewPage({
           {greetingName ? `Welcome, ${greetingName}` : "Welcome"} 👋
         </h1>
         <p className="mt-1.5 text-sm text-pasha-muted">
-          Apply to join the P@SHA Startup Hub. Your progress is saved automatically — you can
+          Apply to join the PASHA Startup Hub. Your progress is saved automatically — you can
           leave and pick up where you left off anytime.
         </p>
       </div>

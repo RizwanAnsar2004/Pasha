@@ -220,7 +220,7 @@ export const submissionSchema = z
     founding_team_composition: optionalString,
     fbr_registered: optionalBool,
     secp_registered: optionalBool,
-    // P@SHA membership moved here from the Founders step. Lives next to the
+    // PASHA membership moved here from the Founders step. Lives next to the
     is_pasha_member: optionalBool,
 
     // ====== Startup — traction & funding

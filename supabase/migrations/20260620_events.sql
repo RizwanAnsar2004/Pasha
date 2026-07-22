@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS events (
   location            TEXT NOT NULL DEFAULT '',
   format              TEXT NOT NULL DEFAULT 'in_person'
                       CHECK (format IN ('in_person', 'online')),
-  organizer           TEXT NOT NULL DEFAULT 'P@SHA Committee',
+  organizer           TEXT NOT NULL DEFAULT 'PASHA Committee',
   expected_attendees  TEXT NOT NULL DEFAULT '',
   capacity            INTEGER,
   capacity_note       TEXT NOT NULL DEFAULT '',

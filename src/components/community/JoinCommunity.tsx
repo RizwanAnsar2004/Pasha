@@ -7,7 +7,7 @@ import { FacebookGlyph } from "./FacebookGlyph";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// Dark glass CTA band linking to the P@SHA Facebook community.
+// Dark glass CTA band linking to the PASHA Facebook community.
 export function JoinCommunity() {
   return (
     <section className="relative overflow-hidden bg-pasha-ink py-16 sm:py-20">
@@ -43,7 +43,7 @@ export function JoinCommunity() {
               </h2>
 
               <p className="mt-3 max-w-xl text-sm sm:text-base leading-relaxed text-white/55 text-pretty">
-                Follow P@SHA on Facebook for ecosystem news, event invites, funding
+                Follow PASHA on Facebook for ecosystem news, event invites, funding
                 and competition calls, and day-to-day peer support from founders
                 building across Pakistan.
               </p>

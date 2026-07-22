@@ -289,7 +289,7 @@ export function Step1Startup({ form }: StepProps) {
           />
         </Field>
         <Field
-          label="Are you currently a P@SHA member?"
+          label="Are you currently a PASHA member?"
           hint="Helps the committee fast-track members."
         >
           <YesNo
@@ -297,7 +297,7 @@ export function Step1Startup({ form }: StepProps) {
             onChange={(val) =>
               setValue("is_pasha_member", val, { shouldValidate: true })
             }
-            aria-label="P@SHA member"
+            aria-label="PASHA member"
           />
         </Field>
       </Section>

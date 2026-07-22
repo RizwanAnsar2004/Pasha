@@ -25,7 +25,7 @@ export const STAGE_META: Record<WorkflowStage, StageMeta> = {
   },
   submitted: {
     label: "Submitted",
-    blurb: "With the P@SHA committee for review. Not listed until approved.",
+    blurb: "With the PASHA committee for review. Not listed until approved.",
     tone: "info",
   },
   needs_update: {
@@ -40,7 +40,7 @@ export const STAGE_META: Record<WorkflowStage, StageMeta> = {
   },
   verified: {
     label: "Verified",
-    blurb: "Listed publicly with the P@SHA verified badge.",
+    blurb: "Listed publicly with the PASHA verified badge.",
     tone: "success",
   },
   featured: {

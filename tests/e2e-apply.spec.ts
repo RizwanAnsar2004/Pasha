@@ -2,7 +2,7 @@
 import { test, expect } from "@playwright/test";
 
 const DESCRIPTION_50_PLUS =
-  "Testing the P@SHA apply form end-to-end via Playwright. This description is comfortably above the 50-character minimum.";
+  "Testing the PASHA apply form end-to-end via Playwright. This description is comfortably above the 50-character minimum.";
 
 test.describe("Apply v2 — happy path", () => {
   test("can complete a minimum-required 3-step submission", async ({ page }) => {

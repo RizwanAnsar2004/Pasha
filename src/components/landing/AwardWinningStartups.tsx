@@ -53,7 +53,7 @@ export function AwardWinningStartups({ startups }: { startups: AwardWinningStart
               Built to win on the world stage.
             </h2>
             <p className="mt-4 text-white/55 text-base leading-relaxed text-pretty max-w-md">
-              Recognised by P@SHA and industry partners for outstanding products, growth, and impact.
+              Recognised by PASHA and industry partners for outstanding products, growth, and impact.
             </p>
             <Link
               href="/directory"

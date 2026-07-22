@@ -4,7 +4,7 @@ import { VerifiedContent } from "./VerifiedContent";
 
 export const metadata: Metadata = {
   title: "Email verified",
-  description: "Your email has been verified for the P@SHA Startup Hub.",
+  description: "Your email has been verified for the PASHA Startup Hub.",
   alternates: { canonical: "/apply/verified" },
   robots: { index: false, follow: false },
 };

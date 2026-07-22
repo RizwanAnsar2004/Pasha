@@ -217,7 +217,7 @@ export function scoreVetting(input: VettingInput): VettingResult {
       : "No revenue signal",
   });
 
-  // 10. P@SHA strategic fit — has all of: clean stage, clean sector, gates pass
+  // 10. PASHA strategic fit — has all of: clean stage, clean sector, gates pass
   const fitScore =
     passes_gates && input.stage && input.primary_sector ? 4 : passes_gates ? 2 : 0;
   breakdown.push({

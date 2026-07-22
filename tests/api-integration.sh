@@ -58,7 +58,7 @@ assert_status() {
   fi
 }
 
-echo "=== P@SHA Form API Integration Tests ==="
+echo "=== PASHA Form API Integration Tests ==="
 echo "Base URL:  $BASE_URL"
 echo "Marker:    $MARKER"
 echo ""

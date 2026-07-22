@@ -81,7 +81,7 @@ export function SuccessContent() {
               Thank you for applying.
             </h1>
             <p className="mt-5 text-lg text-pasha-muted max-w-xl mx-auto leading-relaxed text-pretty">
-              We&apos;ve received your submission. The P@SHA committee reviews
+              We&apos;ve received your submission. The PASHA committee reviews
               applications weekly — you&apos;ll hear back by email once
               your profile has been approved for the public directory.
             </p>

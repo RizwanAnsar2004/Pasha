@@ -113,7 +113,7 @@ const SAMPLE_SUBMISSION: Record<string, unknown> = {
   engagement_interests: ["Mentorship (receive)", "Investor introductions"],
   whatsapp_optin: true,
   facebook_optin: true,
-  closing_notes: "Excited to join the P@SHA directory and connect with the ecosystem.",
+  closing_notes: "Excited to join the PASHA directory and connect with the ecosystem.",
 };
 
 const TOTAL_STEPS = 3;

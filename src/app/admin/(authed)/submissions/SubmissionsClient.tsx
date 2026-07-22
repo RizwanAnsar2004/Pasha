@@ -570,7 +570,7 @@ function SubmissionDrawer({
       await api.patch(ENDPOINTS.admin.submission, { id, action: "verify", verified: !verified });
       const next = !verified;
       setVerified(next);
-      onToast(next ? "Marked as P@SHA Verified" : "Verification removed", true);
+      onToast(next ? "Marked as PASHA Verified" : "Verification removed", true);
     } catch (e) {
       onToast(apiErrorMessage(e, "Couldn't update verification"), false);
     } finally {
