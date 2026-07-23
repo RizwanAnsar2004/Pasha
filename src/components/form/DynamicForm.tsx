@@ -18,6 +18,7 @@ import {
 } from "@/lib/forms/form-config";
 import { DynamicField } from "./DynamicField";
 import { AutoOptionalLabels } from "./Field";
+import { ErrorFieldLinks } from "./ErrorFieldLinks";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
 import { api } from "@/lib/api/client";
@@ -70,6 +71,8 @@ export function DynamicForm({
   const [maxStepReached, setMaxStepReached] = useState(stepIdx);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Fields named in the error banner, rendered as buttons that jump to the input.
+  const [errorFields, setErrorFields] = useState<{ name: string; label: string }[]>([]);
   const [draftRestored, setDraftRestored] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const draftRestoredOnce = useRef(false);
@@ -190,11 +193,13 @@ export function DynamicForm({
     const ok = await form.trigger(keys);
     if (!ok) {
       const errs = form.formState.errors as Record<string, unknown>;
-      const bad = keys.filter((k) => k in errs).map((k) => labelMap[k] ?? k);
-      setError(`${titles[stepIdx]?.title ?? "This step"} needs: ${bad.join(", ")}`);
+      const bad = keys.filter((k) => k in errs);
+      setError(`${titles[stepIdx]?.title ?? "This step"} needs:`);
+      setErrorFields(bad.map((k) => ({ name: k, label: labelMap[k] ?? k })));
       return;
     }
     setError(null);
+    setErrorFields([]);
     // Wipe any errors carried over from the previous step so the next step starts clean — the user should only see errors after touching a field or.
     form.clearErrors();
     funnel.stepCompleted(stepIdx, titles[stepIdx]?.title);
@@ -204,6 +209,7 @@ export function DynamicForm({
 
   const goPrev = () => {
     setError(null);
+    setErrorFields([]);
     // Same reason as goNext: re-entering a step shouldn't display errors that were populated by an earlier trigger() call.
     form.clearErrors();
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
@@ -214,6 +220,7 @@ export function DynamicForm({
   const goSkip = () => {
     if (stepIdx >= totalSteps - 1) return;
     setError(null);
+    setErrorFields([]);
     form.clearErrors();
     funnel.stepCompleted(stepIdx, titles[stepIdx]?.title, true);
     setStepIdx(stepIdx + 1);
@@ -222,6 +229,7 @@ export function DynamicForm({
 
   const onSubmit = async (data: Values) => {
     setError(null);
+    setErrorFields([]);
     setSubmitting(true);
     try {
       const result = await api.post<{ tier?: string; score?: number; id: string }>(ENDPOINTS.submit, data);
@@ -418,8 +426,13 @@ export function DynamicForm({
                       <span className="h-px flex-1 bg-pasha-line/70" />
                     </div>
                   )}
+                  {/* data-field anchors the error-banner jump links. Rich text,
+                      selects and uploads render no native `name` attribute, so
+                      the wrapper is the only reliable target. */}
                   {section.fields.map((field) => (
-                    <DynamicField key={field.id} field={field} />
+                    <div key={field.id} data-field={field.field_key}>
+                      <DynamicField field={field} />
+                    </div>
                   ))}
                 </div>
               ))}
@@ -433,6 +446,7 @@ export function DynamicForm({
               className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3 text-sm text-pasha-red"
             >
               {error}
+              <ErrorFieldLinks fields={errorFields} />
             </motion.div>
           )}
 

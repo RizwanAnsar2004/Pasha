@@ -96,9 +96,20 @@ export const optionalArray = z.preprocess(
 // ---------------------------------------------------------------------------
 
 // Optional custom links per founder — e.g. personal site, GitHub, Substack.
+// A row is only kept when the applicant typed something into it (see the
+// preprocess on `custom_links` below), and once kept both halves are required —
+// a label with no URL renders as a dead link on the public profile.
 const founderCustomLink = z.object({
   label: z.string().trim().min(1, "Label required"),
-  url: optionalSafeUrl,
+  url: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? "" : String(v).trim()),
+    z
+      .string()
+      .min(1, "URL required")
+      .refine((u) => SAFE_URL_RE.test(u), {
+        message: "Must be a valid http or https URL",
+      })
+  ),
 });
 
 export const founderSchema = z.object({

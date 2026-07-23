@@ -193,6 +193,21 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
     name: `founders.${founderIndex}.custom_links` as const,
   });
 
+  // These rows validate like any other field, but had no error slot — a bad
+  // link failed the whole founder with nothing shown next to the input.
+  const rowErrors = (form.formState.errors.founders?.[founderIndex] as
+    | { custom_links?: { label?: { message?: string }; url?: { message?: string } }[] }
+    | undefined)?.custom_links;
+
+  // Most "invalid URL" reports are just a missing scheme — add it on blur
+  // rather than rejecting "github.com/name".
+  const normalizeUrl = (i: number) => {
+    const path = `founders.${founderIndex}.custom_links.${i}.url` as const;
+    const raw = (form.getValues(path) ?? "").trim();
+    if (!raw || /^https?:\/\//i.test(raw)) return;
+    form.setValue(path, `https://${raw}`, { shouldValidate: true });
+  };
+
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between mb-2">
@@ -202,28 +217,46 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
       </div>
       {fields.length > 0 && (
         <div className="space-y-2 mb-2">
-          {fields.map((row, i) => (
-            <div key={row.id} className="flex items-center gap-2">
-              <Input
-                placeholder="Label (e.g. GitHub)"
-                className="max-w-[180px]"
-                {...form.register(`founders.${founderIndex}.custom_links.${i}.label`)}
-              />
-              <Input
-                type="url"
-                placeholder="https://"
-                {...form.register(`founders.${founderIndex}.custom_links.${i}.url`)}
-              />
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                aria-label="Remove link"
-                className="shrink-0 rounded-md p-1.5 text-pasha-muted hover:text-pasha-red hover:bg-pasha-red/[0.04] transition-colors"
-              >
-                <XIcon className="w-4 h-4" aria-hidden />
-              </button>
-            </div>
-          ))}
+          {fields.map((row, i) => {
+            const labelErr = rowErrors?.[i]?.label?.message;
+            const urlErr = rowErrors?.[i]?.url?.message;
+            return (
+              <div key={row.id}>
+                <div className="flex items-start gap-2">
+                  <div className="w-full max-w-[180px]">
+                    <Input
+                      placeholder="Label (e.g. GitHub)"
+                      aria-invalid={Boolean(labelErr)}
+                      data-field={`founders.${founderIndex}.custom_links.${i}.label`}
+                      {...form.register(`founders.${founderIndex}.custom_links.${i}.label`)}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      type="url"
+                      placeholder="https://"
+                      aria-invalid={Boolean(urlErr)}
+                      data-field={`founders.${founderIndex}.custom_links.${i}.url`}
+                      {...form.register(`founders.${founderIndex}.custom_links.${i}.url`, {
+                        onBlur: () => normalizeUrl(i),
+                      })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(i)}
+                    aria-label="Remove link"
+                    className="shrink-0 rounded-md p-1.5 text-pasha-muted hover:text-pasha-red hover:bg-pasha-red/[0.04] transition-colors"
+                  >
+                    <XIcon className="w-4 h-4" aria-hidden />
+                  </button>
+                </div>
+                {(labelErr || urlErr) && (
+                  <p className="mt-1 text-xs text-pasha-red">{labelErr ?? urlErr}</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       <button

@@ -77,14 +77,17 @@ export function FileUpload({
             exit={{ opacity: 0, scale: 0.98 }}
             className="rounded-lg border border-pasha-line bg-pasha-stone/30 px-4 py-3 flex items-center gap-3"
           >
-            <div className="w-10 h-10 rounded-md bg-white border border-pasha-line grid place-items-center shrink-0">
+            {/* `fill` + overflow-hidden keeps the thumbnail a fixed 40px square
+                whatever the source aspect ratio — a portrait photo is cropped
+                to the box instead of stretching the row out of shape. */}
+            <div className="relative w-10 h-10 rounded-md bg-white border border-pasha-line overflow-hidden grid place-items-center shrink-0">
               {isImage ? (
                 <Image
                   src={value}
                   alt="Uploaded"
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover rounded-md"
+                  fill
+                  sizes="40px"
+                  className="object-cover"
                   unoptimized={value.startsWith("blob:")}
                 />
               ) : (

@@ -29,6 +29,7 @@ import { api } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { AutoOptionalLabels } from "./Field";
+import { ErrorFieldLinks } from "./ErrorFieldLinks";
 import { Step1Startup } from "./steps/Step1Startup";
 import { Step2Founders } from "./steps/Step2Founders";
 import { Step3Recognition } from "./steps/Step3Recognition";
@@ -124,6 +125,8 @@ export function ApplyForm({ optionLists }: { optionLists?: OptionRegistry }) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Fields named in the error banner, rendered as buttons that jump to the input.
+  const [errorFields, setErrorFields] = useState<{ name: string; label: string }[]>([]);
   const [draftRestored, setDraftRestored] = useState(false);
   const draftRestoredOnce = useRef(false);
 
@@ -248,6 +251,7 @@ const form = useForm<SubmissionInput>({
     form.reset({ ...form.getValues(), ...SAMPLE_SUBMISSION } as unknown as SubmissionInput);
     form.clearErrors();
     setError(null);
+    setErrorFields([]);
   };
 
   // Note: client-side live tier preview was removed.
@@ -263,12 +267,13 @@ const form = useForm<SubmissionInput>({
       const badFields = fieldsForStep
         .map((f) => f as string)
         .filter((f) => f in errs);
-      const labels = badFields.map((f) => resolveFieldLabel({}, f)).join(", ");
       const stepInfo = stepTitles[step - 1];
-      setError(`Step ${step} (${stepInfo.title}) needs: ${labels}`);
+      setError(`Step ${step} (${stepInfo.title}) needs:`);
+      setErrorFields(badFields.map((f) => ({ name: f, label: resolveFieldLabel({}, f) })));
       return;
     }
     setError(null);
+    setErrorFields([]);
     form.clearErrors();
     setStep(step + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -276,6 +281,7 @@ const form = useForm<SubmissionInput>({
 
   const goPrev = () => {
     setError(null);
+    setErrorFields([]);
     form.clearErrors();
     if (step > 1) setStep(step - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -308,6 +314,7 @@ const form = useForm<SubmissionInput>({
 
   const onSubmit = async (raw: SubmissionInput) => {
     setError(null);
+    setErrorFields([]);
     setSubmitting(true);
     try {
       const data = cleanConditionalFields(raw);
@@ -367,6 +374,7 @@ const form = useForm<SubmissionInput>({
     if (target < step) {
       setStep(target);
       setError(null);
+      setErrorFields([]);
       window.scrollTo({ top: 200, behavior: "smooth" });
     }
   };
@@ -466,6 +474,7 @@ const form = useForm<SubmissionInput>({
               className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3 text-sm text-pasha-red"
             >
               {error}
+              <ErrorFieldLinks fields={errorFields} />
             </motion.div>
           )}
         </form>

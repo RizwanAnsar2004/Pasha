@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { PashaLogo } from "./PashaLogo";
 import { cn } from "@/lib/utils";
 import styles from "./landing/HeroPhotoSlider.module.css";
@@ -22,6 +23,12 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const [menuOpen, setMenuOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
   const firstMenuLinkRef = useRef<HTMLAnchorElement>(null);
+  const pathname = usePathname();
+
+  // Nothing to join once you're already in the applicant portal — drop the CTA
+  // from the bar and the entry from the overlay menu.
+  const onApply = pathname === "/apply" || pathname?.startsWith("/apply/");
+  const menuLinks = onApply ? MENU_LINKS.filter((l) => l.href !== "/apply") : MENU_LINKS;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -50,9 +57,11 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
         <strong>PASHA Startup Hub</strong>
       </Link>
       <div className={styles["hero-photo-top-actions"]}>
-        <Link className={styles["hero-photo-top-cta"]} href="/apply">
-          Join the Hub 
-        </Link>
+        {!onApply && (
+          <Link className={styles["hero-photo-top-cta"]} href="/apply">
+            Join the Hub
+          </Link>
+        )}
         <button
           ref={burgerRef}
           aria-expanded={menuOpen}
@@ -77,12 +86,14 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
         <strong className="hidden text-[15px] font-bold tracking-tight sm:inline">PASHA Startup Hub</strong>
       </Link>
       <div className="flex items-center gap-2.5">
-        <Link
-          href="/apply"
-          className="hidden items-center gap-2 rounded-full bg-pasha-red px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pasha-red-dark sm:inline-flex"
-        >
-          Join the Hub 
-        </Link>
+        {!onApply && (
+          <Link
+            href="/apply"
+            className="hidden items-center gap-2 rounded-full bg-pasha-red px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pasha-red-dark sm:inline-flex"
+          >
+            Join the Hub
+          </Link>
+        )}
         <button
           ref={burgerRef}
           aria-expanded={menuOpen}
@@ -154,7 +165,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
 
         <nav aria-label="Website sections" className={styles["hub-menu-nav"]}>
           <div className={styles["hub-menu-list"]}>
-            {MENU_LINKS.map((link, index) => (
+            {menuLinks.map((link, index) => (
               <Link
                 key={link.label}
                 ref={index === 0 ? firstMenuLinkRef : undefined}
