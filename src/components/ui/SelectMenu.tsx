@@ -37,6 +37,10 @@ function normalize(
 // and avoids a setState-in-effect pass.
 const COARSE_QUERY = "(pointer: coarse)";
 
+// How far a pointer may travel between down and up and still count as a tap
+// rather than the start of a scroll.
+const TAP_SLOP_PX = 8;
+
 function subscribeCoarse(cb: () => void) {
   const mq = window.matchMedia(COARSE_QUERY);
   mq.addEventListener("change", cb);
@@ -155,6 +159,8 @@ function SearchableSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const isTouch = useCoarsePointer();
+  // Where a press started, so a drag can be told apart from a tap.
+  const pressRef = useRef<{ x: number; y: number; value: string } | null>(null);
 
   const selected = opts.find((o) => o.value === value);
 
@@ -271,10 +277,28 @@ function SearchableSelect({
                     aria-selected={isSelected}
                     title={o.label}
                     onPointerEnter={() => setActive(i)}
-                    // Select on pointerdown so the tap lands before the input's blur can close the popover on mobile.
+                    // Commit on pointer *up*, and only when the pointer barely
+                    // moved. Committing on pointerdown (the old behaviour) meant
+                    // the first touch of a scroll gesture instantly selected
+                    // whatever row was under the finger and closed the menu.
+                    //
+                    // preventDefault on pointerdown keeps focus on the search
+                    // input for mouse users (its blur would close the popover),
+                    // but is skipped on touch where it can also cancel panning.
                     onPointerDown={(e) => {
-                      e.preventDefault();
+                      if (!isTouch) e.preventDefault();
+                      pressRef.current = { x: e.clientX, y: e.clientY, value: o.value };
+                    }}
+                    onPointerUp={(e) => {
+                      const press = pressRef.current;
+                      pressRef.current = null;
+                      if (!press || press.value !== o.value) return;
+                      const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+                      if (moved > TAP_SLOP_PX) return; // a scroll, not a tap
                       commit(o.value);
+                    }}
+                    onPointerCancel={() => {
+                      pressRef.current = null;
                     }}
                     className={cn(
                       "relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-3 pr-8 text-sm text-pasha-ink outline-none",
