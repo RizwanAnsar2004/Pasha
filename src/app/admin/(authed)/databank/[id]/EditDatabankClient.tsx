@@ -79,6 +79,12 @@ export type DatabankRow = {
   awards: string | null;
   certifications: string | null;
   pasha_verified: boolean | null;
+  // §13 directory badge flags (migration 20260623_directory_badges). Real
+  // columns, populated from the submission on approval — see
+  // api/admin/submission — and read by the public directory.
+  women_led: boolean | null;
+  hiring: boolean | null;
+  fundraising: boolean | null;
   contact_person: string | null;
   contact_email: string | null;
   outreach_status: string | null;
