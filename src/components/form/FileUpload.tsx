@@ -3,7 +3,7 @@ import { ApiError, api, apiErrorMessage } from "@/lib/api/client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, type FileRejection } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, ImageIcon, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -121,8 +121,34 @@ export function FileUpload({
     [cropAspect, upload]
   );
 
+  // react-dropzone diverts files failing `maxSize` / `accept` to onDropRejected
+  // instead of onDrop — without this they were dropped in total silence, which
+  // read as "nothing happened" when picking an oversized PDF.
+  const onDropRejected = useCallback(
+    (rejections: FileRejection[]) => {
+      const rejection = rejections[0];
+      if (!rejection) return;
+      const { file, errors } = rejection;
+      const sizeErr = errors.find((x) => x.code === "file-too-large");
+      const typeErr = errors.find((x) => x.code === "file-invalid-type");
+
+      if (sizeErr) {
+        setError(
+          `"${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)}MB — the limit is ${maxSizeMB}MB. Please upload a smaller file.`
+        );
+      } else if (typeErr) {
+        setError(`"${file.name}" isn't a supported file type for this field.`);
+      } else {
+        setError(errors[0]?.message ?? "That file couldn't be accepted.");
+      }
+      setFileName(null);
+    },
+    [maxSizeMB]
+  );
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept,
     maxSize: maxSizeMB * 1024 * 1024,
     multiple: false,

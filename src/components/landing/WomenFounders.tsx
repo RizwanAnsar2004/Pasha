@@ -26,8 +26,15 @@ function ProfileCard({ startup, avatarTint }: { startup: WomenLedStartup; avatar
       className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-pasha-ink/10 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(23,23,23,0.08)]"
     >
       <div className="flex items-center justify-between gap-3">
+        {/* Logos are cropped square at upload, so they're framed in a rounded
+            square here — same treatment as the directory and bento cards. The
+            tinted initials fallback keeps its colour when there's no logo. */}
         <div
-          className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full font-bold text-sm ${avatarTint}`}
+          className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[14px] font-bold text-sm ${
+            safe
+              ? "border border-pasha-ink/[0.06] bg-white shadow-sm"
+              : avatarTint
+          }`}
         >
           {safe ? (
             // eslint-disable-next-line @next/next/no-img-element
