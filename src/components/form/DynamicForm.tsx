@@ -21,7 +21,7 @@ import { AutoOptionalLabels } from "./Field";
 import { ErrorFieldLinks } from "./ErrorFieldLinks";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
-import { api } from "@/lib/api/client";
+import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
@@ -70,6 +70,9 @@ export function DynamicForm({
   // Furthest step the user has reached, so the stepper can jump forward to any already-visited step (not just strictly-earlier ones).
   const [maxStepReached, setMaxStepReached] = useState(stepIdx);
   const [submitting, setSubmitting] = useState(false);
+  // Explicit "Save" is separate from `submitting` — saving leaves the applicant
+  // on the form, submitting navigates away.
+  const [savingNow, setSavingNow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Fields named in the error banner, rendered as buttons that jump to the input.
   const [errorFields, setErrorFields] = useState<{ name: string; label: string }[]>([]);
@@ -184,6 +187,38 @@ export function DynamicForm({
       window.localStorage.removeItem(DRAFT_KEY);
     } catch {}
     setDraftRestored(false);
+  };
+
+  // Explicit save — flushes the current values immediately instead of waiting
+  // for the debounce, so "Save" is a real, confirmable action rather than a
+  // relabelled no-op. Deliberately skips validation: a half-finished answer is
+  // exactly what someone saving for later wants to keep.
+  const saveNow = async () => {
+    if (savingNow) return;
+    setError(null);
+    setErrorFields([]);
+    const draft = { data: form.getValues(), current_step: stepIdx };
+    setSavingNow(true);
+    setSaveState("saving");
+    try {
+      if (serverPersist) {
+        await api.put(ENDPOINTS.applicant.draft, draft);
+      } else {
+        window.localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ savedAt: Date.now(), values: draft.data })
+        );
+      }
+      // Record the baseline so the autosave effect doesn't immediately repeat
+      // the same write.
+      lastSavedRef.current = JSON.stringify(draft);
+      setSaveState("saved");
+    } catch (e) {
+      setSaveState("idle");
+      setError(apiErrorMessage(e, "Couldn't save your progress"));
+    } finally {
+      setSavingNow(false);
+    }
   };
 
   const goNext = async (e?: React.MouseEvent) => {
@@ -490,29 +525,51 @@ export function DynamicForm({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                if (submitting || !canSubmit) return;
-                form.handleSubmit(onSubmit, onInvalid)();
-              }}
-              disabled={submitting || !canSubmit}
-              title={canSubmit ? undefined : "Complete the required fields to submit"}
-              className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-red px-7 py-3 text-sm font-medium text-white shadow-xl shadow-pasha-red/30 hover:bg-pasha-red-dark hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="relative w-4 h-4 animate-spin" />
-                  <span className="relative">Submitting…</span>
-                </>
-              ) : (
-                <>
-                  <span className="relative">Submit application</span>
-                  <Check className="relative w-4 h-4" />
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Save keeps the applicant on the form and never validates, so an
+                  incomplete application can still be parked and resumed. */}
+              <button
+                type="button"
+                onClick={saveNow}
+                disabled={savingNow || submitting}
+                className="inline-flex items-center gap-2 rounded-full border border-pasha-line bg-white px-5 py-2.5 text-sm font-medium text-pasha-ink hover:bg-pasha-stone/60 hover:border-pasha-ink/15 transition-all disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {savingNow ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (submitting || savingNow || !canSubmit) return;
+                  form.handleSubmit(onSubmit, onInvalid)();
+                }}
+                disabled={submitting || savingNow || !canSubmit}
+                title={canSubmit ? undefined : "Complete the required fields to submit"}
+                className="group relative inline-flex items-center gap-2 rounded-full bg-pasha-red px-7 py-3 text-sm font-medium text-white shadow-xl shadow-pasha-red/30 hover:bg-pasha-red-dark hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="relative w-4 h-4 animate-spin" />
+                    <span className="relative">Submitting…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="relative">Submit for approval</span>
+                    <Check className="relative w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>

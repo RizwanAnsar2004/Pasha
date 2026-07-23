@@ -6,13 +6,24 @@ import {
   startSuperAdminSession,
   validateSuperAdminCredentials,
 } from "@/lib/auth/admin/super-admin";
+import { verifyCaptcha } from "@/lib/auth/captcha";
 
 export async function POST(req: Request) {
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; captchaToken?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // The highest-value credentials on the deployment — gated before the password
+  // is even compared.
+  const captcha = await verifyCaptcha(body.captchaToken, req);
+  if (!captcha.ok) {
+    return NextResponse.json(
+      { error: captcha.error, captcha: true },
+      { status: captcha.status }
+    );
   }
 
   const err = validateSuperAdminCredentials(

@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
+import {
+  CaptchaWidget,
+  captchaConfigured,
+  type CaptchaHandle,
+} from "@/components/auth/CaptchaWidget";
 
 type Step = "idle" | "email" | "code" | "done";
 
@@ -20,17 +25,28 @@ export function ClaimProfile({
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function claim(body: Record<string, unknown>, onOk: () => void) {
     setBusy(true);
     setError(null);
+    // Only `start` is gated server-side, so only that call carries a token.
+    const gated = body.action === "start";
     try {
-      await api.post("/api/claim", body);
+      await api.post("/api/claim", gated ? { ...body, captchaToken } : body);
       onOk();
     } catch (e) {
       if (e instanceof ApiError && e.data.claimed) return setClaimedElsewhere(true);
       setError(e instanceof ApiError ? e.message : "Something went wrong.");
     } finally {
+      // Turnstile tokens are single-use; the one just sent is spent whether the
+      // request succeeded or not. Re-arm so "Resend code" isn't rejected for
+      // replaying a stale token.
+      if (gated && captchaConfigured) {
+        setCaptchaToken(null);
+        captchaRef.current?.reset();
+      }
       setBusy(false);
     }
   }
@@ -50,6 +66,17 @@ export function ClaimProfile({
       </div>
     );
   }
+
+  // Needed on both steps: "Resend code" on the code step calls sendCode, which
+  // is the same gated `start` action. Only one step renders at a time, so
+  // `captchaRef` always points at the mounted widget.
+  const captchaNode = (
+    <CaptchaWidget
+      ref={captchaRef}
+      onToken={setCaptchaToken}
+      className="flex justify-start"
+    />
+  );
 
   return (
     <div className="mb-8 rounded-2xl border border-pasha-red/30 bg-pasha-red/[0.08] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-white/85">
@@ -71,6 +98,7 @@ export function ClaimProfile({
       {step === "email" && (
         <div className="mt-3 space-y-2">
           <label className="block text-[13px] text-white/70">Your company email address</label>
+          {captchaNode}
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="email"
@@ -114,6 +142,7 @@ export function ClaimProfile({
               {busy && <Loader2 className="h-4 w-4 animate-spin" />} Verify
             </button>
           </div>
+          {captchaNode}
           <button type="button" onClick={sendCode} disabled={busy} className="text-[12px] text-white/55 underline hover:text-white">
             Resend code
           </button>

@@ -7,9 +7,15 @@ import {
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { provisionSupabaseAuthUser } from "@/lib/auth/admin/admin-auth-provision";
 import { createRouteHandlerClient } from "@/lib/supabase/route-handler";
+import { verifyCaptcha } from "@/lib/auth/captcha";
 
 export async function POST(req: NextRequest) {
-  let body: { action?: string; email?: string; password?: string };
+  let body: {
+    action?: string;
+    email?: string;
+    password?: string;
+    captchaToken?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -18,6 +24,17 @@ export async function POST(req: NextRequest) {
 
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
+
+  // Both actions here are credential-stuffing / reset-spam targets, so neither
+  // is exempt. Checked before the allowlist lookup so an unsolved challenge
+  // can't be used to probe which addresses are committee members.
+  const captcha = await verifyCaptcha(body.captchaToken, req);
+  if (!captcha.ok) {
+    return NextResponse.json(
+      { error: captcha.error, captcha: true },
+      { status: captcha.status }
+    );
+  }
 
   // ── Forgot password ───────────────────────────────────────────────────── Only allowlisted committee emails get a reset link; everyone else gets.
   if (body.action === "forgot") {
