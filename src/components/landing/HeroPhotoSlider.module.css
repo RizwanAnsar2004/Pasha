@@ -131,6 +131,28 @@
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.72);
 }
+/* Secondary action beside "Join the Hub" — identical geometry (so the two pills
+   line up exactly), quieter fill so the join CTA still leads. */
+.hero-photo-top-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 11px 17px;
+  background: transparent;
+  backdrop-filter: blur(12px);
+  font-size: 14px;
+  font-weight: 650;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.hero-photo-top-login:hover {
+  background: #fff;
+  border-color: #fff;
+  color: #171717;
+}
 .hero-photo-content {
   position: relative;
   z-index: 2;

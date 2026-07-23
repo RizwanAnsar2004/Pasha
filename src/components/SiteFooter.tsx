@@ -41,7 +41,7 @@ export function SiteFooter() {
                 </a>
               </li>
               <li><Link href="/events" className="hover:text-white transition-colors">Events</Link></li>
-              <li><Link href="/committee" className="hover:text-white transition-colors">Committee</Link></li>
+              {/* <li><Link href="/committee" className="hover:text-white transition-colors">Committee</Link></li> */}
               <li><Link href="/#faq" className="hover:text-white transition-colors">FAQs</Link></li>
             </ul>
           </div>

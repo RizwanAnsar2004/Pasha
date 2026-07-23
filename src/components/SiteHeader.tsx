@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogIn } from "lucide-react";
 import { PashaLogo } from "./PashaLogo";
 import { cn } from "@/lib/utils";
 import styles from "./landing/HeroPhotoSlider.module.css";
@@ -10,14 +11,22 @@ import styles from "./landing/HeroPhotoSlider.module.css";
 // Same header everywhere: logo + brand, "Join the Hub" pill, hamburger trigger
 // and full-screen menu overlay — ported from the homepage hero so every page
 // shares one navigation pattern instead of two different header designs.
+// "Join the Hub" is a sign-up action, so it opens the register form directly;
+// signing in is its own control beside it. The applicant portal redirects an
+// already-signed-in visitor away from /apply/login, so both still land in the
+// portal for logged-in users.
+const JOIN_HREF = "/apply/login?mode=register";
+const LOGIN_HREF = "/apply/login";
+
 const MENU_LINKS = [
   { label: "Home", href: "/" },
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
-  { label: "Committee", href: "/committee" },
+  // { label: "Committee", href: "/committee" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
-  { label: "Join the Hub", href: "/apply" },
+  { label: "Join the Hub", href: JOIN_HREF },
+  { label: "Sign in", href: LOGIN_HREF },
 ];
 
 export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay" }) {
@@ -26,10 +35,17 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const firstMenuLinkRef = useRef<HTMLAnchorElement>(null);
   const pathname = usePathname();
 
-  // Nothing to join once you're already in the applicant portal — drop the CTA
-  // from the bar and the entry from the overlay menu.
-  const onApply = pathname === "/apply" || pathname?.startsWith("/apply/");
-  const menuLinks = onApply ? MENU_LINKS.filter((l) => l.href !== "/apply") : MENU_LINKS;
+  // Hide the applicant Join/Sign in actions where they make no sense: inside
+  // the applicant portal (already in), and on the admin / super-admin screens,
+  // which have their own separate sign-in and are not applicant-facing.
+  const hideAuthCtas =
+    pathname === "/apply" ||
+    Boolean(pathname?.startsWith("/apply/")) ||
+    Boolean(pathname?.startsWith("/admin")) ||
+    Boolean(pathname?.startsWith("/super-admin"));
+  const menuLinks = hideAuthCtas
+    ? MENU_LINKS.filter((l) => l.href !== JOIN_HREF && l.href !== LOGIN_HREF)
+    : MENU_LINKS;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -58,10 +74,16 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
         <strong>PASHA Startup Hub</strong>
       </Link>
       <div className={styles["hero-photo-top-actions"]}>
-        {!onApply && (
-          <Link className={styles["hero-photo-top-cta"]} href="/apply">
-            Join the Hub
-          </Link>
+        {!hideAuthCtas && (
+          <>
+            <Link href={LOGIN_HREF} className={styles["hero-photo-top-login"]}>
+              <LogIn className="h-4 w-4" />
+              Sign in
+            </Link>
+            <Link className={styles["hero-photo-top-cta"]} href={JOIN_HREF}>
+              Join the Hub
+            </Link>
+          </>
         )}
         <button
           ref={burgerRef}
@@ -87,13 +109,24 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
         <strong className="hidden text-[15px] font-bold tracking-tight sm:inline">PASHA Startup Hub</strong>
       </Link>
       <div className="flex items-center gap-2.5">
-        {!onApply && (
-          <Link
-            href="/apply"
-            className="hidden items-center gap-2 rounded-full bg-pasha-red px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pasha-red-dark sm:inline-flex"
-          >
-            Join the Hub
-          </Link>
+        {!hideAuthCtas && (
+          <>
+            <Link
+              href={LOGIN_HREF}
+              // Same px-5 py-3 / text-sm box as the Join pill beside it, so the
+              // two match height exactly rather than relying on a guessed h-11.
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-pasha-ink/15 bg-white px-5 py-3 text-sm font-bold text-pasha-ink transition hover:-translate-y-0.5 hover:border-pasha-red hover:bg-pasha-red hover:text-white"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in
+            </Link>
+            <Link
+              href={JOIN_HREF}
+              className="hidden items-center gap-2 rounded-full bg-pasha-red px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pasha-red-dark sm:inline-flex"
+            >
+              Join the Hub
+            </Link>
+          </>
         )}
         <button
           ref={burgerRef}

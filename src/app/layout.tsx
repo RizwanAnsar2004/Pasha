@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { ChatWidget } from "@/components/ChatWidget";
+import { RouteProgress } from "@/components/RouteProgress";
 import { SITE_URL } from "@/lib/utils/site-url";
 
 const poppins = Poppins({
@@ -105,6 +107,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
+        {/* Top bar shown while a route change is in flight. Suspense because it
+            reads useSearchParams, which would otherwise opt every page out of
+            static rendering. */}
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         {/* Per-navigation enter animation lives in app/template.tsx, which Next */}
         {children}
         <ChatWidget />

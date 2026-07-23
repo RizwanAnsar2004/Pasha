@@ -332,9 +332,10 @@ export function EditDatabankClient({
 
       {showStaticFields && (
         <>
-      {anyHas(initial.logo_url, initial.startup_name, initial.company_name, initial.tagline, initial.website, initial.founded_date, initial.pasha_verified) && (
+      {/* Always rendered: unlike the legacy columns below, the logo is core to
+          every directory listing, and gating it on `has()` meant a startup that
+          never uploaded one could never be given one from here. */}
       <Section title="Branding & identity">
-        {has(initial.logo_url) && (
         <Field label="Logo" hint="PNG / JPG / SVG. Square works best.">
           <FileUpload
             bucket="logos"
@@ -360,7 +361,6 @@ export function EditDatabankClient({
             hint="Square aspect ratio works best."
           />
         </Field>
-        )}
         <div className="grid sm:grid-cols-2 gap-5">
           {has(initial.startup_name) && (
           <Field label="Startup name">
@@ -426,7 +426,6 @@ export function EditDatabankClient({
         </Field>
         )}
       </Section>
-      )}
 
       {anyHas(initial.city, initial.hq_country, initial.primary_industry, initial.secondary_industries, initial.business_types, initial.product_stage) && (
       <Section title="Location & category">

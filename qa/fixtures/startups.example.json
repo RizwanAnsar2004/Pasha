@@ -1,0 +1,95 @@
+[
+  {
+    "__account": {
+      "email": "qa-atlascloud@yopmail.com",
+      "password": "QaPassw0rd!2026"
+    },
+    "startup_name": "AtlasCloud",
+    "tagline": "One-click managed hosting for Pakistani SaaS startups",
+    "website": "https://atlascloud.example.com",
+    "year_founded": "2022",
+    "description": "AtlasCloud gives Pakistani SaaS startups one-click managed hosting, autoscaling, and local-currency billing — so teams ship faster without a dedicated DevOps hire. We handle infra, monitoring, and backups end to end.",
+    "logo_url": "https://placehold.co/200x200/png",
+    "outside_pakistan": false,
+    "hq_city": "Karachi",
+    "primary_sector": "SaaS",
+    "secondary_sector": "Fintech",
+    "business_model": "Business to Business (B2B)",
+    "stage": "Growth (Series B,C)",
+    "revenue_models": ["Subscription", "Pay-As-You-Go (PAYG)"],
+    "total_employees": "24",
+    "female_employees": "8",
+    "founding_team_composition": "mixed",
+    "fbr_registered": true,
+    "secp_registered": true,
+    "is_pasha_member": true,
+    "revenue_band": "250k-1m",
+    "raised_funding": true,
+    "funding_stage": "Seed",
+    "currently_raising": true,
+    "pitch_deck_url": "https://atlascloud.example.com/deck.pdf",
+    "pitch_video": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+    "incubated_in_nic": true,
+    "nic_name": "NIC Karachi",
+    "nic_cohort": "Cohort 12",
+    "nic_year": "2022",
+    "company_linkedin": "https://linkedin.com/company/atlascloud",
+    "company_x": "https://x.com/atlascloud",
+    "founders": [
+      {
+        "name": "Ayesha Khan",
+        "role": "CEO",
+        "email": "ayesha@atlascloud.example.com",
+        "mobile": "+92 300 1234567",
+        "linkedin": "https://linkedin.com/in/ayeshakhan",
+        "gender": "female",
+        "is_primary": true
+      },
+      {
+        "name": "Bilal Ahmed",
+        "role": "CTO",
+        "email": "bilal@atlascloud.example.com",
+        "mobile": "+92 301 7654321",
+        "is_primary": false
+      }
+    ],
+    "has_patents": true,
+    "patents_count": "2",
+    "certifications": "ISO 27001\nSOC 2 Type II",
+    "engagement_interests": ["Mentorship (receive)", "Investor introductions"],
+    "whatsapp_optin": true,
+    "closing_notes": "Seeded by scripts/fill-application.ts"
+  },
+  {
+    "startup_name": "MedixPK",
+    "tagline": "Teleconsultations for underserved districts",
+    "website": "https://medixpk.example.com",
+    "year_founded": "2023",
+    "description": "MedixPK connects patients in underserved districts with licensed physicians over low-bandwidth video, with e-prescriptions and pharmacy delivery in partner cities.",
+    "outside_pakistan": false,
+    "hq_city": "Lahore",
+    "primary_sector": "HealthTech",
+    "business_model": "Business to Consumer (B2C)",
+    "stage": "Early (Seed)",
+    "revenue_models": ["Subscription"],
+    "total_employees": "9",
+    "female_employees": "5",
+    "founding_team_composition": "women",
+    "fbr_registered": true,
+    "secp_registered": true,
+    "revenue_band": "0-50k",
+    "raised_funding": false,
+    "currently_raising": true,
+    "founders": [
+      {
+        "name": "Sana Iqbal",
+        "role": "Founder & CEO",
+        "email": "sana@medixpk.example.com",
+        "mobile": "+92 321 4455667",
+        "gender": "female",
+        "is_primary": true
+      }
+    ],
+    "whatsapp_optin": true
+  }
+]

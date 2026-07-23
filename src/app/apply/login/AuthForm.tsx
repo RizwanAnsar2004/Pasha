@@ -45,7 +45,12 @@ function AuthInner({
 
   const hasRegForm = !!(registrationConfig && registrationConfig.length > 0);
 
-  const [mode, setMode] = useState<"login" | "register">(DEV_PREFILL ? "register" : "login");
+  // ?mode=register opens straight on "Create your account" — that's what the
+  // header's "Join the Hub" CTA links to, since someone clicking Join is
+  // signing up, not signing in.
+  const [mode, setMode] = useState<"login" | "register">(
+    sp.get("mode") === "register" || DEV_PREFILL ? "register" : "login"
+  );
   const [regStep, setRegStep] = useState<1 | 2>(1);
   const [termsOpen, setTermsOpen] = useState(false);
   // ?forgot=1 deep-links here from an unusable recovery link, so the user can
