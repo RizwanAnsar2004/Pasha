@@ -47,12 +47,14 @@ export default async function EventDetailPage({
     <>
       <SiteHeader />
       <main className="flex-1">
-        <div className="site-container pt-6">
+        <div className="site-container py-5">
           <Link
             href="/events"
-            className="inline-flex items-center gap-2 text-sm text-pasha-muted hover:text-pasha-ink transition-colors"
+            className="group inline-flex items-center gap-2.5 rounded-full border border-pasha-ink/10 bg-white py-1.5 pl-1.5 pr-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-ink/55 transition-all duration-300 hover:-translate-y-0.5 hover:border-pasha-red/30 hover:text-pasha-red"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-pasha-stone text-pasha-ink/60 transition-colors group-hover:bg-pasha-red group-hover:text-white">
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </span>
             All events
           </Link>
         </div>

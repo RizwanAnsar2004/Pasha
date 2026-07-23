@@ -17,11 +17,23 @@ export const dynamic = "force-dynamic";
 export default async function EventsPage() {
   const events = await getPublishedEvents();
 
+  // Hero stats come from the events themselves rather than fixed copy.
+  const totalSeats = events.reduce((sum, e) => sum + (e.capacity ?? 0), 0);
+  const totalCities = new Set(
+    events
+      .map((e) => (e.location || e.venue || "").split(",").pop()?.trim().toLowerCase())
+      .filter((c): c is string => Boolean(c))
+  ).size;
+
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <EventsHero totalEvents={events.length} />
+        <EventsHero
+          totalEvents={events.length}
+          totalSeats={totalSeats}
+          totalCities={totalCities}
+        />
         <section id="events" className="site-container py-14 sm:py-20">
           <EventsList events={events} />
         </section>

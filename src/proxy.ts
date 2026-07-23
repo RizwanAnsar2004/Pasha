@@ -8,6 +8,15 @@ const ADMIN_PUBLIC = ["/admin/login", "/admin/callback", "/admin/logout"];
 // /super-admin lives outside the Supabase-Auth admin allowlist — it has its own signed-cookie session.
 const SUPER_ADMIN_PUBLIC_PREFIXES = ["/super-admin", "/api/super-admin"];
 
+// Routes under /apply that must stay reachable while signed out.
+const APPLY_PUBLIC = [
+  "/apply/login",
+  "/apply/auth",
+  "/apply/reset-password",
+  "/apply/verified",
+  "/apply/success",
+];
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
@@ -17,9 +26,11 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Applicant portal: keep the Supabase session cookie healthy.
+  // Applicant portal: refresh the session cookie AND gate the private routes
+  // here, at the edge, so a signed-out visitor is redirected before any page
+  // renders (the old layout-level redirect had to build the RSC tree first).
   if (pathname === "/apply" || pathname.startsWith("/apply/")) {
-    return refreshApplicantSession(request);
+    return handleApplicant(request, pathname);
   }
 
   // Skip auth for admin public routes (login / callback / logout)
@@ -82,8 +93,16 @@ export async function proxy(request: NextRequest) {
 }
 
 // Refresh (or clear) the applicant's Supabase session at the edge, where cookie
-async function refreshApplicantSession(request: NextRequest): Promise<NextResponse> {
+// writes are cheap, and gate the private portal routes in the same pass.
+async function handleApplicant(
+  request: NextRequest,
+  pathname: string
+): Promise<NextResponse> {
   let response = NextResponse.next({ request });
+
+  const isPublic = APPLY_PUBLIC.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
 
   // Nothing to maintain when Supabase isn't really configured (local-dev placeholder URL) — mirrors the admin branch's dev guard.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -108,9 +127,15 @@ async function refreshApplicantSession(request: NextRequest): Promise<NextRespon
     }
   );
 
+  let user: { email?: string | null } | null = null;
   try {
-    const { error } = await supabase.auth.getUser();
-    if (error) await supabase.auth.signOut({ scope: "local" });
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      // A stale/rotated refresh token — drop the cookie so the login page starts clean.
+      await supabase.auth.signOut({ scope: "local" });
+    } else {
+      user = data.user;
+    }
   } catch {
     try {
       await supabase.auth.signOut({ scope: "local" });
@@ -119,13 +144,58 @@ async function refreshApplicantSession(request: NextRequest): Promise<NextRespon
     }
   }
 
+  // Admins are not applicants — they have their own portal. On a transient
+  // lookup failure treat the user as a normal applicant rather than bouncing
+  // them out (the layout still re-checks server-side).
+  const isAdmin = user?.email
+    ? await isAllowedAdminEmail(user.email, { onError: false })
+    : false;
+
+  if (isPublic) {
+    // Already signed in? Skip the login screen entirely.
+    if (user && !isAdmin && pathname === "/apply/login") {
+      const target = request.nextUrl.searchParams.get("redirect");
+      const dest = target && target.startsWith("/apply") ? target : "/apply";
+      const url = new URL(dest, request.nextUrl.origin);
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
+  if (!user) {
+    return redirectTo(request, "/apply/login", { redirect: pathname });
+  }
+  if (isAdmin) {
+    return redirectTo(request, "/apply/login", { error: "admin" });
+  }
+
   return response;
+}
+
+// Build a redirect on the current origin, preserving nothing but the params given.
+function redirectTo(
+  request: NextRequest,
+  pathname: string,
+  params: Record<string, string> = {}
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  return NextResponse.redirect(url);
 }
 
 // Edge-runtime admin allowlist check. Hits PostgREST with the service-role
 const ADMIN_CACHE_TTL_MS = 30_000;
 let adminCache: { at: number; set: Set<string> } | null = null;
-async function isAllowedAdminEmail(email: string): Promise<boolean> {
+// `onError` is the answer to fall back to when the lookup itself fails and no
+// cache is warm: the admin gate defaults open (don't lock admins out on a blip),
+// the applicant gate defaults to "not an admin" (don't bounce applicants).
+async function isAllowedAdminEmail(
+  email: string,
+  opts: { onError?: boolean } = {}
+): Promise<boolean> {
+  const onError = opts.onError ?? true;
   const lc = email.toLowerCase();
   if (adminCache && Date.now() - adminCache.at < ADMIN_CACHE_TTL_MS) {
     return adminCache.set.has(lc);
@@ -138,15 +208,15 @@ async function isAllowedAdminEmail(email: string): Promise<boolean> {
       cache: "no-store",
     });
     if (!res.ok) {
-      // Don't lock anyone out on transient errors — fall back to a stale cache or allow-by-default.
-      return adminCache?.set.has(lc) ?? true;
+      // Don't lock anyone out on transient errors — fall back to a stale cache.
+      return adminCache?.set.has(lc) ?? onError;
     }
     const rows: { email: string }[] = await res.json();
     const set = new Set(rows.map((r) => r.email.toLowerCase()));
     adminCache = { at: Date.now(), set };
     return set.has(lc);
   } catch {
-    return adminCache?.set.has(lc) ?? true;
+    return adminCache?.set.has(lc) ?? onError;
   }
 }
 

@@ -22,6 +22,9 @@ export type AgendaItem = {
   time: string;
   title: string;
   tag: AgendaTag;
+  // Free-text label used only when `tag` is "other" — lets an admin name a
+  // session type the fixed list doesn't cover (e.g. "Fireside").
+  tag_other?: string;
 };
 
 export type Speaker = {
@@ -110,6 +113,13 @@ export const SPEAKER_AVATAR_COLORS = [
 
 export function eventTypeLabel(type: EventType) {
   return EVENT_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+
+// Display label for an agenda row's tag — the custom text when the admin chose
+// "Other" and filled one in, otherwise the fixed list's label.
+export function agendaTagLabel(item: AgendaItem): string {
+  if (item.tag === "other" && item.tag_other?.trim()) return item.tag_other.trim();
+  return AGENDA_TAGS.find((t) => t.value === item.tag)?.label ?? item.tag;
 }
 
 export function formatLabel(format: EventFormat) {

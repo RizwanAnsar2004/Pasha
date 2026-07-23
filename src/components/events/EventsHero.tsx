@@ -3,7 +3,24 @@ import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { Reveal } from "@/components/landing/shared/Reveal";
 
-export function EventsHero({ totalEvents }: { totalEvents: number }) {
+// Compact display for a seat total — 5000 -> "5,000+", 0 -> null so the tile
+// can be hidden rather than claiming a number we don't have.
+function seatLabel(seats: number): string | null {
+  if (seats <= 0) return null;
+  return `${seats.toLocaleString("en-US")}+`;
+}
+
+export function EventsHero({
+  totalEvents,
+  totalSeats,
+  totalCities,
+}: {
+  totalEvents: number;
+  totalSeats: number;
+  totalCities: number;
+}) {
+  const seats = seatLabel(totalSeats);
+  const cities = totalCities > 0 ? `${totalCities}` : null;
   return (
     <section className="relative overflow-hidden bg-pasha-ink pt-16 pb-14 sm:pt-20 sm:pb-16">
       <div
@@ -77,16 +94,26 @@ export function EventsHero({ totalEvents }: { totalEvents: number }) {
                 <div className="mt-2 text-sm text-white/50">events scheduled</div>
               </div>
 
-              <div className="grid grid-cols-2 divide-x divide-white/[0.09] border-t border-white/10">
-                <div className="p-4">
-                  <strong className="block font-serif text-xl font-bold text-white">5,000+</strong>
-                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">total attendees</span>
+              {/* Derived from the published events themselves — the tile is
+                  dropped entirely when there's nothing real to show. */}
+              {(seats || cities) && (
+                <div className="grid grid-cols-2 divide-x divide-white/[0.09] border-t border-white/10">
+                  {seats && (
+                    <div className="p-4">
+                      <strong className="block font-serif text-xl font-bold text-white">{seats}</strong>
+                      <span className="mt-1.5 block text-[10px] leading-snug text-white/45">seats available</span>
+                    </div>
+                  )}
+                  {cities && (
+                    <div className="p-4">
+                      <strong className="block font-serif text-xl font-bold text-white">{cities}</strong>
+                      <span className="mt-1.5 block text-[10px] leading-snug text-white/45">
+                        {totalCities === 1 ? "city" : "cities"} hosting
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="p-4">
-                  <strong className="block font-serif text-xl font-bold text-white">10+</strong>
-                  <span className="mt-1.5 block text-[10px] leading-snug text-white/45">cities reached</span>
-                </div>
-              </div>
+              )}
 
               <div className="flex items-center justify-between px-5 py-4 text-xs text-white/55">
                 <span>Webinars, summits &amp; workshops</span>

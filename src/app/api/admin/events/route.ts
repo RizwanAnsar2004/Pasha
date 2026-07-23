@@ -15,6 +15,7 @@ const agendaItemSchema = z.object({
   time: z.string().trim().min(1).max(20),
   title: z.string().trim().min(1).max(300),
   tag: z.enum(["networking", "keynote", "panel", "break", "demo", "workshop", "other"]),
+  tag_other: z.string().trim().max(40).default(""),
 });
 
 const speakerSchema = z.object({
@@ -51,6 +52,25 @@ const eventFieldsSchema = z.object({
   speakers: z.array(speakerSchema).max(24).default([]),
   partners: z.array(z.string().trim().min(1).max(120)).max(30).default([]),
 });
+
+// Zod's default messages ("Invalid input") are useless without the path they
+// came from. Return a per-field map the admin UI can pin to the right input,
+// plus a readable summary for the banner.
+function validationResponse(err: z.ZodError) {
+  const fields: Record<string, string> = {};
+  for (const issue of err.issues) {
+    const path = issue.path.join(".");
+    if (path && !fields[path]) fields[path] = issue.message;
+  }
+  const first = err.issues[0];
+  const firstPath = first?.path.join(".");
+  const error = first
+    ? firstPath
+      ? `${firstPath}: ${first.message}`
+      : first.message
+    : "Validation failed";
+  return NextResponse.json({ error, fields }, { status: 400 });
+}
 
 const createSchema = eventFieldsSchema;
 const patchSchema = eventFieldsSchema.extend({ id: z.string().uuid() });
@@ -126,10 +146,7 @@ async function postHandler(req: Request) {
 
   const parsed = createSchema.safeParse(await safeJson(req));
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
-      { status: 400 }
-    );
+    return validationResponse(parsed.error);
   }
 
   const supabase = createServiceClient();
@@ -157,10 +174,7 @@ async function patchHandler(req: Request) {
 
   const parsed = patchSchema.safeParse(await safeJson(req));
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
-      { status: 400 }
-    );
+    return validationResponse(parsed.error);
   }
 
   const { id, ...fields } = parsed.data;

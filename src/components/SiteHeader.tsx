@@ -12,6 +12,7 @@ import styles from "./landing/HeroPhotoSlider.module.css";
 const MENU_LINKS = [
   { label: "Home", href: "/" },
   { label: "Directory", href: "/directory" },
+  { label: "Events", href: "/events" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Join the Hub", href: "/apply" },
