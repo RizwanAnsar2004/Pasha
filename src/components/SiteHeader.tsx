@@ -50,7 +50,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
       </Link>
       <div className={styles["hero-photo-top-actions"]}>
         <Link className={styles["hero-photo-top-cta"]} href="/apply">
-          Join the Hub <span aria-hidden="true">→</span>
+          Join the Hub 
         </Link>
         <button
           ref={burgerRef}
@@ -80,7 +80,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
           href="/apply"
           className="hidden items-center gap-2 rounded-full bg-pasha-red px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pasha-red-dark sm:inline-flex"
         >
-          Join the Hub <span aria-hidden="true">→</span>
+          Join the Hub 
         </Link>
         <button
           ref={burgerRef}

@@ -225,11 +225,11 @@ export function CommitteeContent({
             </p>
 
             <div className="mt-9 flex flex-col sm:flex-row gap-3">
-              <PillButton href="mailto:startups@pasha.org.pk" variant="solid" dot={false} arrow={false}>
+              <PillButton href="/contact" variant="solid" dot={false} arrow={false}>
                 <Mail className="w-4 h-4" />
                 Contact Committee
               </PillButton>
-              <PillButton href="mailto:startups@pasha.org.pk" variant="outline-light" dot={false} arrow={false}>
+              <PillButton href="/contact" variant="outline-light" dot={false} arrow={false}>
                 <Handshake className="w-4 h-4 opacity-60" />
                 Propose Collaboration
               </PillButton>
@@ -441,7 +441,7 @@ export function CommitteeContent({
                 organisation, we&apos;d love to hear from you.
               </p>
             </div>
-            <PillButton href="mailto:startups@pasha.org.pk" variant="light" dot={false} className="relative shrink-0">
+            <PillButton href="/contact" variant="light" dot={false} className="relative shrink-0">
               Contact Committee
             </PillButton>
           </Reveal>
