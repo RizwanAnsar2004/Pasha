@@ -50,8 +50,11 @@ export function EventsHero({
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-5">
+              {/* Hosting an event is a conversation with the Secretariat, not a
+                  startup application — this used to point at /apply, which sent
+                  event partners to the applicant login. */}
               <Link
-                href="/apply"
+                href="/contact"
                 className="inline-flex items-center gap-3 rounded-2xl bg-pasha-red pl-5 pr-2.5 py-2.5 text-sm font-bold text-white shadow-[0_18px_38px_rgba(233,33,39,0.24)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
               >
                 Host an event with PASHA

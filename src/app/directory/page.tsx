@@ -124,81 +124,90 @@ const OTHER_ANSWER_KEYS = ["hq_other", "primary_sector_other", "stage_other", "n
 // Filter params for a value nobody put in the option lists — a city or sector a
 // startup typed under "Other". Prefixed so it can never collide with an option
 // value or id, and so applyFilters knows to match the free text instead.
-const OTHER_PREFIX = "other:";
-const unlistedValue = (param: string) =>
-  param.startsWith(OTHER_PREFIX) ? param.slice(OTHER_PREFIX.length) : null;
-
-// A city column that resolves to nothing in HQ_CITIES, or a sector free-text
-// answer, is a real value the dropdowns would otherwise hide. Collect them so
-// they can be offered as filter entries. Cheap enough to cache for 5 minutes.
-const getUnlistedFilterValues = unstable_cache(
-  async (): Promise<{ cities: string[]; sectors: string[]; stages: string[] }> => {
-    const supabase = createServiceClient();
-    const index = await getOptionIndex();
-    const known = new Set(
-      Object.values(index.byId).flatMap((o) => [o.value.toLowerCase(), o.label.toLowerCase()])
-    );
-    const cities = new Map<string, string>();
-    const sectors = new Map<string, string>();
-    const stages = new Map<string, string>();
-
-    const add = (into: Map<string, string>, raw: unknown) => {
-      const v = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-      if (!v || v.toLowerCase() === "other") return;
-      if (!into.has(v.toLowerCase())) into.set(v.toLowerCase(), v);
-    };
-
-    // Paged: PostgREST caps a single response, and the table is ~2.5k rows.
-    for (let from = 0; from < 10000; from += 1000) {
-      const { data, error } = await supabase
-        .from("databank")
-        .select("city,primary_industry,product_stage,answers")
-        .range(from, from + 999);
-      if (error || !data) break;
-      type Row = {
-        city?: string | null;
-        primary_industry?: string | null;
-        product_stage?: string | null;
-        answers?: Record<string, unknown> | null;
-      };
-      for (const row of data as Row[]) {
-        // Unknown to the option lists → it came from a free-text "Other". City
-        // is the case that already happens: approval writes the typed value
-        // straight into the column.
-        const unknownIn = (v: string | null | undefined) => {
-          const raw = (v ?? "").trim();
-          if (!raw) return null;
-          // A UUID is an option id, not something a human typed — a dead id must
-          // never surface in a dropdown as a filter entry.
-          const looksLikeId: boolean = isOptionId(raw);
-          if (looksLikeId || index.byId[raw]) return null;
-          return known.has(raw.toLowerCase()) ? null : raw;
-        };
-        add(cities, unknownIn(row.city));
-        add(sectors, unknownIn(row.primary_industry));
-        add(stages, unknownIn(row.product_stage));
-        // …and the case where the choice stayed "Other" and the words went to
-        // the answers bag.
-        add(sectors, row.answers?.primary_sector_other);
-        add(cities, row.answers?.hq_other);
-        add(stages, row.answers?.stage_other);
-      }
-      if (data.length < 1000) break;
-    }
-
-    const sort = (m: Map<string, string>) => [...m.values()].sort((a, b) => a.localeCompare(b));
-    return { cities: sort(cities), sectors: sort(sectors), stages: sort(stages) };
-  },
-  ["directory-unlisted-values-v1"],
-  { revalidate: 300 }
-);
-
-// "Other" is a data-entry affordance, not a browsable category — drop it from
-// the public dropdowns and offer the actual typed values instead.
-function publicOptions(items: OptionItem[], unlisted: string[]): OptionItem[] {
-  const listed = items.filter((o) => !o.isOther && o.label.trim().toLowerCase() !== "other");
-  return [...listed, ...unlisted.map((v) => ({ value: `${OTHER_PREFIX}${v}`, label: v }))];
+// The public dropdowns show exactly the configured option list, "Other"
+// included, and nothing else.
+function publicOptions(items: OptionItem[]): OptionItem[] {
+  return items;
 }
+
+// ---------------------------------------------------------------------------
+// DISABLED (client request): "unlisted values" filter entries.
+//
+// The previous behaviour hid "Other" from the public dropdowns and instead
+// scanned the whole databank for every free-text value anyone had ever typed —
+// offering each one as its own filter entry, keyed `other:<text>`. It cost ten
+// paged queries per cache miss and produced dropdowns of unbounded length full
+// of one-off spellings.
+//
+// Kept here (with matchUnlisted / unlistedValue below) so it can be restored.
+// Restoring needs all four pieces plus the `isOptionId` and `unstable_cache`
+// imports, and the `answerKey` argument on `facet`.
+//
+// const OTHER_PREFIX = "other:";
+// const unlistedValue = (param: string) =>
+//   param.startsWith(OTHER_PREFIX) ? param.slice(OTHER_PREFIX.length) : null;
+//
+// const getUnlistedFilterValues = unstable_cache(
+//   async (): Promise<{ cities: string[]; sectors: string[]; stages: string[] }> => {
+//     const supabase = createServiceClient();
+//     const index = await getOptionIndex();
+//     const known = new Set(
+//       Object.values(index.byId).flatMap((o) => [o.value.toLowerCase(), o.label.toLowerCase()])
+//     );
+//     const cities = new Map<string, string>();
+//     const sectors = new Map<string, string>();
+//     const stages = new Map<string, string>();
+//
+//     const add = (into: Map<string, string>, raw: unknown) => {
+//       const v = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+//       if (!v || v.toLowerCase() === "other") return;
+//       if (!into.has(v.toLowerCase())) into.set(v.toLowerCase(), v);
+//     };
+//
+//     // Paged: PostgREST caps a single response, and the table is ~2.5k rows.
+//     for (let from = 0; from < 10000; from += 1000) {
+//       const { data, error } = await supabase
+//         .from("databank")
+//         .select("city,primary_industry,product_stage,answers")
+//         .range(from, from + 999);
+//       if (error || !data) break;
+//       type Row = {
+//         city?: string | null;
+//         primary_industry?: string | null;
+//         product_stage?: string | null;
+//         answers?: Record<string, unknown> | null;
+//       };
+//       for (const row of data as Row[]) {
+//         const unknownIn = (v: string | null | undefined) => {
+//           const raw = (v ?? "").trim();
+//           if (!raw) return null;
+//           const looksLikeId: boolean = isOptionId(raw);
+//           if (looksLikeId || index.byId[raw]) return null;
+//           return known.has(raw.toLowerCase()) ? null : raw;
+//         };
+//         add(cities, unknownIn(row.city));
+//         add(sectors, unknownIn(row.primary_industry));
+//         add(stages, unknownIn(row.product_stage));
+//         add(sectors, row.answers?.primary_sector_other);
+//         add(cities, row.answers?.hq_other);
+//         add(stages, row.answers?.stage_other);
+//       }
+//       if (data.length < 1000) break;
+//     }
+//
+//     const sort = (m: Map<string, string>) => [...m.values()].sort((a, b) => a.localeCompare(b));
+//     return { cities: sort(cities), sectors: sort(sectors), stages: sort(stages) };
+//   },
+//   ["directory-unlisted-values-v1"],
+//   { revalidate: 300 }
+// );
+//
+// // "Other" hidden; typed values offered in its place.
+// function publicOptions(items: OptionItem[], unlisted: string[]): OptionItem[] {
+//   const listed = items.filter((o) => !o.isOther && o.label.trim().toLowerCase() !== "other");
+//   return [...listed, ...unlisted.map((v) => ({ value: `${OTHER_PREFIX}${v}`, label: v }))];
+// }
+// ---------------------------------------------------------------------------
 
 // PostgREST query builder is loosely typed across column sets; keep it untyped.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,17 +230,15 @@ function applyFilters(
     if (values.length === 0) return q;
     return values.length === 1 ? q.eq(column, values[0]) : q.in(column, values);
   };
-  // An `other:` param is free text the applicant typed. It lands in one of two
-  // places depending on the field: written straight into the column (what
-  // approval does for city), or left in the answers bag beside an "Other"
-  // choice. Match either.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const matchUnlisted = (q: any, column: string, answerKey: string, text: string) => {
-    const safe = text.replace(/"/g, "");
-    const clauses = [`${column}.eq."${safe}"`];
-    if (searchAnswers) clauses.push(`answers->>${answerKey}.eq."${safe}"`);
-    return q.or(clauses.join(","));
-  };
+  // DISABLED with the unlisted-values scheme above — matched an `other:<text>`
+  // param against the column or the answers bag:
+  //
+  // const matchUnlisted = (q: any, column: string, answerKey: string, text: string) => {
+  //   const safe = text.replace(/"/g, "");
+  //   const clauses = [`${column}.eq."${safe}"`];
+  //   if (searchAnswers) clauses.push(`answers->>${answerKey}.eq."${safe}"`);
+  //   return q.or(clauses.join(","));
+  // };
 
   const facet = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -239,19 +246,17 @@ function applyFilters(
     param: string,
     column: string,
     idColumn: string,
-    type: string,
-    answerKey: string
+    type: string
   ) => {
     if (param === "all") return q;
-    const text = unlistedValue(param);
-    return text
-      ? matchUnlisted(q, column, answerKey, text)
-      : matchOption(q, column, idColumn, type, param);
+    // was: const text = unlistedValue(param);
+    //      return text ? matchUnlisted(q, column, answerKey, text) : ...
+    return matchOption(q, column, idColumn, type, param);
   };
 
-  query = facet(query, f.sector, "primary_industry", "primary_industry_id", "SECTORS", "primary_sector_other");
-  query = facet(query, f.city, "city", "city_id", "HQ_CITIES", "hq_other");
-  query = facet(query, f.stage, "product_stage", "product_stage_id", "STAGES", "stage_other");
+  query = facet(query, f.sector, "primary_industry", "primary_industry_id", "SECTORS");
+  query = facet(query, f.city, "city", "city_id", "HQ_CITIES");
+  query = facet(query, f.stage, "product_stage", "product_stage_id", "STAGES");
   if (f.verified) query = query.eq("pasha_verified", true);
   if (f.womenLed) query = query.eq("women_led", true);
   if (f.hiring) query = query.eq("hiring", true);
@@ -350,12 +355,10 @@ function inMemory(
   const hits = (type: string, param: string, stored?: string | null) =>
     optionFilterValues(index, type, param).includes(String(stored ?? ""));
   const matched = all.filter((r) => {
-    const same = (stored: string | null | undefined, text: string) =>
-      (stored ?? "").trim().toLowerCase() === text.toLowerCase();
     const facetOk = (param: string, type: string, stored: string | null | undefined) => {
       if (param === "all") return true;
-      const text = unlistedValue(param);
-      return text ? same(stored, text) : hits(type, param, stored);
+      // was: an `other:<text>` param compared the stored value case-insensitively.
+      return hits(type, param, stored);
     };
     if (!facetOk(filters.sector, "SECTORS", r.primary_industry)) return false;
     if (!facetOk(filters.city, "HQ_CITIES", r.city)) return false;
@@ -405,22 +408,21 @@ async function loadDirectory(filters: DirectoryFilters, page: number): Promise<D
   const registryPromise = getFormOptionRegistry();
 
   const optionIndex = await getOptionIndex();
-  const [pageResult, meta, optionRegistry, unlisted] = await Promise.all([
+  const [pageResult, meta, optionRegistry] = await Promise.all([
     loadPage(filters, page, optionIndex),
     metaPromise,
     registryPromise,
-    getUnlistedFilterValues(),
   ]);
 
   let rows = pageResult?.rows ?? [];
   let total = pageResult?.total ?? 0;
   let { totalAll } = meta;
 
-  // Dropdown options come from the single source of truth, plus the values that
-  // only exist as free text behind an "Other" pick (which itself is hidden).
-  const sectors = publicOptions(optionRegistry.SECTORS ?? [], unlisted.sectors);
-  const cities = publicOptions(optionRegistry.HQ_CITIES ?? [], unlisted.cities);
-  const stages = publicOptions(optionRegistry.STAGES ?? [], unlisted.stages);
+  // Dropdown options come straight from the single source of truth, "Other"
+  // included.
+  const sectors = publicOptions(optionRegistry.SECTORS ?? []);
+  const cities = publicOptions(optionRegistry.HQ_CITIES ?? []);
+  const stages = publicOptions(optionRegistry.STAGES ?? []);
 
   // No real data yet → fall back to bundled sample startups. The dropdowns are
   if (totalAll === 0 && (!pageResult || pageResult.total === 0)) {

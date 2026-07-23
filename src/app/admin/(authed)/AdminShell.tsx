@@ -10,7 +10,7 @@ import {
   Inbox,
   Database,
   Star,
-  Trophy,
+  // Trophy, // used only by the commented-out "Award Winners" nav item below
   CalendarDays,
   Activity,
   Users,
@@ -18,7 +18,7 @@ import {
   List,
   Mail,
   Send,
-  History,
+  // History, // used only by the commented-out "Email Log" nav item below
   ShieldCheck,
   ChevronLeft,
   Menu,
@@ -30,7 +30,9 @@ const NAV_ITEMS = [
   { href: "/admin/submissions",          label: "Submissions",         icon: Inbox },
   { href: "/admin/databank",             label: "Data Bank",           icon: Database },
   { href: "/admin/featured-startups",    label: "Featured Startups",   icon: Star },
-  { href: "/admin/awards",               label: "Award Winners",       icon: Trophy },
+  // Hidden from the sidebar for now. The /admin/awards route still exists and
+  // works if visited directly — this only removes the nav entry.
+  // { href: "/admin/awards",               label: "Award Winners",       icon: Trophy },
   { href: "/admin/events",               label: "Events",              icon: CalendarDays },
   { href: "/admin/committee-activity",   label: "Committee Activity",  icon: Activity },
   { href: "/admin/committee-management", label: "Committee Management", icon: Users },
@@ -38,7 +40,9 @@ const NAV_ITEMS = [
   { href: "/admin/option-lists",         label: "Option Lists",        icon: List },
   { href: "/admin/email-templates",      label: "Email Templates",     icon: Mail },
   { href: "/admin/email-broadcast",      label: "Send Email",          icon: Send },
-  { href: "/admin/email-log",            label: "Email Log",           icon: History },
+  // Hidden from the sidebar for now; the /admin/email-log route still works if
+  // visited directly.
+  // { href: "/admin/email-log",            label: "Email Log",           icon: History },
   { href: "/admin/privacy",              label: "Privacy & Terms",     icon: ShieldCheck },
 ];
 
