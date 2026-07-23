@@ -30,12 +30,13 @@ export function SuperAdminLoginForm() {
       router.replace("/super-admin");
     } catch (e) {
       setError(apiErrorMessage(e, "Sign-in failed"));
-    } finally {
-      // Turnstile tokens are single-use — re-arm for the next attempt.
+      // Turnstile tokens are single-use — re-arm only on failure, when the user
+      // stays to retry. Resetting on success would re-challenge as we redirect.
       if (captchaConfigured) {
         setCaptchaToken(null);
         captchaRef.current?.reset();
       }
+    } finally {
       setLoading(false);
     }
   }

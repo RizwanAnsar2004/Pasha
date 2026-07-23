@@ -23,6 +23,7 @@ import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
+import { useFormStepJump } from "./FormStepJump";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
 // Separate key for the server-persist safety net: written to localStorage in
@@ -163,6 +164,21 @@ export function DynamicForm({
   useEffect(() => {
     setMaxStepReached((m) => Math.max(m, stepIdx));
   }, [stepIdx]);
+
+  // External jump-to-step (e.g. the "Review / Complete" cards on the overview
+  // tab). The form stays mounted across tab switches, so a changed initialStep
+  // prop wouldn't move it — this signal does. Keyed on nonce so the same step
+  // can be requested repeatedly.
+  const stepJump = useFormStepJump();
+  useEffect(() => {
+    if (!stepJump) return;
+    const max = Math.max(0, steps.length - 1);
+    const target = Math.min(Math.max(0, stepJump.step), max);
+    setStepIdx(target);
+    setMaxStepReached((m) => Math.max(m, target));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepJump?.nonce]);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema as never) as Resolver<Values>,

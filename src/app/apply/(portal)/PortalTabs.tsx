@@ -1,13 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FormStepJumpContext, type FormStepJump } from "@/components/form/FormStepJump";
 
 type Tab = "overview" | "form";
 
-// Lets server-rendered overview children (passed in as nodes) switch to the form tab instantly instead of soft-navigating.
-const PortalTabsContext = createContext<{ goToForm: () => void } | null>(null);
+// Lets server-rendered overview children (passed in as nodes) switch to the form
+// tab instantly instead of soft-navigating. An optional step jumps the form
+// straight to that 0-based step index.
+const PortalTabsContext = createContext<{ goToForm: (step?: number) => void } | null>(null);
 
 export function usePortalTabs() {
   return useContext(PortalTabsContext);
@@ -30,9 +33,16 @@ export function PortalTabs({
   const [tab, setTab] = useState<Tab>(
     formAvailable ? initialTab : "overview"
   );
+  // Signal that tells the mounted DynamicForm to jump to a step. Bumped nonce so
+  // requesting the same step twice still fires.
+  const [stepJump, setStepJump] = useState<FormStepJump>(null);
+  const nonceRef = useRef(0);
 
-  const select = (next: Tab) => {
+  const select = (next: Tab, step?: number) => {
     setTab(next);
+    if (next === "form" && typeof step === "number") {
+      setStepJump({ step, nonce: ++nonceRef.current });
+    }
     // Keep the URL shareable/refresh-safe without a server round-trip.
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -51,7 +61,7 @@ export function PortalTabs({
     : [{ key: "overview", label: "Overview" }];
 
   return (
-    <PortalTabsContext.Provider value={{ goToForm: () => select("form") }}>
+    <PortalTabsContext.Provider value={{ goToForm: (step?: number) => select("form", step) }}>
       <nav className="flex items-center gap-1 border-b border-pasha-line">
         {tabs.map((t) => {
           const active = tab === t.key;
@@ -98,7 +108,9 @@ export function PortalTabs({
                 A few quick steps. We auto-save your progress as you go.
               </p>
             </div>
-            {form}
+            <FormStepJumpContext.Provider value={stepJump}>
+              {form}
+            </FormStepJumpContext.Provider>
           </div>
         )}
       </div>

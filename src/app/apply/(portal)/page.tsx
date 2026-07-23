@@ -32,6 +32,7 @@ import { deriveBadges, isYes, type BadgeTone } from "@/lib/startups/vetting/badg
 import { ReapplyButton } from "./ReapplyButton";
 import { PortalTabs } from "./PortalTabs";
 import { StartApplicationButton } from "./StartApplicationButton";
+import { StepLink } from "./StepLink";
 import { SubmitForApprovalButton } from "./SubmitForApprovalButton";
 import { DynamicForm } from "@/components/form/DynamicForm";
 import { ApplyForm } from "@/components/form/ApplyForm";
@@ -472,13 +473,7 @@ export default async function ApplicantOverviewPage({
                   <div className="h-full rounded-full bg-pasha-red/80 transition-all" style={{ width: `${m.percent}%` }} />
                 </div>
                 {editable && (
-                  <Link
-                    href={`/apply?tab=form&step=${m.step}`}
-                    className="mt-3 inline-flex items-center gap-1.5 text-sm text-pasha-red hover:text-pasha-red-dark font-medium"
-                  >
-                    {m.percent >= 100 ? "Review" : "Complete"}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <StepLink step={m.step} label={m.percent >= 100 ? "Review" : "Complete"} />
                 )}
               </div>
             ))}

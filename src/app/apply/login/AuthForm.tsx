@@ -189,8 +189,10 @@ function AuthInner({
     const needsCaptcha = payload.action !== "check";
     const body = needsCaptcha ? { ...payload, captchaToken } : payload;
 
-    // Turnstile tokens are single-use, so whatever the outcome, the one we just
-    // sent is spent. Re-arm for the next attempt.
+    // Turnstile tokens are single-use. Re-arm ONLY when the request failed and
+    // the user stays on the form to retry — resetting the widget re-runs the
+    // Cloudflare challenge, so doing it on success would fire a fresh challenge
+    // right as we redirect away (the reported "cloudflare triggers again" bug).
     const rearm = () => {
       if (!needsCaptcha || !captchaConfigured) return;
       setCaptchaToken(null);
@@ -199,7 +201,8 @@ function AuthInner({
 
     try {
       const j = await api.post<AuthResp>(ENDPOINTS.applicant.auth, body);
-      rearm();
+      // Success → we navigate away (login/redirect) or move to a screen without
+      // a challenge (verify/sent). Leave the widget alone; no re-challenge.
       return { res: { ok: true, status: 200 }, j };
     } catch (e) {
       rearm();

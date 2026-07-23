@@ -35,8 +35,9 @@ function LoginInner() {
     return null;
   });
 
-  // Turnstile tokens are single-use, so the one just sent is spent whatever the
-  // outcome — re-arm before the next attempt.
+  // Turnstile tokens are single-use. Re-arm ONLY on failure, when the user stays
+  // on the form to retry — resetting the widget re-runs the Cloudflare challenge,
+  // so doing it on success would fire a fresh challenge just as we redirect away.
   function rearmCaptcha() {
     if (!captchaConfigured) return;
     setCaptchaToken(null);
@@ -52,8 +53,8 @@ function LoginInner() {
       router.replace(redirect);
     } catch (e) {
       setError(apiErrorMessage(e, "Sign-in failed"));
-    } finally {
       rearmCaptcha();
+    } finally {
       setLoading(false);
     }
   }
@@ -68,8 +69,8 @@ function LoginInner() {
       setNotice("sent");
     } catch (e) {
       setError(apiErrorMessage(e, "Could not send the reset email"));
-    } finally {
       rearmCaptcha();
+    } finally {
       setLoading(false);
     }
   }
