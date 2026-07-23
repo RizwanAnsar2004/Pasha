@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import {
   buildFieldLabelMap,
   collectDynamicFields,
+  collectAllEditableFields,
   type DynamicFieldDef,
   type FieldLabelMap,
   type FormConfig,
@@ -141,6 +142,15 @@ export const getDatabankDynamicFields = cache(
   async (): Promise<DynamicFieldDef[]> => {
     const config = await getFormConfig("application");
     return config ? collectDynamicFields(config) : [];
+  }
+);
+
+// Every editable application field, column-backed ones included, in the order
+// the form builder defines. Powers the databank edit screen.
+export const getDatabankEditableFields = cache(
+  async (): Promise<DynamicFieldDef[]> => {
+    const config = await getFormConfig("application");
+    return config ? collectAllEditableFields(config) : [];
   }
 );
 

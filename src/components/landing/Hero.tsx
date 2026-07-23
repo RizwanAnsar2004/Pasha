@@ -39,12 +39,12 @@ const SLIDES: Slide[] = [
     primaryHref: "#ecosystem",
     primaryLabel: "Explore the Hub",
     secondaryHref: "#apply",
-    secondaryLabel: "Join the Hub",
+    secondaryLabel: "Join the Hub", 
     tabNumber: "01",
     tabTitle: "Startup Hub",
   },
   {
-    image: "/hero-awards.jpg",
+    image: "/awards-hub.png",
     alt: "Technology leaders presenting to an audience at a major event",
     shadeClass: "hero-photo-shade-awards",
     kicker: "Celebrating Pakistan's technology excellence",
@@ -61,7 +61,7 @@ const SLIDES: Slide[] = [
     tabTitle: "ICT Awards",
   },
   {
-    image: "/hero-directory.png",
+    image: "/directory-hub.png",
     alt: "Startup team reviewing a digital product together",
     shadeClass: "hero-photo-shade-directory",
     kicker: "Discover the builders shaping Pakistan's future",

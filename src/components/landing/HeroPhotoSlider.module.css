@@ -136,7 +136,6 @@
 .hero-photo-top-login {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   color: #fff;
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.28);

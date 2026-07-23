@@ -28,6 +28,7 @@ import {
 import {
   OptionListsProvider,
   useOptionList,
+  useOptionRegistry,
   type OptionRegistry,
 } from "@/components/form/OptionListsContext";
 import { COUNTRIES } from "@/lib/constants/countries";
@@ -110,6 +111,41 @@ type KeyPerson = {
 // "" / number sentinel for input wiring.
 type Edits = Partial<DatabankRow>;
 
+// A form field's `column_map` names a column on SUBMISSIONS, not on databank —
+// and several are renamed when a submission is published (see
+// api/admin/submission). Reading row[column_map] therefore returned undefined
+// for all of these, which is why they looked empty here despite having values
+// on the submission. This maps form field_key → the real databank column.
+const DATABANK_COLUMN: Record<string, keyof DatabankRow> = {
+  primary_sector: "primary_industry",
+  secondary_sector: "secondary_industries",
+  business_model: "business_types",
+  stage: "product_stage",
+  description: "startup_idea",
+  hq_city: "city",
+  year_founded: "founded_date",
+  founder_name: "contact_person",
+  founder_email: "contact_email",
+  founders: "key_persons",
+  currently_raising: "fundraising",
+};
+
+// Where a field's value actually lives on the databank row: an explicit rename,
+// a column of the same name, or (returning null) the `answers` JSONB bag.
+function databankColumnFor(
+  def: DynamicFieldDef,
+  row: DatabankRow
+): keyof DatabankRow | null {
+  const renamed = DATABANK_COLUMN[def.field_key];
+  if (renamed) return renamed;
+  // The row comes from `select("*")`, so its own keys are the real column list.
+  if (def.field_key in row) return def.field_key as keyof DatabankRow;
+  if (def.column_map && def.column_map in row) {
+    return def.column_map as keyof DatabankRow;
+  }
+  return null;
+}
+
 function asNumber(v: string): number | null {
   if (v === "" || v === null || v === undefined) return null;
   const n = Number(v);
@@ -127,11 +163,6 @@ function has(v: unknown): boolean {
   return v !== null && v !== undefined && v !== "";
 }
 
-// Render a section's children only when at least one of the given column values has data — so a fully-empty legacy section disappears entirely.
-function anyHas(...vals: unknown[]): boolean {
-  return vals.some(has);
-}
-
 // Resolve a named list from the registry passed down by the server, falling
 function pickList(
   registry: OptionRegistry | undefined,
@@ -145,13 +176,16 @@ function pickList(
 export function EditDatabankClient({
   initial,
   dynamicFields = [],
-  // This page now renders ONLY the admin-defined dynamic form fields.
-  showStaticFields = false,
+  configColumns = [],
   optionLists,
 }: {
   initial: DatabankRow;
+  // Every editable application-form field, in form-builder order.
   dynamicFields?: DynamicFieldDef[];
-  showStaticFields?: boolean;
+  // Databank columns already covered by `dynamicFields`. The hand-written
+  // column section below renders only what's NOT in here, so nothing appears
+  // twice and imported-only columns stay editable.
+  configColumns?: string[];
   // Resolved `option_lists` registry — the single source of truth for the
   optionLists?: OptionRegistry;
 }) {
@@ -195,15 +229,73 @@ export function EditDatabankClient({
     setRow((r) => ({ ...r, answers: { ...(r.answers ?? {}), [key]: value } }));
   }
 
-  // Dynamic fields grouped by their form section, preserving config order.
-  const groupedDynamic = useMemo(() => {
-    const m = new Map<string, DynamicFieldDef[]>();
+  // Read/write a config field against whichever backing store actually holds
+  // it — a real column, or the answers bag.
+  const readField = (def: DynamicFieldDef): unknown => {
+    const col = databankColumnFor(def, initial);
+    return col
+      ? (row as Record<string, unknown>)[col]
+      : (row.answers ?? {})[def.field_key];
+  };
+  const writeField = (def: DynamicFieldDef, v: unknown) => {
+    const col = databankColumnFor(def, initial);
+    if (col) update(col, v as never);
+    else setAnswer(def.field_key, v);
+  };
+
+  // A hand-written column field renders only when the form config doesn't
+  // already cover that column (otherwise it would appear twice, in two
+  // different orders) AND the record actually holds a value for it.
+  // Resolved the same way the inputs read, so a renamed column (primary_sector
+  // → primary_industry) is correctly recognised as already covered and doesn't
+  // also render in the hand-written block below.
+  const covered = useMemo(() => {
+    const s = new Set<string>(configColumns);
     for (const f of dynamicFields) {
-      const arr = m.get(f.section) ?? [];
-      arr.push(f);
-      m.set(f.section, arr);
+      const col = databankColumnFor(f, initial);
+      if (col) s.add(col as string);
     }
-    return [...m.entries()];
+    return s;
+  }, [configColumns, dynamicFields, initial]);
+  // Whether the form config places the founders group itself; if not, the
+  // standalone Key persons section below stands in for it.
+  const hasFoundersField = dynamicFields.some((f) => f.input_type === InputType.GROUP);
+  const legacy = (key: keyof DatabankRow) =>
+    !covered.has(key as string) && has(initial[key]);
+  const anyLegacy = (...keys: (keyof DatabankRow)[]) => keys.some(legacy);
+  // The whole hand-written block; each field still gates itself via `legacy`.
+  const showStaticFields = true;
+
+  // Same step → section hierarchy the applicant sees, just stacked onto one
+  // page instead of paginated. Insertion order is the config order, which
+  // collectAllEditableFields already sorts by step and section sort_order.
+  const groupedDynamic = useMemo(() => {
+    const steps = new Map<
+      number,
+      { title: string; sections: Map<string, { subtitle: string | null; fields: DynamicFieldDef[] }> }
+    >();
+    for (const f of dynamicFields) {
+      let step = steps.get(f.step);
+      if (!step) {
+        step = { title: f.step_title, sections: new Map() };
+        steps.set(f.step, step);
+      }
+      let section = step.sections.get(f.section);
+      if (!section) {
+        section = { subtitle: f.section_subtitle, fields: [] };
+        step.sections.set(f.section, section);
+      }
+      section.fields.push(f);
+    }
+    return [...steps.entries()].map(([step, s]) => ({
+      step,
+      title: s.title,
+      sections: [...s.sections.entries()].map(([title, v]) => ({
+        title,
+        subtitle: v.subtitle,
+        fields: v.fields,
+      })),
+    }));
   }, [dynamicFields]);
 
   async function save() {
@@ -362,7 +454,7 @@ export function EditDatabankClient({
           />
         </Field>
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.startup_name) && (
+          {legacy("startup_name") && (
           <Field label="Startup name">
             <Input
               value={row.startup_name ?? ""}
@@ -370,7 +462,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.company_name) && (
+          {legacy("company_name") && (
           <Field label="Legal / company name">
             <Input
               value={row.company_name ?? ""}
@@ -379,7 +471,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(initial.tagline) && (
+        {legacy("tagline") && (
         <Field label="Tagline" hint="Rich text — shown publicly under the name.">
           <TaglineEditor
             value={row.tagline ?? ""}
@@ -388,7 +480,7 @@ export function EditDatabankClient({
         </Field>
         )}
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.website) && (
+          {legacy("website") && (
           <Field label="Website">
             <Input
               type="url"
@@ -398,7 +490,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.founded_date) && (
+          {legacy("founded_date") && (
           <Field label="Year founded" hint="4-digit year.">
             <Input
               type="number"
@@ -414,7 +506,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(initial.pasha_verified) && (
+        {legacy("pasha_verified") && (
         <Field
           label="PASHA verified"
           hint="Flip on to publish the badge + tooltip on the public profile."
@@ -427,10 +519,10 @@ export function EditDatabankClient({
         )}
       </Section>
 
-      {anyHas(initial.city, initial.hq_country, initial.primary_industry, initial.secondary_industries, initial.business_types, initial.product_stage) && (
+      {anyLegacy("city", "hq_country", "primary_industry", "secondary_industries", "business_types", "product_stage") && (
       <Section title="Location & category">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.city) && (
+          {legacy("city") && (
           <Field label="HQ city (or 'Other' for write-in)">
             <SelectMenu
               className="w-full"
@@ -441,7 +533,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.hq_country) && (
+          {legacy("hq_country") && (
           <Field label="Country (if outside Pakistan)">
             <SelectMenu
               className="w-full"
@@ -452,7 +544,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.primary_industry) && (
+          {legacy("primary_industry") && (
           <Field label="Primary industry">
             <SelectMenu
               className="w-full"
@@ -463,7 +555,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.secondary_industries) && (
+          {legacy("secondary_industries") && (
           <Field label="Secondary industries">
             <Input
               value={row.secondary_industries ?? ""}
@@ -474,7 +566,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.business_types) && (
+          {legacy("business_types") && (
           <Field label="Business model / type">
             <SelectMenu
               className="w-full"
@@ -485,7 +577,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.product_stage) && (
+          {legacy("product_stage") && (
           <Field label="Product stage">
             <SelectMenu
               className="w-full"
@@ -500,10 +592,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(initial.nic_name, initial.incubation_stage, initial.cohort, initial.joining_date) && (
+      {anyLegacy("nic_name", "incubation_stage", "cohort", "joining_date") && (
       <Section title="Incubation">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.nic_name) && (
+          {legacy("nic_name") && (
           <Field label="NIC / incubation center">
             <SelectMenu
               className="w-full"
@@ -514,7 +606,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.incubation_stage) && (
+          {legacy("incubation_stage") && (
           <Field label="Stage of incubation">
             <Input
               value={row.incubation_stage ?? ""}
@@ -524,7 +616,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.cohort) && (
+          {legacy("cohort") && (
           <Field label="Cohort">
             <Input
               value={row.cohort ?? ""}
@@ -532,7 +624,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.joining_date) && (
+          {legacy("joining_date") && (
           <Field label="Joining date" hint="YYYY-MM-DD">
             <Input
               type="date"
@@ -545,10 +637,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(initial.total_employees, initial.female_employees, initial.jobs_created, initial.number_of_customers, initial.current_revenue, initial.investment_raised, initial.investment_commitment, initial.investment_raised_from) && (
+      {anyLegacy("total_employees", "female_employees", "jobs_created", "number_of_customers", "current_revenue", "investment_raised", "investment_commitment", "investment_raised_from") && (
       <Section title="Team & traction">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.total_employees) && (
+          {legacy("total_employees") && (
           <Field label="Total employees">
             <Input
               type="number"
@@ -558,7 +650,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.female_employees) && (
+          {legacy("female_employees") && (
           <Field label="Female employees">
             <Input
               type="number"
@@ -570,7 +662,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.jobs_created) && (
+          {legacy("jobs_created") && (
           <Field label="Jobs created">
             <Input
               type="number"
@@ -580,7 +672,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.number_of_customers) && (
+          {legacy("number_of_customers") && (
           <Field label="Customers">
             <Input
               type="number"
@@ -592,7 +684,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.current_revenue) && (
+          {legacy("current_revenue") && (
           <Field label="Annual revenue (PKR)">
             <Input
               type="number"
@@ -605,7 +697,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.investment_raised) && (
+          {legacy("investment_raised") && (
           <Field label="Investment raised (PKR, lifetime)">
             <Input
               type="number"
@@ -618,7 +710,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.investment_commitment) && (
+          {legacy("investment_commitment") && (
           <Field label="Investment commitments (PKR)">
             <Input
               value={row.investment_commitment ?? ""}
@@ -628,7 +720,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.investment_raised_from) && (
+          {legacy("investment_raised_from") && (
           <Field label="Source of capital">
             <Input
               value={row.investment_raised_from ?? ""}
@@ -643,9 +735,9 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(initial.startup_idea, initial.business_model, initial.social_impact, initial.sdgs, initial.video_pitch) && (
+      {anyLegacy("startup_idea", "business_model", "social_impact", "sdgs", "video_pitch") && (
       <Section title="About" subtitle="Long-form text shown on the public profile. HTML is sanitised on render.">
-        {has(initial.startup_idea) && (
+        {legacy("startup_idea") && (
         <Field label="Tagline / startup idea (paragraph)">
           <Textarea
             value={stripTags(row.startup_idea ?? "")}
@@ -654,7 +746,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(initial.business_model) && (
+        {legacy("business_model") && (
         <Field label="Business model (paragraph)">
           <Textarea
             value={stripTags(row.business_model ?? "")}
@@ -663,7 +755,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(initial.social_impact) && (
+        {legacy("social_impact") && (
         <Field label="Social impact">
           <Textarea
             value={row.social_impact ?? ""}
@@ -672,7 +764,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(initial.sdgs) && (
+        {legacy("sdgs") && (
         <Field label="SDGs" hint="Pipe / semicolon / comma separated.">
           <Input
             value={row.sdgs ?? ""}
@@ -680,7 +772,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(initial.video_pitch) && (
+        {legacy("video_pitch") && (
         <Field label="Pitch video URL">
           <Input
             type="url"
@@ -693,7 +785,7 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {has(initial.certifications) && (
+      {legacy("certifications") && (
       <Section title="Recognition">
         {/* Awards are managed in Admin → Award Winners (not here). */}
         <Field label="Certifications" hint="ISO, SOC 2, PCI-DSS, etc.">
@@ -706,10 +798,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(initial.contact_person, initial.contact_email, initial.outreach_status, initial.outreach_notes) && (
+      {anyLegacy("contact_person", "contact_email", "outreach_status", "outreach_notes") && (
       <Section title="Contact (private)" subtitle="Not shown on the public profile. Used by the secretariat for outreach.">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.contact_person) && (
+          {legacy("contact_person") && (
           <Field label="Primary contact">
             <Input
               value={row.contact_person ?? ""}
@@ -719,7 +811,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.contact_email) && (
+          {legacy("contact_email") && (
           <Field label="Primary contact email">
             <Input
               type="email"
@@ -728,7 +820,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.outreach_status) && (
+          {legacy("outreach_status") && (
           <Field label="Outreach status">
             <SelectMenu
               className="w-full"
@@ -746,7 +838,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(initial.outreach_notes) && (
+        {legacy("outreach_notes") && (
         <Field label="Outreach notes">
           <Textarea
             value={row.outreach_notes ?? ""}
@@ -758,10 +850,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(initial.company_linkedin, initial.company_x, initial.company_instagram, initial.company_facebook, initial.company_youtube) && (
+      {anyLegacy("company_linkedin", "company_x", "company_instagram", "company_facebook", "company_youtube") && (
       <Section title="Company socials">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(initial.company_linkedin) && (
+          {legacy("company_linkedin") && (
           <Field label="LinkedIn">
             <Input
               type="url"
@@ -772,7 +864,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.company_x) && (
+          {legacy("company_x") && (
           <Field label="X / Twitter">
             <Input
               type="url"
@@ -781,7 +873,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.company_instagram) && (
+          {legacy("company_instagram") && (
           <Field label="Instagram">
             <Input
               type="url"
@@ -792,7 +884,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.company_facebook) && (
+          {legacy("company_facebook") && (
           <Field label="Facebook">
             <Input
               type="url"
@@ -803,7 +895,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(initial.company_youtube) && (
+          {legacy("company_youtube") && (
           <Field label="YouTube">
             <Input
               type="url"
@@ -823,31 +915,104 @@ export function EditDatabankClient({
       {groupedDynamic.length > 0 ? (
         <Section
           title="Application form fields"
-          subtitle="Admin-defined fields from the dynamic form (e.g. cover image). Saved to this listing."
+          subtitle="Every field from the application form, in the same order applicants see it — all steps on one page."
         >
-          <div className="space-y-6">
-            {groupedDynamic.map(([sectionTitle, defs]) => (
-              <div key={sectionTitle} className="space-y-5">
-                <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted border-t border-pasha-line/60 pt-4 first:border-t-0 first:pt-0">
-                  {sectionTitle}
-                </h4>
-                {/* Two columns above md, three above lg; wide controls */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5">
-                  {defs.map((def, i) => (
-                    <Field
-                      key={def.field_key}
-                      label={def.label}
-                      hint={def.hint ?? undefined}
-                      className={fieldSpan(def, i, defs)}
-                    >
-                      <DynamicFieldControl
-                        def={def}
-                        value={(row.answers ?? {})[def.field_key]}
-                        onChange={(v) => setAnswer(def.field_key, v)}
-                      />
-                    </Field>
-                  ))}
+          <div className="space-y-10">
+            {groupedDynamic.map((stepGroup) => (
+              <div key={stepGroup.step} className="space-y-6">
+                {/* Step heading — mirrors the wizard's step title. */}
+                <div className="flex items-center gap-3 border-b border-pasha-line pb-3">
+                  <span className="font-mono text-[10px] text-pasha-muted tabular-nums">
+                    {String(stepGroup.step).padStart(2, "0")}
+                  </span>
+                  <h3 className="text-sm font-semibold text-pasha-ink">{stepGroup.title}</h3>
                 </div>
+
+                {stepGroup.sections.map((section, sIdx) => (
+                  <div key={section.title} className="space-y-5">
+                    {/* The first section of a step shares the step's own title,
+                        so only later ones get their own heading — same rule the
+                        wizard uses. */}
+                    {sIdx > 0 && (
+                      <div>
+                        <h4 className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
+                          {section.title}
+                        </h4>
+                        {section.subtitle && (
+                          <p className="mt-1 text-xs text-pasha-muted/80">{section.subtitle}</p>
+                        )}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5">
+                      {section.fields.map((def, i) =>
+                        // Composites keep their place in the sequence but need
+                        // their own editors — founders write to key_persons,
+                        // the city composite to the HQ columns.
+                        // Only the founders group is the people editor. Every
+                        // other group (awards, etc.) is a generic repeatable
+                        // subsection defined in the form builder.
+                        def.input_type === InputType.GROUP ? (
+                          <div key={def.field_key} className="lg:col-span-6">
+                            <p className="mb-1 text-sm font-medium text-pasha-ink">{def.label}</p>
+                            {def.hint && (
+                              <p className="mb-3 text-xs text-pasha-muted">{def.hint}</p>
+                            )}
+                            {def.field_key === "founders" ? (
+                              <KeyPersonsEditor
+                                persons={row.key_persons ?? []}
+                                onChange={(next) => update("key_persons", next)}
+                              />
+                            ) : (
+                              <RepeatableGroupEditor
+                                def={def}
+                                value={readField(def)}
+                                onChange={(v) => writeField(def, v)}
+                              />
+                            )}
+                          </div>
+                        ) : def.input_type === InputType.CITY_COMPOSITE ? (
+                          <div key={def.field_key} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-6">
+                            <Field label="HQ city">
+                              <SelectMenu
+                                className="w-full"
+                                value={coerceOptionValue(row.city, cityOptions) ?? ""}
+                                onValueChange={(v) => update("city", v || null)}
+                                options={cityOptions}
+                                placeholder="Select city"
+                              />
+                            </Field>
+                            <Field label="HQ country">
+                              <SelectMenu
+                                className="w-full"
+                                value={coerceOptionValue(row.hq_country, countryOptions) ?? ""}
+                                onValueChange={(v) => update("hq_country", v || null)}
+                                options={countryOptions}
+                                placeholder="Select country"
+                              />
+                            </Field>
+                          </div>
+                        ) : (
+                        <Field
+                          key={def.field_key}
+                          label={def.label}
+                          hint={def.hint ?? undefined}
+                          className={fieldSpan(def, i, section.fields)}
+                        >
+                      {/* A field either maps to a real databank column or
+                          lives in the answers bag — read and write whichever
+                          it is, so column-backed fields are editable here too
+                          instead of only appearing in the legacy block. */}
+                          <DynamicFieldControl
+                            def={def}
+                            value={readField(def)}
+                            onChange={(v) => writeField(def, v)}
+                          />
+                        </Field>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
@@ -864,16 +1029,20 @@ export function EditDatabankClient({
         </Section>
       )}
 
-      {/* Founders / key persons live in the key_persons column for both legacy */}
-      <Section
-        title="Key persons"
-        subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
-      >
-        <KeyPersonsEditor
-          persons={row.key_persons ?? []}
-          onChange={(next) => update("key_persons", next)}
-        />
-      </Section>
+      {/* Key persons and the HQ city/country pair are rendered inline above, at
+          the position the application form puts them. Only shown here as a
+          fallback when the form config defines no founders group at all. */}
+      {!hasFoundersField && (
+        <Section
+          title="Key persons"
+          subtitle="The founders / leadership shown publicly. Add, edit, remove, reorder."
+        >
+          <KeyPersonsEditor
+            persons={row.key_persons ?? []}
+            onChange={(next) => update("key_persons", next)}
+          />
+        </Section>
+      )}
 
       <div className="pt-2 flex items-center justify-end gap-2">
         <button
@@ -947,6 +1116,12 @@ function DynamicFieldControl({
   onChange: (v: unknown) => void;
 }) {
   const t = def.input_type;
+  // Stored answers are admin-managed option IDs (UUIDs). `def.options` only
+  // resolves against the CODE constants, so a UUID matched nothing and the
+  // control rendered blank — resolve against the live registry first.
+  const registry = useOptionRegistry();
+  const fromRegistry = def.options_source ? registry[def.options_source] : undefined;
+  const options = fromRegistry?.length ? fromRegistry : def.options;
 
   if (t === InputType.YES_NO) {
     return (
@@ -960,9 +1135,9 @@ function DynamicFieldControl({
   if (t === InputType.MULTISELECT) {
     return (
       <CheckboxGroup
-        value={coerceOptionValues(value, def.options)}
+        value={coerceOptionValues(value, options)}
         onChange={(next) => onChange(next)}
-        options={def.options}
+        options={options}
       />
     );
   }
@@ -974,7 +1149,7 @@ function DynamicFieldControl({
         value={typeof value === "string" ? value : ""}
         onValueChange={(v) => onChange(v || null)}
         placeholder={def.placeholder ?? "Select"}
-        options={def.options}
+        options={options}
       />
     );
   }
@@ -1001,7 +1176,7 @@ function DynamicFieldControl({
       <Textarea
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(e.target.value || null)}
-        rows={4}
+        rows={6}
         placeholder={def.placeholder ?? undefined}
       />
     );
@@ -1031,6 +1206,95 @@ function DynamicFieldControl({
         }
       }}
     />
+  );
+}
+
+// Generic editor for an admin-defined repeatable subsection (awards, and
+// anything else added as a repeatable group in the form builder). Rows are
+// plain objects keyed by the group's child field_keys, stored as an array.
+function RepeatableGroupEditor({
+  def,
+  value,
+  onChange,
+}: {
+  def: DynamicFieldDef;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const children = def.children ?? [];
+  const rows: Record<string, unknown>[] = Array.isArray(value)
+    ? (value as Record<string, unknown>[]).filter(
+        (r) => r && typeof r === "object" && !Array.isArray(r)
+      )
+    : [];
+  const itemLabel = def.item_label || "item";
+  const max = def.max_items ?? Infinity;
+
+  if (children.length === 0) {
+    return (
+      <p className="text-xs text-pasha-muted">
+        This group has no child fields configured in the form builder.
+      </p>
+    );
+  }
+
+  const patch = (idx: number, key: string, v: unknown) => {
+    const next = rows.map((r, i) => (i === idx ? { ...r, [key]: v } : r));
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {rows.map((r, idx) => (
+        <div key={idx} className="rounded-xl border border-pasha-line bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-pasha-muted">
+              {itemLabel} #{idx + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange(rows.filter((_, i) => i !== idx))}
+              className="inline-flex items-center gap-1 text-xs text-pasha-muted hover:text-pasha-red"
+            >
+              <X className="h-3.5 w-3.5" />
+              Remove
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {children.map((child) => (
+              <Field
+                key={child.field_key}
+                label={child.label}
+                hint={child.hint ?? undefined}
+                className={
+                  child.input_type === InputType.TEXTAREA ||
+                  child.input_type === InputType.RICH_TEXT
+                    ? "sm:col-span-2"
+                    : undefined
+                }
+              >
+                <DynamicFieldControl
+                  def={child}
+                  value={r[child.field_key]}
+                  onChange={(v) => patch(idx, child.field_key, v)}
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {rows.length < max && (
+        <button
+          type="button"
+          onClick={() => onChange([...rows, {}])}
+          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-pasha-line bg-white px-4 py-2 text-sm text-pasha-ink transition-colors hover:border-pasha-red hover:text-pasha-red"
+        >
+          <Plus className="h-4 w-4" />
+          Add {itemLabel}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1285,13 +1549,20 @@ function fieldSpan(
   const t = def.input_type;
   const full = "md:col-span-2 lg:col-span-6";
 
-  // Base span per field category: choice (checkboxes / yes-no / dropdown) → 3 per row (2 of 6) text / long text → 2 per row (3 of 6) file run → 2 per.
+  // Base span per field category: short choices (dropdown / yes-no) → 3 per row
+  // (2 of 6); checkbox grids → 2 per row (3 of 6); short text → 2 per row;
+  // long text → the full row; file run → 2 per row.
   let span: string;
-  if (isChoiceField(t)) {
+  if (t === InputType.MULTISELECT) {
+    // Tall checkbox grids need room for two option columns.
+    span = "lg:col-span-3";
+  } else if (isChoiceField(t)) {
     span = "lg:col-span-2";
+  } else if (t === InputType.TEXTAREA || t === InputType.RICH_TEXT) {
+    // Long-form content always gets the whole row — half a row left these
+    // scrolling inside a cramped box with the other half empty.
+    span = full;
   } else if (
-    t === InputType.TEXTAREA ||
-    t === InputType.RICH_TEXT ||
     t === InputType.TEXT ||
     t === InputType.EMAIL ||
     t === InputType.URL ||
@@ -1316,17 +1587,18 @@ function fieldSpan(
   return span + (startNew ? " lg:col-start-1" : "");
 }
 
-// Checkbox group, yes/no, and single-select dropdown — compact choice
+// Short, single-line choice controls. Multiselect is deliberately NOT here:
+// its checkbox grid is several rows tall, so sharing a row with a dropdown left
+// a large gap under the dropdown.
 function isChoiceField(t: number | undefined): boolean {
-  return (
-    t === InputType.MULTISELECT ||
-    t === InputType.YES_NO ||
-    t === InputType.SELECT
-  );
+  return t === InputType.YES_NO || t === InputType.SELECT;
 }
 
 // Coarse layout category — fields only share a grid row with neighbours of
 function fieldCategory(t: number): string {
+  // Multiselect gets its own category so a tall checkbox grid never shares a
+  // row with a short dropdown.
+  if (t === InputType.MULTISELECT) return "multi";
   if (isChoiceField(t)) return "choice";
   if (t === InputType.TEXTAREA || t === InputType.RICH_TEXT) return "longtext";
   if (t === InputType.FILE_UPLOAD) return "file";

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogIn } from "lucide-react";
 import { PashaLogo } from "./PashaLogo";
 import { cn } from "@/lib/utils";
 import styles from "./landing/HeroPhotoSlider.module.css";
@@ -26,7 +25,7 @@ const MENU_LINKS = [
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Join the Hub", href: JOIN_HREF },
-  { label: "Sign in", href: LOGIN_HREF },
+  { label: "Login", href: LOGIN_HREF },
 ];
 
 export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay" }) {
@@ -35,7 +34,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const firstMenuLinkRef = useRef<HTMLAnchorElement>(null);
   const pathname = usePathname();
 
-  // Hide the applicant Join/Sign in actions where they make no sense: inside
+  // Hide the applicant Join/Login actions where they make no sense: inside
   // the applicant portal (already in), and on the admin / super-admin screens,
   // which have their own separate sign-in and are not applicant-facing.
   const hideAuthCtas =
@@ -77,8 +76,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
         {!hideAuthCtas && (
           <>
             <Link href={LOGIN_HREF} className={styles["hero-photo-top-login"]}>
-              <LogIn className="h-4 w-4" />
-              Sign in
+              Login
             </Link>
             <Link className={styles["hero-photo-top-cta"]} href={JOIN_HREF}>
               Join the Hub
@@ -115,10 +113,9 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
               href={LOGIN_HREF}
               // Same px-5 py-3 / text-sm box as the Join pill beside it, so the
               // two match height exactly rather than relying on a guessed h-11.
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-pasha-ink/15 bg-white px-5 py-3 text-sm font-bold text-pasha-ink transition hover:-translate-y-0.5 hover:border-pasha-red hover:bg-pasha-red hover:text-white"
+              className="inline-flex shrink-0 items-center rounded-full border border-pasha-ink/15 bg-white px-5 py-3 text-sm font-bold text-pasha-ink transition hover:-translate-y-0.5 hover:border-pasha-red hover:bg-pasha-red hover:text-white"
             >
-              <LogIn className="h-4 w-4" />
-              Sign in
+              Login
             </Link>
             <Link
               href={JOIN_HREF}

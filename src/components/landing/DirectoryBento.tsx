@@ -117,8 +117,9 @@ function CardFooterLinks({ startup, dark = false }: { startup: WatchlistStartup;
   const profileHref = `/directory/${startupSlug(startup.startup_name, startup.id)}`;
 
   return (
+    // z-10: sits above the card-wide profile overlay so these links still win.
     <div
-      className={`mt-5 flex items-center justify-between gap-3 border-t pt-4 ${
+      className={`relative z-10 mt-5 flex items-center justify-between gap-3 border-t pt-4 ${
         dark ? "border-white/15" : "border-pasha-ink/10"
       }`}
     >
@@ -157,6 +158,20 @@ function CardFooterLinks({ startup, dark = false }: { startup: WatchlistStartup;
   );
 }
 
+// Makes the whole card a link to the startup's profile without nesting anchors
+// (invalid HTML) — a stretched, transparent link behind the content. The footer
+// links opt out by sitting at z-10.
+function ProfileOverlayLink({ startup }: { startup: WatchlistStartup }) {
+  return (
+    <Link
+      href={`/directory/${startupSlug(startup.startup_name, startup.id)}`}
+      className="absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red focus-visible:ring-offset-2"
+    >
+      <span className="sr-only">View {startup.startup_name} profile</span>
+    </Link>
+  );
+}
+
 function MiniCard({ startup, tint, optionIndex }: { startup: WatchlistStartup; tint: string; optionIndex: OptionIndex }) {
   const sectorLabel = resolveOptionLabel(optionIndex, "SECTORS", startup.primary_industry);
   return (
@@ -167,6 +182,8 @@ function MiniCard({ startup, tint, optionIndex }: { startup: WatchlistStartup; t
       style={{ backgroundColor: tint }}
       className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] p-6 transition-all duration-300 hover:-translate-y-1"
     >
+      <ProfileOverlayLink startup={startup} />
+
       <div className="flex items-start justify-between gap-3">
         <CardLogo src={startup.logo_url} name={startup.startup_name} />
       </div>
@@ -204,8 +221,10 @@ function SpotlightCard({ startup, optionIndex }: { startup: WatchlistStartup; op
       data-name={startup.startup_name.toLowerCase()}
       data-sector={(sectorLabel ?? "").toLowerCase()}
       data-stage={(startup.product_stage ?? "").toLowerCase()}
-      className="group relative flex h-full flex-col overflow-hidden rounded-[28px] bg-pasha-ink"
+      className="group relative flex h-full flex-col overflow-hidden rounded-[28px] bg-pasha-ink transition-transform duration-300 hover:-translate-y-1"
     >
+      <ProfileOverlayLink startup={startup} />
+
       {/* Logo / radar panel */}
       <div className="relative flex h-64 items-center justify-center overflow-hidden border-b border-white/10">
         <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -310,9 +329,11 @@ export function DirectoryBento({
             </h2>
           </div>
           <div className="max-w-md">
-            
-            <PillButton href="/directory" variant="outline" className="mt-4">
-              View all startups
+            {/* ?featured=1 is the directory's own featured filter, so this
+                lands on the full featured list rather than every startup —
+                mirroring the women-led section's CTA. */}
+            <PillButton href="/directory?featured=1" variant="outline" dot className="mt-4">
+              View all featured startups
             </PillButton>
           </div>
         </Reveal>

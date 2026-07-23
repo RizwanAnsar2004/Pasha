@@ -18,6 +18,7 @@ type Row = Record<string, unknown>;
 async function load(id: string): Promise<Row | null> {
   const supabase = createServiceClient();
   const { data } = await supabase.from("databank").select("*").eq("id", id).maybeSingle();
+
   return (data ?? null) as Row | null;
 }
 

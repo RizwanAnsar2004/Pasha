@@ -681,22 +681,47 @@ export function buildFieldLabelMap(config: FormConfig): FieldLabelMap {
 // ---------------------------------------------------------------------------
 
 export type DynamicFieldDef = {
+  // Wizard step this field belongs to, and that step's heading — so a
+  // one-page editor can reproduce the same step → section hierarchy.
+  step: number;
+  step_title: string;
   section: string;
+  section_subtitle: string | null;
   field_key: string;
   label: string;
   input_type: number;
   hint: string | null;
   placeholder: string | null;
   options: { value: string; label: string }[];
+  // Named option list this field draws from. `options` above resolves only
+  // against the CODE constants, but stored answers are admin-managed option
+  // ids (UUIDs), so a consumer must re-resolve against the live registry.
+  options_source?: string | null;
   // FILE_UPLOAD config (from the field's validation bag).
   bucket?: "logos" | "founder-photos" | "pitch-decks";
   accept?: Record<string, string[]>;
   maxSizeMB?: number;
+  // Real databank column this field maps to, when it has one. Null/undefined
+  // means the value lives in the `answers` JSONB bag instead.
+  column_map?: string | null;
+  // GROUP nodes only: the child fields, and how the group repeats. Needed so a
+  // one-page editor can render a repeatable subsection (awards, etc.) rather
+  // than assuming every group is the founders repeater.
+  children?: DynamicFieldDef[];
+  repeatable?: boolean;
+  item_label?: string | null;
+  min_items?: number | null;
+  max_items?: number | null;
 };
 
-// Types that don't hold a single editable answers value here.
-const DYNAMIC_SKIP_TYPES = new Set<number>([
-  InputType.HEADING,
+// Types that hold no editable value of their own.
+const DYNAMIC_SKIP_TYPES = new Set<number>([InputType.HEADING]);
+
+// Composite controls: they don't map to one answers key, but they DO occupy a
+// position in the form. The databank editor emits them in place and renders its
+// own purpose-built editor there (founders → key_persons, city → the HQ
+// columns), so the one-page editor keeps the wizard's sequence.
+const COMPOSITE_TYPES = new Set<number>([
   InputType.GROUP,
   InputType.CITY_COMPOSITE,
 ]);
@@ -712,26 +737,97 @@ function resolveFieldOptions(field: FormFieldConfig): { value: string; label: st
 }
 
 // Flatten the form config to the editable answers-bag fields: those with no
-export function collectDynamicFields(config: FormConfig): DynamicFieldDef[] {
+export function collectDynamicFields(config: FormConfig): FormFieldDefList {
+  return collectEditableFields(config, { answersOnly: true });
+}
+
+// Every editable field in the application form, in config order — including
+// the ones backed by a real databank column. The databank editor renders from
+// this so it stays in step with the form builder: a field added there shows up
+// for editing without anyone hand-writing JSX for it.
+export function collectAllEditableFields(config: FormConfig): FormFieldDefList {
+  return collectEditableFields(config, { answersOnly: false });
+}
+
+type FormFieldDefList = DynamicFieldDef[];
+
+// A GROUP's child field, flattened to the same shape. Children never nest
+// further here — the form builder's own nested subsections are rendered by the
+// wizard, not by the databank editor.
+function childDef(
+  field: FormFieldConfig,
+  step: number,
+  stepTitle: string,
+  sectionTitle: string
+): DynamicFieldDef {
+  return {
+    step,
+    step_title: stepTitle,
+    section: sectionTitle,
+    section_subtitle: null,
+    field_key: field.field_key,
+    label: field.label?.trim() || field.field_key,
+    input_type: field.input_type,
+    hint: field.hint ?? null,
+    placeholder: field.placeholder ?? null,
+    options: resolveFieldOptions(field),
+    options_source: field.options_source ?? null,
+    bucket: field.validation?.bucket,
+    accept: field.validation?.accept,
+    maxSizeMB: field.validation?.maxSizeMB,
+    column_map: field.column_map ?? null,
+  };
+}
+
+function collectEditableFields(
+  config: FormConfig,
+  { answersOnly }: { answersOnly: boolean }
+): FormFieldDefList {
   const out: DynamicFieldDef[] = [];
-  for (const section of config) {
-    for (const field of section.fields) {
-      if (DYNAMIC_SKIP_TYPES.has(field.input_type)) continue;
-      if (field.column_map) continue;
-      const label = field.label?.trim();
-      if (!label) continue;
-      out.push({
-        section: section.title,
-        field_key: field.field_key,
-        label,
-        input_type: field.input_type,
-        hint: field.hint ?? null,
-        placeholder: field.placeholder ?? null,
-        options: resolveFieldOptions(field),
-        bucket: field.validation?.bucket,
-        accept: field.validation?.accept,
-        maxSizeMB: field.validation?.maxSizeMB,
-      });
+  // Walk steps → sections exactly as the wizard does (stepsOf/sectionsForStep
+  // sort by step and sort_order and drop inactive sections). Iterating the raw
+  // config array instead put the databank editor in a different order from the
+  // form applicants actually fill in, and included inactive sections.
+  const stepTitles = new Map(stepTitlesOf(config).map((t) => [t.num, t.title]));
+  for (const step of stepsOf(config)) {
+    for (const section of sectionsForStep(config, step)) {
+      for (const field of section.fields) {
+        if (DYNAMIC_SKIP_TYPES.has(field.input_type)) continue;
+        // Composites have no answers key, so the answers-bag collector skips
+        // them; the databank collector keeps them as positional markers.
+        if (answersOnly && COMPOSITE_TYPES.has(field.input_type)) continue;
+        if (answersOnly && field.column_map) continue;
+        const label = field.label?.trim();
+        if (!label) continue;
+        out.push({
+          step,
+          step_title: stepTitles.get(step) ?? `Step ${step}`,
+          section: section.title,
+          section_subtitle: section.subtitle ?? null,
+          field_key: field.field_key,
+          label,
+          input_type: field.input_type,
+          hint: field.hint ?? null,
+          placeholder: field.placeholder ?? null,
+          options: resolveFieldOptions(field),
+    options_source: field.options_source ?? null,
+          bucket: field.validation?.bucket,
+          accept: field.validation?.accept,
+          maxSizeMB: field.validation?.maxSizeMB,
+          column_map: field.column_map ?? null,
+          ...(field.input_type === InputType.GROUP
+            ? {
+                children: (field.children ?? []).map((c) =>
+                  childDef(c, step, stepTitles.get(step) ?? `Step ${step}`, section.title)
+                ),
+                repeatable: field.repeatable ?? false,
+                item_label: field.item_label ?? null,
+                min_items: field.min_items ?? null,
+                max_items: field.max_items ?? null,
+              }
+            : {}),
+        });
+      }
     }
   }
   return out;
