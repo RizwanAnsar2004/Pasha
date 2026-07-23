@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
@@ -9,6 +9,11 @@ import { ShieldCheck, Loader2, AlertCircle, MailCheck } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import {
+  CaptchaWidget,
+  captchaConfigured,
+  type CaptchaHandle,
+} from "@/components/auth/CaptchaWidget";
 
 function LoginInner() {
   const sp = useSearchParams();
@@ -21,6 +26,8 @@ function LoginInner() {
   const [loading, setLoading] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(() => {
     if (authError === "unauthorized_email") {
       return "You are signed in with a non-committee account. Sign in with a committee email to continue, or sign out of the applicant portal first.";
@@ -28,16 +35,25 @@ function LoginInner() {
     return null;
   });
 
+  // Turnstile tokens are single-use, so the one just sent is spent whatever the
+  // outcome — re-arm before the next attempt.
+  function rearmCaptcha() {
+    if (!captchaConfigured) return;
+    setCaptchaToken(null);
+    captchaRef.current?.reset();
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await api.post(ENDPOINTS.admin.auth, { email, password });
+      await api.post(ENDPOINTS.admin.auth, { email, password, captchaToken });
       router.replace(redirect);
     } catch (e) {
       setError(apiErrorMessage(e, "Sign-in failed"));
     } finally {
+      rearmCaptcha();
       setLoading(false);
     }
   }
@@ -48,11 +64,12 @@ function LoginInner() {
     setNotice(null);
     setLoading(true);
     try {
-      await api.post(ENDPOINTS.admin.auth, { action: "forgot", email });
+      await api.post(ENDPOINTS.admin.auth, { action: "forgot", email, captchaToken });
       setNotice("sent");
     } catch (e) {
       setError(apiErrorMessage(e, "Could not send the reset email"));
     } finally {
+      rearmCaptcha();
       setLoading(false);
     }
   }
@@ -134,6 +151,13 @@ function LoginInner() {
                       className="mt-1.5 h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                     />
                   </div>
+                  {/* One instance per form — only one renders at a time, so
+                      `captchaRef` always points at the live widget. */}
+                  <CaptchaWidget
+                    ref={captchaRef}
+                    onToken={setCaptchaToken}
+                    className="flex justify-center"
+                  />
                   <button
                     type="submit"
                     disabled={loading}
@@ -191,6 +215,11 @@ function LoginInner() {
                     className="h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                   />
                 </div>
+                <CaptchaWidget
+                  ref={captchaRef}
+                  onToken={setCaptchaToken}
+                  className="flex justify-center"
+                />
                 <button
                   type="submit"
                   disabled={loading}

@@ -23,7 +23,8 @@ import {
 } from "@/lib/auth/applicant/applicant-auth";
 import { getFormConfig } from "@/lib/forms/form-config.server";
 import { ensureClaimedProfileSeeded } from "@/lib/startups/claim/seed-application.server";
-import { buildDevPrefill } from "@/lib/forms/form-config";
+import { buildDevPrefill, buildFieldLabelMap, buildZodSchema } from "@/lib/forms/form-config";
+import { submissionSchema } from "@/lib/forms/schema";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/forms/profile-completion";
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/startups/vetting/workflow";
@@ -31,6 +32,7 @@ import { deriveBadges, isYes, type BadgeTone } from "@/lib/startups/vetting/badg
 import { ReapplyButton } from "./ReapplyButton";
 import { PortalTabs } from "./PortalTabs";
 import { StartApplicationButton } from "./StartApplicationButton";
+import { SubmitForApprovalButton } from "./SubmitForApprovalButton";
 import { DynamicForm } from "@/components/form/DynamicForm";
 import { ApplyForm } from "@/components/form/ApplyForm";
 import { RichText } from "@/components/ui/RichText";
@@ -137,6 +139,26 @@ export default async function ApplicantOverviewPage({
   // Dashboard modules mirror the application's actual steps (title + subtitle + per-step progress) so they stay in sync with the form builder.
   const modules = config ? computeFormModules(config, draft.data) : [];
 
+  // Would the saved draft pass submission today? Uses the exact schema
+  // /api/submit enforces, so the dashboard's Submit button can never disagree
+  // with the one at the end of the wizard.
+  const submitSchema =
+    config && config.length > 0 ? buildZodSchema(config) : submissionSchema;
+  const submitCheck = submitSchema.safeParse(draft.data);
+  const canSubmit = submitCheck.success;
+  const submitLabelMap = config && config.length > 0 ? buildFieldLabelMap(config) : {};
+  // One label per failing field — nested paths (founders.0.email) collapse to
+  // their owning field so the hint stays readable.
+  const missingForSubmit = submitCheck.success
+    ? []
+    : Array.from(
+        new Set(
+          submitCheck.error.issues
+            .map((i) => String(i.path[0] ?? ""))
+            .filter(Boolean)
+        )
+      ).map((k) => submitLabelMap[k] ?? k);
+
   const d = draft.data as Record<string, unknown>;
 
   // §13 badges — derived from the startup's own data (women-led/hiring/raising) plus admin-awarded verified/featured.
@@ -181,7 +203,9 @@ export default async function ApplicantOverviewPage({
   // CTA label by stage.
   const ctaLabel = editable
     ? draft.started
-      ? "Continue application"
+      ? canSubmit
+        ? "Review application"
+        : "Continue application"
       : "Start application"
     : "Browse the directory";
 
@@ -331,13 +355,25 @@ export default async function ApplicantOverviewPage({
           </p>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-2.5">
+        <div className="mt-5 flex flex-wrap items-center gap-2.5">
           {stage === "rejected" ? (
             <ReapplyButton />
           ) : editable ? (
-            <StartApplicationButton
-              label={stage === "needs_update" ? "Edit & resubmit" : ctaLabel}
-            />
+            <>
+              <StartApplicationButton
+                label={stage === "needs_update" ? "Edit & resubmit" : ctaLabel}
+                variant={draft.started && canSubmit ? "secondary" : "primary"}
+              />
+              {/* Only once there's something to send — a disabled Submit on an */}
+              {/* untouched application is noise. */}
+              {draft.started && (
+                <SubmitForApprovalButton
+                  data={d}
+                  canSubmit={canSubmit}
+                  missing={missingForSubmit}
+                />
+              )}
+            </>
           ) : (
             <Link
               href="/directory"
@@ -348,6 +384,16 @@ export default async function ApplicantOverviewPage({
             </Link>
           )}
         </div>
+
+        {/* Why Submit is disabled. Sits below the row rather than under the
+            button so it can't knock the buttons out of alignment. */}
+        {editable && draft.started && !canSubmit && missingForSubmit.length > 0 && (
+          <p className="mt-3 text-xs text-pasha-muted">
+            <span className="font-medium text-pasha-ink">To submit, still needed:</span>{" "}
+            {missingForSubmit.slice(0, 5).join(", ")}
+            {missingForSubmit.length > 5 ? ` +${missingForSubmit.length - 5} more` : ""}.
+          </p>
+        )}
       </div>
 
       {/* Badges (spec §13) — earned + how to earn the rest */}

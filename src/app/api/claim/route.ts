@@ -9,6 +9,7 @@ import { provisionApplicantAuthUser, resetApplicantPassword } from "@/lib/auth/a
 import { generatePassword } from "@/lib/committee/committee-invite";
 import { sendClaimCredentials } from "@/lib/startups/claim/claim-invite";
 import { seedClaimedApplication } from "@/lib/startups/claim/seed-application.server";
+import { verifyCaptcha } from "@/lib/auth/captcha";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -118,6 +119,21 @@ async function postHandler(req: NextRequest) {
   if (body?.action === "start") {
     const parsed = startSchema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+
+    // Bot gate. This action mails a code to whatever address it's handed, so
+    // without it the endpoint is an open relay for spamming third parties —
+    // and a successful claim provisions a real account. Gated before the
+    // profile lookup so an unsolved challenge can't be used to probe which
+    // databank ids exist. `verify` is left alone: it's already bounded by
+    // MAX_ATTEMPTS against a code this same gate had to be passed to issue.
+    const captcha = await verifyCaptcha(body?.captchaToken, req);
+    if (!captcha.ok) {
+      return NextResponse.json(
+        { error: captcha.error, captcha: true },
+        { status: captcha.status }
+      );
+    }
+
     const { databankId, email } = parsed.data;
     const addr = email.toLowerCase();
 

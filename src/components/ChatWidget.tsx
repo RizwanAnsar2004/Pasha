@@ -1,5 +1,6 @@
 "use client";
 import { api, ApiError } from "@/lib/api/client";
+import { getChatSessionId } from "@/lib/ai/chat-session";
 
 // Floating chat widget wired to Kai, the PASHA RAG assistant (/api/chat).
 
@@ -90,7 +91,12 @@ export function ChatWidget() {
     setLoading(true);
 
     try {
-      const data = await api.post<{ answer?: string }>("/api/chat", { question: text });
+      // Created on first send and reused for the rest of the tab's session —
+      // it's the key the RAG service rate-limits on.
+      const data = await api.post<{ answer?: string }>("/api/chat", {
+        question: text,
+        sessionId: getChatSessionId(),
+      });
       const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } catch (e) {

@@ -62,8 +62,17 @@ export function deriveStage(input: {
   pashaVerified?: boolean;
   featuredActive?: boolean;
 }): WorkflowStage {
-  if (!input.submitted) return "draft";
   const status = (input.status ?? "submitted").toLowerCase();
+
+  // "Needs Update" hands the application back to the applicant by clearing
+  // submitted_at — but the stage must survive that, or they'd see a plain
+  // "Draft" card with the committee's notes hidden and no resubmit CTA.
+  //
+  // Rejection is deliberately NOT treated the same way. Reapplying also clears
+  // submitted_at while leaving status "rejected", and keying off the submission
+  // row there left the stage pinned to "rejected" so the Reapply button never
+  // unmounted. An unsubmitted rejection is a fresh editable draft.
+  if (!input.submitted) return status === "needs_update" ? "needs_update" : "draft";
 
   if (status === "rejected") return "rejected";
   if (status === "needs_update") return "needs_update";

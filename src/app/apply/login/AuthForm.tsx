@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState, Suspense } from "react";
+import { useMemo, useRef, useState, Suspense } from "react";
+import {
+  CaptchaWidget,
+  captchaConfigured,
+  type CaptchaHandle,
+} from "@/components/auth/CaptchaWidget";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api, ApiError, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
@@ -69,6 +74,10 @@ function AuthInner({
   const [needsVerify, setNeedsVerify] = useState(false);
   // When registration is rejected because the email is already taken (409).
   const [accountExists, setAccountExists] = useState(false);
+  // Bot challenge. One widget serves every screen (login / register / forgot),
+  // mounted below the card body so switching screens doesn't re-challenge.
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
     sp.get("error") === "admin"
       ? "You're signed in with a committee/admin account, which can't be used to apply. Sign out of the admin portal, or sign in with a separate applicant account below."
@@ -98,6 +107,34 @@ function AuthInner({
   const isRegister = mode === "register";
   const isRegistrationStep =
     screen === "form" && isRegister && regStep === 2 && hasRegForm;
+
+  // Rendered directly above whichever submit button is on screen. Declared here,
+  // ahead of the screen consts that use it, because those are plain `const`s
+  // evaluated in order — referencing this from `forgotScreen` while it was
+  // declared further down was a temporal-dead-zone crash.
+  //
+  // The screens are mutually exclusive, so only one instance is ever mounted and
+  // `captchaRef` always points at the live widget.
+  //
+  // Visible wherever a real submit happens. The one exception is sign-up step 1
+  // (email + password → Continue), which only probes whether the address
+  // exists: the challenge runs silently there so the funnel stays clean, then
+  // shows itself on step 2 where the account is actually created. With no
+  // registration form configured there is no step 2, so step 1 is the create
+  // step and stays visible. The server verifies the token identically either
+  // way — only the presentation changes.
+  const captchaNode = (
+    <CaptchaWidget
+      ref={captchaRef}
+      onToken={setCaptchaToken}
+      appearance={
+        screen === "form" && isRegister && regStep === 1 && hasRegForm
+          ? "interaction-only"
+          : "always"
+      }
+      className="flex justify-center"
+    />
+  );
 
   function registrationFieldSpan(field: FormFieldConfig) {
     if (
@@ -138,11 +175,32 @@ function AuthInner({
   }
 
   async function postAuth(payload: Record<string, unknown>) {
-    type AuthResp = { error?: string; exists?: boolean; needsVerification?: boolean };
+    type AuthResp = {
+      error?: string;
+      exists?: boolean;
+      needsVerification?: boolean;
+      captcha?: boolean;
+    };
+    // `check` runs while the applicant is still typing their email, before
+    // there's any challenge to solve — the server exempts it for the same
+    // reason.
+    const needsCaptcha = payload.action !== "check";
+    const body = needsCaptcha ? { ...payload, captchaToken } : payload;
+
+    // Turnstile tokens are single-use, so whatever the outcome, the one we just
+    // sent is spent. Re-arm for the next attempt.
+    const rearm = () => {
+      if (!needsCaptcha || !captchaConfigured) return;
+      setCaptchaToken(null);
+      captchaRef.current?.reset();
+    };
+
     try {
-      const j = await api.post<AuthResp>(ENDPOINTS.applicant.auth, payload);
+      const j = await api.post<AuthResp>(ENDPOINTS.applicant.auth, body);
+      rearm();
       return { res: { ok: true, status: 200 }, j };
     } catch (e) {
+      rearm();
       if (e instanceof ApiError) return { res: { ok: false, status: e.status }, j: e.data as AuthResp };
       return { res: { ok: false, status: 0 }, j: { error: apiErrorMessage(e) } as AuthResp };
     }
@@ -415,6 +473,7 @@ function AuthInner({
               <span>{error}</span>
             </div>
           )}
+          {captchaNode}
           <button
             type="submit"
             disabled={loading}
@@ -592,6 +651,7 @@ function AuthInner({
               />
               <div className="sm:col-span-2 space-y-4">
                 {errorBlock}
+                {captchaNode}
                 <button
                 type="button"
                 disabled={loading}
@@ -635,6 +695,7 @@ function AuthInner({
         >
           {accountFields}
           {errorBlock}
+          {captchaNode}
           <button
             type="submit"
             disabled={loading}

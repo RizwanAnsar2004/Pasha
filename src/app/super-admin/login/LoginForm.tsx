@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import {
+  CaptchaWidget,
+  captchaConfigured,
+  type CaptchaHandle,
+} from "@/components/auth/CaptchaWidget";
 
 export function SuperAdminLoginForm() {
   const router = useRouter();
@@ -13,17 +18,24 @@ export function SuperAdminLoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await api.post(ENDPOINTS.superAdmin.auth, { email, password });
+      await api.post(ENDPOINTS.superAdmin.auth, { email, password, captchaToken });
       router.replace("/super-admin");
     } catch (e) {
       setError(apiErrorMessage(e, "Sign-in failed"));
     } finally {
+      // Turnstile tokens are single-use — re-arm for the next attempt.
+      if (captchaConfigured) {
+        setCaptchaToken(null);
+        captchaRef.current?.reset();
+      }
       setLoading(false);
     }
   }
@@ -76,6 +88,11 @@ export function SuperAdminLoginForm() {
                 <span>{error}</span>
               </div>
             )}
+            <CaptchaWidget
+              ref={captchaRef}
+              onToken={setCaptchaToken}
+              className="flex justify-center"
+            />
             <button
               type="submit"
               disabled={loading}

@@ -24,6 +24,29 @@ async function postHandler(req: Request) {
       );
     }
 
+    // An application that's with the committee is locked. The draft PUT already
+    // 409s on autosave, but submitting rewrites the submission row in place —
+    // so without this guard a direct POST could edit an under-review
+    // application (and reset its reviewed_at). Only a reopen lets them back in:
+    // admin "Needs Update" and reapply-after-rejection both clear submitted_at.
+    const supabase = createServiceClient();
+    const { data: existingDraft } = await supabase
+      .from("application_drafts")
+      .select("submission_id, submitted_at")
+      .eq("user_id", user.id)
+      .maybeSingle<{ submission_id: string | null; submitted_at: string | null }>();
+
+    if (existingDraft?.submitted_at) {
+      return NextResponse.json(
+        {
+          error:
+            "Your application is already with the committee for review and can't be edited.",
+        },
+        { status: 409 }
+      );
+    }
+    const existingSubmissionId = existingDraft?.submission_id ?? null;
+
     let body: unknown;
     try {
       body = await req.json();
@@ -114,8 +137,6 @@ async function postHandler(req: Request) {
       headers.get("x-real-ip") ??
       null;
     const ua = headers.get("user-agent") ?? null;
-
-    const supabase = createServiceClient();
 
     // Columns that may not exist if a migration hasn't been applied yet.
     const V2_COLUMNS = [
@@ -226,14 +247,8 @@ async function postHandler(req: Request) {
       user_agent: ua,
     };
 
-    // Resubmission: if this applicant already has a submission (e.g.
-    const { data: existingDraft } = await supabase
-      .from("application_drafts")
-      .select("submission_id")
-      .eq("user_id", user.id)
-      .maybeSingle<{ submission_id: string | null }>();
-    const existingSubmissionId = existingDraft?.submission_id ?? null;
-
+    // Resubmission: a reopened application (Needs Update / reapply) keeps its
+    // submission_id, so it's updated in place rather than inserted again.
     record.status = "submitted";
     if (existingSubmissionId) {
       record.reviewed_at = null;

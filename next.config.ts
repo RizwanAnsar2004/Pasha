@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const SUPABASE_HOST = "ftekdhipoqvbftfybvwz.supabase.co";
 
+// Cloudflare Turnstile (bot challenge on the auth forms). Needs three
+// directives, not one: it loads api.js (script-src), renders the challenge in
+// an iframe (frame-src), and calls back to Cloudflare to issue the token
+// (connect-src). Miss any of them and the widget fails to appear, with the
+// browser reporting only a generic script/frame block.
+const TURNSTILE_HOST = "https://challenges.cloudflare.com";
+
 // Content-Security-Policy designed for: Next.js (inline scripts for hydration),
 // Supabase REST/Storage/Realtime, and self-hosted assets.
 const csp = [
@@ -9,7 +16,7 @@ const csp = [
   // Next inlines hydration scripts. 'unsafe-inline' is required for the
   // bootstrap; consider nonce-based CSP later if we need stricter.
   // Google Analytics (gtag.js) loads from googletagmanager.com.
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://www.googletagmanager.com ${TURNSTILE_HOST}`,
   // canvas-confetti renders via a blob: Web Worker when available (falls back
   // to the main thread otherwise) — without this, worker-src falls back to
   // script-src, which doesn't allow blob:, so the browser blocks it.
@@ -21,11 +28,11 @@ const csp = [
   `img-src 'self' data: blob: https://${SUPABASE_HOST} https://*.google-analytics.com https://*.googletagmanager.com`,
   // Supabase REST/Realtime plus GA4's data-collection endpoints (it POSTs hits
   // to region-specific *.google-analytics.com / *.analytics.google.com hosts).
-  `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com`,
+  `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com ${TURNSTILE_HOST}`,
   `frame-ancestors 'none'`,
   // The contact page embeds the Secretariat location as a Google Maps iframe;
   // without this, default-src 'self' blocks it.
-  `frame-src https://www.google.com https://maps.google.com`,
+  `frame-src https://www.google.com https://maps.google.com ${TURNSTILE_HOST}`,
   `object-src 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,

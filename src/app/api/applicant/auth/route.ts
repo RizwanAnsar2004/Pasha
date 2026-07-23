@@ -12,9 +12,15 @@ import {
   applicantEmailError,
   applicantPasswordError,
 } from "@/lib/auth/applicant/applicant-password";
+import { verifyCaptcha } from "@/lib/auth/captcha";
 
 // Bump when the terms / privacy / data-usage agreement changes (spec §3 asks us to record which policy version the applicant consented to).
 const CONSENT_VERSION = "2026-06-16";
+
+// Actions that must clear a captcha. `check` is exempt on purpose: it fires
+// while the applicant is still typing their email in signup step 1, long before
+// there's a challenge to solve, and gating it would stall the form.
+const CAPTCHA_ACTIONS = new Set(["register", "login", "forgot", "resend"]);
 
 // Applicant sign-up / sign-in. Separate from the committee portal
 export async function POST(req: NextRequest) {
@@ -23,6 +29,7 @@ export async function POST(req: NextRequest) {
     email?: string;
     password?: string;
     profile?: Record<string, unknown>;
+    captchaToken?: string;
   };
   try {
     body = await req.json();
@@ -52,6 +59,19 @@ export async function POST(req: NextRequest) {
   }
   if (action !== "resend" && action !== "check" && action !== "forgot" && !password) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
+  }
+
+  // Bot gate, before anything that costs a database round-trip or an email.
+  // `captcha: true` tells the client to reset its widget — Turnstile tokens are
+  // single-use, so a retry with the same one would fail on its own.
+  if (CAPTCHA_ACTIONS.has(action)) {
+    const captcha = await verifyCaptcha(body.captchaToken, req);
+    if (!captcha.ok) {
+      return NextResponse.json(
+        { error: captcha.error, captcha: true },
+        { status: captcha.status }
+      );
+    }
   }
 
   // Admins belong in the committee portal — keep the audiences separate. Answer exactly as
