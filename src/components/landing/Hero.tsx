@@ -20,6 +20,7 @@ type Slide = {
   primaryExternal?: boolean;
   secondaryHref: string;
   secondaryLabel: string;
+  secondaryExternal?: boolean;
   tabNumber: string;
   tabTitle: string;
 };
@@ -55,6 +56,7 @@ const SLIDES: Slide[] = [
     primaryExternal: true,
     secondaryHref: "https://pashaictawards.com",
     secondaryLabel: "Visit Website",
+    secondaryExternal: true,
     tabNumber: "02",
     tabTitle: "ICT Awards",
   },
@@ -182,7 +184,7 @@ export function Hero() {
                     <a
                       className={`${styles["hero-photo-button"]} ${styles["hero-photo-button-primary"]}`}
                       href={slide.primaryHref}
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       target="_blank"
                     >
                       {primaryButton}
@@ -205,6 +207,9 @@ export function Hero() {
                   <a
                     className={`${styles["hero-photo-button"]} ${styles["hero-photo-button-ghost"]}`}
                     href={slide.secondaryHref}
+                    {...(slide.secondaryExternal
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                   >
                     {slide.secondaryLabel}
                   </a>

@@ -101,7 +101,7 @@ export default async function Home() {
         <JoinCTA />
         <Ecosystem />
         {/* <NewsCarousel /> */}
-        <UpcomingEvents events={upcomingEvents} />
+        {/* <UpcomingEvents events={upcomingEvents} /> */}
         <FAQ />
         <CTA />
       </main>

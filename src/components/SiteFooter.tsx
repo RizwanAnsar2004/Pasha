@@ -30,7 +30,16 @@ export function SiteFooter() {
             <h4 className="font-mono text-[11px] uppercase tracking-[2px] text-white/40 mb-4">Explore</h4>
             <ul className="space-y-3 text-sm text-white/65">
               <li><Link href="/directory" className="hover:text-white transition-colors">Directory</Link></li>
-              <li><Link href="/#awards" className="hover:text-white transition-colors">Awards</Link></li>
+              <li>
+                <a
+                  href="https://pashaictawards.com/award-categories/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  Awards
+                </a>
+              </li>
               <li><Link href="/events" className="hover:text-white transition-colors">Events</Link></li>
               <li><Link href="/#faq" className="hover:text-white transition-colors">FAQs</Link></li>
             </ul>
