@@ -67,8 +67,33 @@ export function DynamicForm({
     const max = Math.max(0, steps.length - 1);
     return Math.min(Math.max(0, initialStep), max);
   }); // index into `steps`
+
+  // Furthest step index whose fields already hold saved values. On a resumed
+  // draft (e.g. after re-login) the server's `current_step` can be 0 while the
+  // data spans several steps — without this, the stepper would only unlock up
+  // to `current_step` and every already-filled step ahead would stay disabled.
+  const initialMaxFilledStep = useMemo(() => {
+    const data = initialValues;
+    if (!data) return 0;
+    const hasValue = (v: unknown) =>
+      Array.isArray(v)
+        ? v.length > 0
+        : v !== undefined && v !== null && v !== "";
+    let furthest = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const filled = stepFieldKeys(config, steps[i]).some((k) => hasValue(data[k]));
+      if (filled) furthest = i;
+    }
+    return furthest;
+  }, [config, steps, initialValues]);
+
   // Furthest step the user has reached, so the stepper can jump forward to any already-visited step (not just strictly-earlier ones).
-  const [maxStepReached, setMaxStepReached] = useState(stepIdx);
+  const [maxStepReached, setMaxStepReached] = useState(() =>
+    Math.max(
+      Math.min(Math.max(0, initialStep), Math.max(0, steps.length - 1)),
+      initialMaxFilledStep
+    )
+  );
   const [submitting, setSubmitting] = useState(false);
   // Explicit "Save" is separate from `submitting` — saving leaves the applicant
   // on the form, submitting navigates away.

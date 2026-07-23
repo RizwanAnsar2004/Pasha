@@ -134,10 +134,25 @@ export default async function ApplicantOverviewPage({
   // The form is editable while the applicant owns it: never submitted, or the committee reopened it for changes (Needs Update resets submitted_at).
   const editable = !draft.submitted;
 
-  // §12 completion ladder, from the saved draft values.
+  // §12 completion ladder, from the saved draft values. Used for the milestone
+  // chips + next-level hint.
   const completion = computeCompletion(draft.data, config ? fieldLabelMap(config) : undefined);
   // Dashboard modules mirror the application's actual steps (title + subtitle + per-step progress) so they stay in sync with the form builder.
   const modules = config ? computeFormModules(config, draft.data) : [];
+
+  // Headline "Profile complete" percent. When a form config exists, base it on
+  // the SAME field universe the per-section cards count — otherwise the ladder's
+  // curated 24-field percent could read 100% while section cards still show
+  // empty fields (e.g. Documents 2/7). Falls back to the ladder percent only
+  // when there's no config to count against.
+  const moduleTotals = modules.reduce(
+    (acc, m) => ({ filled: acc.filled + m.filled, total: acc.total + m.total }),
+    { filled: 0, total: 0 }
+  );
+  const overallPercent =
+    moduleTotals.total > 0
+      ? Math.round((moduleTotals.filled / moduleTotals.total) * 100)
+      : completion.percent;
 
   // Would the saved draft pass submission today? Uses the exact schema
   // /api/submit enforces, so the dashboard's Submit button can never disagree
@@ -294,7 +309,7 @@ export default async function ApplicantOverviewPage({
           </div>
           <div className="text-right shrink-0">
             <div className="font-serif text-4xl text-pasha-ink tabular-nums leading-none">
-              {completion.percent}%
+              {overallPercent}%
             </div>
             <div className="mt-1 font-mono text-[10px] uppercase tracking-[2px] text-pasha-red">
               Profile complete
@@ -311,7 +326,7 @@ export default async function ApplicantOverviewPage({
         ) : null}
 
         <div className="mt-5 h-2 rounded-full bg-pasha-line/60 overflow-hidden">
-          <div className="h-full rounded-full bg-pasha-red transition-all" style={{ width: `${completion.percent}%` }} />
+          <div className="h-full rounded-full bg-pasha-red transition-all" style={{ width: `${overallPercent}%` }} />
         </div>
 
         {/* Level milestones — the highlighted chip is the current completion level */}

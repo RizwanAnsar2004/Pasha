@@ -122,7 +122,7 @@ export function DynamicField({
     case InputType.RICH_TEXT:
       return (
         <Field label={label} hint={hint} required={required} error={error}>
-          <RichTextField name={path} />
+          <RichTextField name={path} maxLength={field.validation?.maxLength} />
         </Field>
       );
 

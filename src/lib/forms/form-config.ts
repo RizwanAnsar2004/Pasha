@@ -153,7 +153,7 @@ function makeRequiredString(
 }
 
 // Collapse an HTML fragment (CKEditor stores HTML) down to its visible text so
-function htmlToPlainText(html: string): string {
+export function htmlToPlainText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, " ")
     .replace(/<\/(p|div|li|h[1-6]|tr|blockquote|td|th)>/gi, " ")
