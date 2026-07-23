@@ -37,7 +37,7 @@ export function Manifesto() {
         <div className="mt-14 sm:mt-20 grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-24 items-start">
           <Reveal
             delay={0.05}
-            className="relative flex min-h-[320px] sm:min-h-[420px] lg:min-h-[510px] flex-col justify-between overflow-hidden rounded-2xl bg-pasha-ink p-8 sm:p-10"
+            className="relative flex min-h-[320px] sm:min-h-[420px] lg:min-h-[510px] flex-col justify-start gap-5 overflow-hidden rounded-2xl bg-pasha-ink p-8 sm:p-10"
           >
             <div aria-hidden className="absolute inset-0">
               <div className="absolute inset-0 bg-gradient-to-br from-pasha-red/25 via-transparent to-accent-teal/25" />

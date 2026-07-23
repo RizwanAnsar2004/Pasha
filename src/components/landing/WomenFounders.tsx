@@ -31,7 +31,7 @@ function ProfileCard({ startup, avatarTint }: { startup: WomenLedStartup; avatar
         >
           {safe ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={safe} alt="" loading="lazy" className="h-full w-full object-contain p-1.5" />
+            <img src={safe} alt="" loading="lazy" className="h-full w-full object-contain" />
           ) : (
             <span aria-hidden>{initials(startup.startup_name)}</span>
           )}

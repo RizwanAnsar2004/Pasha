@@ -37,7 +37,7 @@ function CardLogo({ src, name }: { src?: string | null; name: string; dark?: boo
   const [errored, setErrored] = useState(false);
   const showImage = safe && !errored;
   return (
-    <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[22px] bg-white p-2.5 font-bold text-base text-pasha-ink shadow-sm">
+    <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-[22px] border border-pasha-ink/[0.06] bg-white font-bold text-base text-pasha-ink shadow-sm">
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -63,7 +63,7 @@ function SpotlightLogo({ src, name }: { src?: string | null; name: string }) {
   const [errored, setErrored] = useState(false);
   const showImage = safe && !errored;
   return (
-    <div className="relative z-10 grid h-32 w-32 place-items-center overflow-hidden rounded-full bg-white p-4 font-bold text-2xl text-pasha-ink shadow-xl">
+    <div className="relative z-10 grid h-32 w-32 place-items-center overflow-hidden rounded-full border border-pasha-ink/[0.06] bg-white font-bold text-2xl text-pasha-ink shadow-xl">
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

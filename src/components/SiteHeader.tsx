@@ -14,6 +14,7 @@ const MENU_LINKS = [
   { label: "Home", href: "/" },
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
+  { label: "Committee", href: "/committee" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Join the Hub", href: "/apply" },
