@@ -7,6 +7,7 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, ImageIcon, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageCropper, type CropShape } from "./ImageCropper";
 
 export type UploadBucket = "logos" | "founder-photos" | "pitch-decks";
 
@@ -19,6 +20,9 @@ export function FileUpload({
   label,
   hint,
   fieldKey,
+  // Logos and founder photos are both shown in square frames today.
+  cropAspect = bucket === "pitch-decks" ? null : 1,
+  cropShape = "square",
 }: {
   bucket: UploadBucket;
   value?: string;
@@ -30,15 +34,21 @@ export function FileUpload({
   // form_config field_key, when this upload belongs to a builder-defined field.
   // Lets the API enforce that field's own `accept` list, not just the bucket's.
   fieldKey?: string;
+  // Aspect ratio (width / height) the image is displayed at. Set to show the
+  // crop step; null skips it. Defaults to 1 for the image buckets, which every
+  // current surface renders as a square.
+  cropAspect?: number | null;
+  // Circular crop overlay — for avatars rendered in a round frame.
+  cropShape?: CropShape;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  // File awaiting a crop. Set when an image is picked and cropping is enabled.
+  const [pendingCrop, setPendingCrop] = useState<File | null>(null);
 
-  const onDrop = useCallback(
-    async (files: File[]) => {
-      const file = files[0];
-      if (!file) return;
+  const upload = useCallback(
+    async (file: File) => {
       setError(null);
       setUploading(true);
       setFileName(file.name);
@@ -71,6 +81,23 @@ export function FileUpload({
     [bucket, fieldKey, onChange]
   );
 
+  const onDrop = useCallback(
+    (files: File[]) => {
+      const file = files[0];
+      if (!file) return;
+      // Route images through the cropper so the applicant frames the exact area
+      // that gets displayed, instead of object-cover guessing for them.
+      // SVGs are vector and have no pixels to crop.
+      if (cropAspect && file.type.startsWith("image/") && file.type !== "image/svg+xml") {
+        setError(null);
+        setPendingCrop(file);
+        return;
+      }
+      void upload(file);
+    },
+    [cropAspect, upload]
+  );
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept,
@@ -83,6 +110,19 @@ export function FileUpload({
 
   return (
     <div>
+      {pendingCrop && cropAspect ? (
+        <ImageCropper
+          file={pendingCrop}
+          aspect={cropAspect}
+          shape={cropShape}
+          onCancel={() => setPendingCrop(null)}
+          onCropped={(cropped) => {
+            setPendingCrop(null);
+            void upload(cropped);
+          }}
+        />
+      ) : null}
+
       <AnimatePresence mode="wait">
         {value ? (
           <motion.div

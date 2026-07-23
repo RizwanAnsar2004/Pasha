@@ -10,6 +10,8 @@ import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Pagination } from "../_components/Pagination";
 import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
+import { FileUpload } from "@/components/form/FileUpload";
+import { MemberAvatar } from "@/components/committee/MemberAvatar";
 import type { MemberRow } from "./page";
 import {
   COMMITTEE_MEMBER_TYPES,
@@ -69,12 +71,14 @@ export function CommitteeManagementClient({
   const [roles, setRoles] = useState("");
   const [org, setOrg] = useState("");
   const [type, setType] = useState<CommitteeMemberType>("member");
+  const [photoUrl, setPhotoUrl] = useState<string>("");
   const [adding, setAdding] = useState(false);
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState("");
   const [editOrg, setEditOrg] = useState("");
   const [editType, setEditType] = useState<CommitteeMemberType>("member");
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string>("");
   const [savingEmail, setSavingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export function CommitteeManagementClient({
     setEditRoles(row.roles ?? "");
     setEditOrg(row.org ?? "");
     setEditType(row.type);
+    setEditPhotoUrl(row.photo_url ?? "");
     setError(null);
     setSuccess(null);
   }
@@ -122,6 +127,7 @@ export function CommitteeManagementClient({
         roles: editRoles.trim() || undefined,
         org: editOrg.trim(),
         type: editType,
+        photo_url: editPhotoUrl,
       });
       setRows((prev) => prev.map((r) => (r.email === targetEmail ? j.member : r)));
       setSuccess(`Updated ${targetEmail}.`);
@@ -145,6 +151,7 @@ export function CommitteeManagementClient({
         roles: roles.trim() || undefined,
         org: org.trim() || undefined,
         type,
+        photo_url: photoUrl || undefined,
       });
       if (j.emailed) {
         setSuccess(`Added ${j.email}. Their login email, role, and password have been emailed to them.`);
@@ -161,6 +168,7 @@ export function CommitteeManagementClient({
       setRoles("");
       setOrg("");
       setType("member");
+      setPhotoUrl("");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add committee member");
@@ -267,6 +275,20 @@ export function CommitteeManagementClient({
               options={TYPE_OPTIONS}
             />
           </div>
+          <div className="max-w-sm">
+            <p className="mb-1.5 text-xs font-medium text-pasha-ink">
+              Photo <span className="text-pasha-muted">(optional)</span>
+            </p>
+            <FileUpload
+              bucket="founder-photos"
+              value={photoUrl || undefined}
+              onChange={(url) => setPhotoUrl(url ?? "")}
+              accept={{ "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/webp": [".webp"] }}
+              maxSizeMB={4}
+              label="Drop headshot or click to upload"
+              hint="Square works best. Shown on the public committee and about pages."
+            />
+          </div>
           <p className="text-xs text-pasha-muted">
             A password is generated automatically and emailed to the member with their sign-in email and role.
           </p>
@@ -329,7 +351,15 @@ export function CommitteeManagementClient({
                   className="border-b border-pasha-line/60 last:border-0 hover:bg-pasha-stone/40"
                 >
                   <Td>
-                    <span className="font-medium text-pasha-ink">{r.name || "—"}</span>
+                    <span className="flex items-center gap-3">
+                      <MemberAvatar
+                        name={r.name || r.email}
+                        photoUrl={r.photo_url}
+                        size="w-9 h-9"
+                        rounded="rounded-lg"
+                      />
+                      <span className="font-medium text-pasha-ink">{r.name || "—"}</span>
+                    </span>
                   </Td>
                   <Td>
                     <span className="text-pasha-muted">{r.email}</span>
@@ -509,6 +539,17 @@ export function CommitteeManagementClient({
                         />
                       </Field>
                     </div>
+                    <Field label="Photo (optional)">
+                      <FileUpload
+                        bucket="founder-photos"
+                        value={editPhotoUrl || undefined}
+                        onChange={(url) => setEditPhotoUrl(url ?? "")}
+                        accept={{ "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/webp": [".webp"] }}
+                        maxSizeMB={4}
+                        label="Drop headshot or click to upload"
+                        hint="Square works best. Shown on the public committee and about pages."
+                      />
+                    </Field>
                     <p className="text-xs text-pasha-muted">
                       The email address is the member&rsquo;s sign-in identity and
                       can&rsquo;t be changed here. Remove and re-add the member to

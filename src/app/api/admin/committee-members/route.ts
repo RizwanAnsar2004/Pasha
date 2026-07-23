@@ -18,6 +18,8 @@ const addSchema = z.object({
   roles: z.string().max(200).optional(),
   org: z.string().max(200).optional(),
   type: memberTypeSchema.optional(),
+  // Optional headshot URL from /api/upload. "" clears it.
+  photo_url: z.string().max(2000).optional(),
 });
 
 const patchSchema = z.object({
@@ -26,13 +28,16 @@ const patchSchema = z.object({
   roles: z.string().max(200).optional(),
   org: z.string().max(200).optional(),
   type: memberTypeSchema.optional(),
+  // Optional headshot URL from /api/upload. "" clears it.
+  photo_url: z.string().max(2000).optional(),
 });
 
 const removeSchema = z.object({
   email: z.string().email(),
 });
 
-const MEMBER_COLS = "email, added_at, added_by, notes, org, member_type, name";
+const MEMBER_COLS =
+  "email, added_at, added_by, notes, org, member_type, name, photo_url";
 
 function mapMember(m: Record<string, unknown>) {
   return {
@@ -43,6 +48,7 @@ function mapMember(m: Record<string, unknown>) {
     roles: m.notes,
     org: m.org ?? "",
     type: m.member_type ?? "member",
+    photo_url: (m.photo_url as string | null) ?? "",
   };
 }
 
@@ -147,6 +153,7 @@ async function postHandler(req: Request) {
         notes: roles,
         org,
         member_type: memberType,
+        photo_url: parsed.data.photo_url?.trim() || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "email" }
@@ -222,6 +229,9 @@ async function patchHandler(req: Request) {
   if (parsed.data.roles !== undefined) updates.notes = parsed.data.roles.trim() || null;
   if (parsed.data.org !== undefined) updates.org = parsed.data.org.trim();
   if (parsed.data.type !== undefined) updates.member_type = parsed.data.type;
+  if (parsed.data.photo_url !== undefined) {
+    updates.photo_url = parsed.data.photo_url.trim() || null;
+  }
   updates.updated_at = new Date().toISOString();
 
   const { data, error: updErr } = await supabase

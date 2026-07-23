@@ -14,6 +14,8 @@ export type MemberRow = {
   roles: string | null;
   org: string;
   type: CommitteeMemberType;
+  // Optional headshot, shown on the public committee/about rosters.
+  photo_url: string;
 };
 
 function normalizeType(v: unknown): CommitteeMemberType {
@@ -28,7 +30,7 @@ async function loadMembers(
   const supabase = createServiceClient();
   let query = supabase
     .from("admin_users")
-    .select("email, name, added_at, added_by, notes, org, member_type", { count: "exact" });
+    .select("email, name, added_at, added_by, notes, org, member_type, photo_url", { count: "exact" });
   if (q.length >= 1) {
     const pattern = `%${q}%`;
     query = query.or(
@@ -52,6 +54,7 @@ async function loadMembers(
     roles: m.notes,
     org: m.org ?? "",
     type: normalizeType(m.member_type),
+    photo_url: m.photo_url ?? "",
   })) as MemberRow[];
   return { rows, total: count ?? 0 };
 }

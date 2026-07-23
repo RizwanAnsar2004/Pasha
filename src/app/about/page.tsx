@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AboutContent } from "@/components/about/AboutContent";
+import { getCommitteeMembers } from "@/lib/committee/committee.server";
 
 export const metadata: Metadata = {
   title: "About PSEC",
@@ -17,12 +18,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AboutPage() {
+// The committee roster is admin-managed, so render fresh rather than at build.
+export const dynamic = "force-dynamic";
+
+export default async function AboutPage() {
+  const members = await getCommitteeMembers();
+
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <AboutContent />
+        <AboutContent members={members} />
       </main>
       <SiteFooter />
     </>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { initials, cn } from "@/lib/utils";
 import { Kicker } from "@/components/landing/shared/Kicker";
+import { MemberAvatar } from "@/components/committee/MemberAvatar";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import {
@@ -30,18 +32,18 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Static committee roster — source of truth for the organogram.
 const STATIC_COMMITTEE: CommitteeMemberRow[] = [
-  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          type: "chairman", added_at: "" },
-  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             type: "member", added_at: "" },
-  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            type: "member", added_at: "" },
-  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    type: "member", added_at: "" },
-  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              type: "member", added_at: "" },
-  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               type: "member", added_at: "" },
-  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      type: "member", added_at: "" },
-  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          type: "member", added_at: "" },
-  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   type: "member", added_at: "" },
-  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", type: "member", added_at: "" },
-  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            type: "member", added_at: "" },
-  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", type: "member", added_at: "" },
+  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          type: "chairman", added_at: "", photo_url: null },
+  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             type: "member", added_at: "", photo_url: null },
+  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            type: "member", added_at: "", photo_url: null },
+  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    type: "member", added_at: "", photo_url: null },
+  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              type: "member", added_at: "", photo_url: null },
+  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               type: "member", added_at: "", photo_url: null },
+  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      type: "member", added_at: "", photo_url: null },
+  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          type: "member", added_at: "", photo_url: null },
+  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   type: "member", added_at: "", photo_url: null },
+  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", type: "member", added_at: "", photo_url: null },
+  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            type: "member", added_at: "", photo_url: null },
+  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", type: "member", added_at: "", photo_url: null },
 ];
 
 const OBJECTIVES = [
@@ -80,6 +82,7 @@ function activityAuthorDisplay(email: string | null) {
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
+
 function MemberCard({
   member,
   index,
@@ -102,10 +105,12 @@ function MemberCard({
           {COMMITTEE_MEMBER_TAG}
         </span>
 
-        {/* Avatar */}
-        <div className="mt-4 w-12 h-12 rounded-2xl bg-pasha-ink/[0.07] border border-pasha-line/30 grid place-items-center font-bold text-sm text-pasha-ink/60 group-hover:bg-pasha-red/[0.09] group-hover:text-pasha-red group-hover:border-pasha-red/15 group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
-          {initials(member.name)}
-        </div>
+        {/* Avatar — uploaded headshot, or initials when none is set */}
+        <MemberAvatar
+          name={member.name}
+          photoUrl={member.photo_url}
+          className="mt-4 group-hover:scale-105"
+        />
 
         {/* Content */}
         <div className="mt-3 flex flex-col gap-0.5">
@@ -151,10 +156,16 @@ function ChairCard({ chair, index }: { chair: CommitteeMemberRow; index: number 
           <Crown className="w-3 h-3" /> Chair
         </span>
 
-        {/* Avatar */}
-        <div className="relative mt-6 w-16 h-16 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-lg text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
-          {initials(chair.name)}
-        </div>
+        {/* Avatar — uploaded headshot, or initials when none is set */}
+        {chair.photo_url ? (
+          <div className="relative mt-6 w-16 h-16 rounded-2xl overflow-hidden border border-pasha-red/15 shadow-sm shrink-0 group-hover:scale-105 transition-all duration-300">
+            <Image src={chair.photo_url} alt={chair.name} fill sizes="128px" className="object-cover" />
+          </div>
+        ) : (
+          <div className="relative mt-6 w-16 h-16 rounded-2xl bg-pasha-red/[0.08] border border-pasha-red/15 grid place-items-center font-bold text-lg text-pasha-red group-hover:bg-pasha-red/[0.14] group-hover:scale-105 transition-all duration-300 shadow-sm shrink-0">
+            {initials(chair.name)}
+          </div>
+        )}
 
         {/* Content */}
         <div className="relative mt-5 flex flex-col gap-1">

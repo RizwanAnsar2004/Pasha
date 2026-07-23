@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as RSelect from "@radix-ui/react-select";
 import * as RPopover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
@@ -29,6 +29,26 @@ function normalize(
   options: readonly (string | SelectMenuOption)[]
 ): SelectMenuOption[] {
   return options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
+}
+
+// Touch devices need different open behaviour from mouse ones: no autofocus
+// (which summons the keyboard) and a modal popover (so a scroll gesture can't
+// be read as an outside interaction). useSyncExternalStore keeps this SSR-safe
+// and avoids a setState-in-effect pass.
+const COARSE_QUERY = "(pointer: coarse)";
+
+function subscribeCoarse(cb: () => void) {
+  const mq = window.matchMedia(COARSE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function useCoarsePointer(): boolean {
+  return useSyncExternalStore(
+    subscribeCoarse,
+    () => window.matchMedia(COARSE_QUERY).matches,
+    () => false
+  );
 }
 
 // Styled, accessible select — the React-native replacement for jQuery Select2.
@@ -134,6 +154,7 @@ function SearchableSelect({
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const isTouch = useCoarsePointer();
 
   const selected = opts.find((o) => o.value === value);
 
@@ -146,10 +167,9 @@ function SearchableSelect({
     );
   }, [opts, query]);
 
-  // Keep the highlighted row in range as the filter narrows.
-  useEffect(() => {
-    setActive((a) => Math.min(a, Math.max(0, filtered.length - 1)));
-  }, [filtered.length]);
+  // Keep the highlighted row in range as the filter narrows. Clamped during
+  // render rather than in an effect, which would cost a second render pass.
+  const activeIndex = Math.min(active, Math.max(0, filtered.length - 1));
 
   const commit = (v: string) => {
     onValueChange(v);
@@ -158,6 +178,9 @@ function SearchableSelect({
 
   return (
     <RPopover.Root
+      // Modal on touch: locks body scroll while open, so a scroll gesture can't
+      // register as a pointerdown-outside and dismiss the menu mid-browse.
+      modal={isTouch}
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
@@ -192,10 +215,13 @@ function SearchableSelect({
           align="start"
           avoidCollisions
           collisionPadding={8}
-          // Focus the search box on open without Radix stealing it back.
+          // Focus the search box on open without Radix stealing it back — but
+          // never on touch, where focusing raises the on-screen keyboard and
+          // iOS zooms into the field, hiding the very list being opened. Touch
+          // users tap the search box when they actually want to type.
           onOpenAutoFocus={(e) => {
             e.preventDefault();
-            inputRef.current?.focus();
+            if (!isTouch) inputRef.current?.focus();
           }}
           // Size to the widest option rather than to the trigger: filter triggers are short ("All sectors") while their options are not ("Artificial.
           className="z-50 flex max-h-[var(--radix-popover-content-available-height)] min-w-[var(--radix-popover-trigger-width)] max-w-[min(28rem,var(--radix-popover-content-available-width))] flex-col overflow-hidden rounded-lg border border-pasha-line bg-white shadow-lg"
@@ -212,20 +238,22 @@ function SearchableSelect({
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setActive((a) => Math.min(a + 1, filtered.length - 1));
+                  setActive(Math.min(activeIndex + 1, filtered.length - 1));
                 } else if (e.key === "ArrowUp") {
                   e.preventDefault();
-                  setActive((a) => Math.max(a - 1, 0));
+                  setActive(Math.max(activeIndex - 1, 0));
                 } else if (e.key === "Enter") {
                   e.preventDefault();
-                  if (filtered[active]) commit(filtered[active].value);
+                  if (filtered[activeIndex]) commit(filtered[activeIndex].value);
                 } else if (e.key === "Escape") {
                   setOpen(false);
                 }
               }}
               placeholder="Search…"
               aria-label="Search options"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-pasha-muted"
+              // 16px on mobile: iOS Safari zooms the viewport whenever a
+              // focused input's font-size is below that. sm: restores 14px.
+              className="w-full bg-transparent text-base sm:text-sm outline-none placeholder:text-pasha-muted"
             />
           </div>
 
@@ -235,7 +263,7 @@ function SearchableSelect({
             ) : (
               filtered.map((o, i) => {
                 const isSelected = o.value === value;
-                const isActive = i === active;
+                const isActive = i === activeIndex;
                 return (
                   <div
                     key={o.value}

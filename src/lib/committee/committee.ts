@@ -36,6 +36,9 @@ export type CommitteeMemberRow = {
   org: string;
   type: CommitteeMemberType;
   added_at: string;
+  // Optional headshot set in Admin → Committee Management. Null falls back to
+  // the initials avatar.
+  photo_url: string | null;
 };
 
 export const COMMITTEE_MEMBER_TAG = "Committee Member";

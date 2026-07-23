@@ -269,6 +269,7 @@ function FoundersPhotoUploadField({ index }: { index: number }) {
   return (
     <FileUpload
       bucket="founder-photos"
+      cropShape="round"
       label="Upload photo"
       hint="Optional — square photo (JPG/PNG) up to 5MB."
       accept={{

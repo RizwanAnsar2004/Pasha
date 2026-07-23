@@ -9,7 +9,8 @@ import {
 const ACTIVITY_COLS =
   "id,title,type,description,status,author_email,created_at";
 
-const MEMBER_COLS = "email,added_at,added_by,notes,org,member_type,name";
+const MEMBER_COLS = "email,added_at,added_by,notes,org,member_type,name,photo_url";
+const MEMBER_COLS_LEGACY = "email,added_at,added_by,notes,org,member_type,name";
 
 // Only return empty for a genuinely missing table, not a missing column.
 function isMissingTable(msg: string, table: string) {
@@ -29,6 +30,7 @@ function normalizeMember(row: Record<string, unknown>): CommitteeMemberRow {
     org: String(row.org ?? "").trim(),
     type,
     added_at: String(row.added_at ?? ""),
+    photo_url: String(row.photo_url ?? "").trim() || null,
   };
 }
 
@@ -53,10 +55,20 @@ export async function getPublishedCommitteeActivities(
 // Committee members from admin_users — same records as /admin/committee-management.
 export async function getCommitteeMembers(): Promise<CommitteeMemberRow[]> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from("admin_users")
-    .select(MEMBER_COLS)
-    .order("added_at", { ascending: true });
+  const query = (cols: string) =>
+    supabase
+      .from("admin_users")
+      .select(cols)
+      .order("added_at", { ascending: true })
+      .overrideTypes<Record<string, unknown>[]>();
+
+  let { data, error } = await query(MEMBER_COLS);
+
+  // photo_url is added by a migration — until it runs, retry without it rather
+  // than failing the whole public roster over one optional column.
+  if (error && /photo_url/.test(error.message)) {
+    ({ data, error } = await query(MEMBER_COLS_LEGACY));
+  }
 
   if (error) {
     if (isMissingTable(error.message, "admin_users")) return [];

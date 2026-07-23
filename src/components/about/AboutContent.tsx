@@ -5,12 +5,15 @@ import {
   ArrowRight,
   BookOpen,
   Compass,
+  Globe2,
   ShieldCheck,
   Network,
   Mail,
   Users,
 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
+import { MemberAvatar } from "@/components/committee/MemberAvatar";
+import type { CommitteeMemberRow } from "@/lib/committee/committee";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { JoinCommunity } from "@/components/community/JoinCommunity";
@@ -20,30 +23,36 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const SECTIONS = [
   {
     num: "01",
+    icon: Globe2,
+    title: "Who PASHA is",
+    body: "P@SHA — the Pakistan Software Houses Association — was formed in 1992 by a group of software and IT companies to create a functional trade association for Pakistan's IT industry. It remains the only national IT association in the country, representing over 1,600 member companies from its headquarters in Rawalpindi and regional offices in Lahore and Karachi. Its work spans four pillars: industry engagement, government relations, global outreach, and skill development — from policy advocacy and salary surveys to trade delegations and capacity-building programs. P@SHA has won several awards at the Asia Pacific ICT Awards.",
+  },
+  {
+    num: "02",
     icon: BookOpen,
     title: "What this directory is",
     body: "A curated, vetted registry of Pakistani startups, their founders, and the investors and partners who back them. Not a noisy list — a public standard for what Pakistan's startup economy looks like.",
   },
   {
-    num: "02",
+    num: "03",
     icon: Users,
     title: "Who's eligible",
     body: "Startups across sectors — FinTech, AI, AgriTech, SaaS, HealthTech, EdTech, ClimateTech, Gaming, and more. Founders building scalable solutions with verifiable IP. Services-led companies have their own home at other PASHA committees.",
   },
   {
-    num: "03",
+    num: "04",
     icon: ShieldCheck,
     title: "How vetting works",
     body: "Five hard gates (identity, contact, working URL, founder name, description) plus ten scoring dimensions across product maturity, traction, team strength, market attractiveness, international readiness, revenue clarity, ecosystem contribution, defensibility, acquisition repeatability, and strategic fit. Total 0–50. Tiers: Featured (≥35) · Listed (25–34) · Watchlist (15–24).",
   },
   {
-    num: "04",
+    num: "05",
     icon: Network,
     title: "What you get",
     body: "Access to a curated founder network · mentorship and training programs · participation in exclusive partnerships · funding and competition referrals · directory visibility for investors and government delegations · WhatsApp + Facebook community channels for daily peer support.",
   },
   {
-    num: "05",
+    num: "06",
     icon: Mail,
     title: "Contact",
     body: "startups@pasha.org.pk",
@@ -51,7 +60,13 @@ const SECTIONS = [
   },
 ];
 
-export function AboutContent() {
+export function AboutContent({
+  members = [],
+}: {
+  // Live roster from Admin → Committee Management. Empty when none is set up,
+  // in which case the section hides itself.
+  members?: CommitteeMemberRow[];
+}) {
   return (
     <>
       {/* ────────────────────────────────────────────────────── */}
@@ -76,9 +91,10 @@ export function AboutContent() {
               PASHA Startup <span className="text-pasha-red-light">Directory.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
-              The Pakistan Software Houses Association (PASHA) maintains the
-              country&apos;s curated directory of Pakistani startups, founders,
-              investors, and ecosystem enablers.
+              A curated directory of Pakistani startups, founders, investors, and
+              ecosystem enablers — stewarded by the Pakistan Software Houses
+              Association (P@SHA), the country&apos;s only national IT association,
+              representing 1,600+ member companies since 1992.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/10">
@@ -110,7 +126,7 @@ export function AboutContent() {
           >
             <Kicker>The handbook</Kicker>
             <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
-              §1–5
+              §1–6
             </span>
           </motion.div>
 
@@ -140,8 +156,80 @@ export function AboutContent() {
       </section>
 
       {/* ────────────────────────────────────────────────────── */}
+      <CommitteeRoster members={members} />
+
+      {/* ────────────────────────────────────────────────────── */}
       <JoinCommunity />
     </>
+  );
+}
+
+// The committee behind the Hub — chair first, then members. Mirrors the roster
+// on /committee, sharing its avatar component so photos and initials-fallbacks
+// stay consistent between the two pages.
+function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
+  const roster = members.filter((m) => m.type === "chairman" || m.type === "member");
+  if (roster.length === 0) return null;
+
+  // Chair(s) lead the grid.
+  const ordered = [
+    ...roster.filter((m) => m.type === "chairman"),
+    ...roster.filter((m) => m.type !== "chairman"),
+  ];
+
+  return (
+    <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
+      <div className="mx-auto max-w-4xl px-4 sm:px-8">
+        {/* Header matches the handbook section above it */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="flex items-center gap-3 mb-12 pb-4 border-b border-pasha-ink/10"
+        >
+          <Kicker>The committee</Kicker>
+          <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
+            {ordered.length} members
+          </span>
+        </motion.div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {ordered.map((member, i) => (
+            <motion.div
+              key={member.email}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.45, delay: (i % 2) * 0.05, ease: EASE }}
+              className="group flex items-start gap-4 rounded-xl border border-pasha-ink/10 bg-white p-4 transition-colors hover:border-pasha-red/25"
+            >
+              <MemberAvatar name={member.name} photoUrl={member.photo_url} />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-serif text-[15px] leading-snug text-pasha-ink transition-colors group-hover:text-pasha-red">
+                  {member.name}
+                </h3>
+                {member.type === "chairman" && (
+                  <span className="mt-1 inline-flex items-center rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
+                    Chair
+                  </span>
+                )}
+                {member.role && (
+                  <p className="mt-1 text-[11px] font-semibold text-pasha-red/70">
+                    {member.role}
+                  </p>
+                )}
+                {member.org && (
+                  <p className="mt-0.5 truncate text-[11px] text-pasha-muted/70">
+                    {member.org}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
