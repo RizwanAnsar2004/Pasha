@@ -180,7 +180,8 @@ export function DynamicField({
             bucket={v.bucket ?? "logos"}
             fieldKey={field.field_key}
             label={field.placeholder ?? "Upload file"}
-            hint={hint}
+            // Hint is rendered once by the Field wrapper above; don't repeat it
+            // inside the dropzone — the box keeps its default "Max NMB" line.
             accept={v.accept}
             maxSizeMB={v.maxSizeMB ?? 5}
             value={(value as string | undefined) || undefined}
