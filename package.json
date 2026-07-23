@@ -11,6 +11,8 @@
     "test:schema": "node --import tsx --test src/lib/__tests__/schema.test.ts src/lib/__tests__/safe-url.test.ts",
     "test:api": "bash tests/api-integration.sh",
     "test:e2e": "playwright test",
+    "loadtest": "tsx scripts/perf/load-test.ts",
+    "ratetest": "tsx scripts/perf/rate-test.ts",
     "test:all": "pnpm test:schema && pnpm test:api && pnpm test:e2e"
   },
   "dependencies": {

@@ -156,3 +156,10 @@ tsconfig.tsbuildinfo
 # Local-only helper scripts (not deployed)
 scripts/options/
 deploy/
+
+# Release artifacts and local release tooling (built on demand, never committed)
+*.tar.gz
+release.bat
+
+# Local perf/load-testing scripts (run against a deployed target, not part of the app)
+scripts/perf/
