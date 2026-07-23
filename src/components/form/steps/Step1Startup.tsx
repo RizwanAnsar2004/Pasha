@@ -7,6 +7,7 @@ import { SelectField } from "@/components/form/SelectField";
 import { CheckboxGroup, YesNo } from "@/components/ui/RadioCard";
 import { FileUpload } from "../FileUpload";
 import { CityField } from "../controls/CityField";
+import { urlRegister } from "@/lib/forms/normalize-url";
 import {
   BUSINESS_MODELS,
   FOUNDING_TEAM_COMPOSITIONS,
@@ -96,7 +97,7 @@ export function Step1Startup({ form }: StepProps) {
           <Field label="Website" required error={errors.website?.message}>
             <Input
               type="url"
-              {...register("website")}
+              {...urlRegister(form, "website")}
               placeholder="https://yourstartup.com"
             />
           </Field>
@@ -362,7 +363,7 @@ export function Step1Startup({ form }: StepProps) {
         <Field label="Pitch video" hint="YouTube, Vimeo, or Google Drive link.">
           <Input
             type="url"
-            {...register("pitch_video")}
+            {...urlRegister(form, "pitch_video")}
             placeholder="https://youtu.be/..."
           />
         </Field>
@@ -416,35 +417,35 @@ export function Step1Startup({ form }: StepProps) {
           <Field label="Company LinkedIn">
             <Input
               type="url"
-              {...register("company_linkedin")}
+              {...urlRegister(form, "company_linkedin")}
               placeholder="https://linkedin.com/company/..."
             />
           </Field>
           <Field label="X / Twitter">
             <Input
               type="url"
-              {...register("company_x")}
+              {...urlRegister(form, "company_x")}
               placeholder="https://x.com/..."
             />
           </Field>
           <Field label="Instagram">
             <Input
               type="url"
-              {...register("company_instagram")}
+              {...urlRegister(form, "company_instagram")}
               placeholder="https://instagram.com/..."
             />
           </Field>
           <Field label="Facebook">
             <Input
               type="url"
-              {...register("company_facebook")}
+              {...urlRegister(form, "company_facebook")}
               placeholder="https://facebook.com/..."
             />
           </Field>
           <Field label="YouTube">
             <Input
               type="url"
-              {...register("company_youtube")}
+              {...urlRegister(form, "company_youtube")}
               placeholder="https://youtube.com/@..."
             />
           </Field>

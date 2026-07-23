@@ -1,5 +1,5 @@
 "use client";
-import { api, apiErrorMessage } from "@/lib/api/client";
+import { ApiError, api, apiErrorMessage } from "@/lib/api/client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
@@ -18,6 +18,7 @@ export function FileUpload({
   maxSizeMB = 5,
   label,
   hint,
+  fieldKey,
 }: {
   bucket: UploadBucket;
   value?: string;
@@ -26,6 +27,9 @@ export function FileUpload({
   maxSizeMB?: number;
   label: string;
   hint?: string;
+  // form_config field_key, when this upload belongs to a builder-defined field.
+  // Lets the API enforce that field's own `accept` list, not just the bucket's.
+  fieldKey?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,17 +47,28 @@ export function FileUpload({
         const fd = new FormData();
         fd.append("file", file);
         fd.append("bucket", bucket);
+        if (fieldKey) fd.append("fieldKey", fieldKey);
 
         const data = await api.upload<{ url: string }>("/api/upload", fd);
         onChange(data.url);
       } catch (e) {
-        setError(apiErrorMessage(e, "Upload failed"));
+        // 413 never comes from this app — the route answers oversize files with
+        // a 400 and a readable message. It means the web server or proxy in
+        // front of Next rejected the body before the handler ever ran, so its
+        // response is usually an HTML error page with no JSON to surface.
+        if (e instanceof ApiError && e.status === 413) {
+          setError(
+            `The server rejected this file as too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please try a smaller file.`
+          );
+        } else {
+          setError(apiErrorMessage(e, "Upload failed"));
+        }
         setFileName(null);
       } finally {
         setUploading(false);
       }
     },
-    [bucket, onChange]
+    [bucket, fieldKey, onChange]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

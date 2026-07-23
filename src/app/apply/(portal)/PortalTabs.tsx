@@ -83,14 +83,14 @@ export function PortalTabs({
         {formAvailable && (
           <div hidden={tab !== "form"}>
             <div className="mb-6">
-              <button
+              {/* <button
                 type="button"
                 onClick={() => select("overview")}
                 className="inline-flex items-center gap-1.5 text-sm text-pasha-muted hover:text-pasha-ink transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to overview
-              </button>
+              </button> */}
               <h1 className="mt-3 font-serif text-2xl sm:text-3xl tracking-tight text-pasha-ink">
                 Tell us about your startup
               </h1>

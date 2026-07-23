@@ -13,6 +13,7 @@ import { CityField } from "@/components/form/controls/CityField";
 import { FoundersRepeater } from "@/components/form/controls/FoundersRepeater";
 import { InputType, htmlInputType } from "@/lib/forms/form-enums";
 import { phoneRegisterProps } from "@/lib/validators/phone";
+import { urlRegister } from "@/lib/forms/normalize-url";
 import {
   resolveOptions,
   isOtherSelected,
@@ -177,6 +178,7 @@ export function DynamicField({
         <Field label={label} hint={hint} required={required} error={error}>
           <FileUpload
             bucket={v.bucket ?? "logos"}
+            fieldKey={field.field_key}
             label={field.placeholder ?? "Upload file"}
             hint={hint}
             accept={v.accept}
@@ -213,7 +215,9 @@ export function DynamicField({
             maxLength={field.validation?.maxLength}
             {...(field.input_type === InputType.PHONE
               ? phoneRegisterProps(reg)
-              : { type: htmlInputType(field.input_type), ...reg })}
+              : field.input_type === InputType.URL
+                ? { type: "url", ...urlRegister(form, path) }
+                : { type: htmlInputType(field.input_type), ...reg })}
           />
         </Field>
       );

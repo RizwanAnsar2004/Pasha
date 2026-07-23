@@ -106,8 +106,16 @@ const FILE_ACCEPT_PRESETS: {
   { id: "csv", label: "CSV", accept: { "text/csv": [".csv"] } },
 ];
 
-// Buckets a file field can upload into (the Supabase storage bucket).
+// Buckets a file field can upload into (the Supabase storage bucket). The
+// formats listed here mirror the server-side ceiling in /api/upload — a field
+// can narrow this with the accept presets above, but never widen it.
 const FILE_BUCKETS = ["logos", "founder-photos", "pitch-decks"] as const;
+
+const BUCKET_FORMATS: Record<(typeof FILE_BUCKETS)[number], string> = {
+  logos: "PNG, JPG, WEBP, SVG",
+  "founder-photos": "PNG, JPG, WEBP",
+  "pitch-decks": "PDF, PNG, JPG, WEBP, Word, Excel, PowerPoint, CSV (private)",
+};
 
 // Which presets a stored accept map represents — a preset counts as selected when all of its MIME keys are present.
 function acceptToPresetIds(accept: unknown): string[] {
@@ -900,6 +908,11 @@ function FieldNode({
                 onValueChange={(v) => setDraft({ ...draft, bucket: v })}
                 options={FILE_BUCKETS.map((b) => ({ value: b, label: b }))}
               />
+              <span className="mt-1 block max-w-[260px] text-[10px] leading-snug text-pasha-muted/80">
+                Supports {BUCKET_FORMATS[(draft.bucket || "logos") as (typeof FILE_BUCKETS)[number]] ?? "—"}.
+                Types picked above that this bucket doesn&rsquo;t support will be
+                rejected on upload.
+              </span>
             </label>
             <label className="text-[11px] text-pasha-muted">
               Max size (MB)

@@ -10,6 +10,7 @@ import { FOUNDER_GENDERS } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
 import type { SubmissionInput } from "@/lib/forms/schema";
 import { phoneRegisterProps } from "@/lib/validators/phone";
+import { urlRegister } from "@/lib/forms/normalize-url";
 import { cn } from "@/lib/utils";
 
 // Add/remove founder cards. The first card is the primary submitter and
@@ -127,28 +128,28 @@ export function FoundersRepeater() {
                   <Input
                     type="url"
                     placeholder="https://www.linkedin.com/in/..."
-                    {...form.register(`founders.${idx}.linkedin`)}
+                    {...urlRegister(form, `founders.${idx}.linkedin`)}
                   />
                 </Field>
                 <Field label="X / Twitter" error={founderErr?.x?.message}>
                   <Input
                     type="url"
                     placeholder="https://x.com/..."
-                    {...form.register(`founders.${idx}.x`)}
+                    {...urlRegister(form, `founders.${idx}.x`)}
                   />
                 </Field>
                 <Field label="Instagram" error={founderErr?.instagram?.message}>
                   <Input
                     type="url"
                     placeholder="https://instagram.com/..."
-                    {...form.register(`founders.${idx}.instagram`)}
+                    {...urlRegister(form, `founders.${idx}.instagram`)}
                   />
                 </Field>
                 <Field label="Facebook" error={founderErr?.facebook?.message}>
                   <Input
                     type="url"
                     placeholder="https://facebook.com/..."
-                    {...form.register(`founders.${idx}.facebook`)}
+                    {...urlRegister(form, `founders.${idx}.facebook`)}
                   />
                 </Field>
               </div>
@@ -199,14 +200,6 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
     | { custom_links?: { label?: { message?: string }; url?: { message?: string } }[] }
     | undefined)?.custom_links;
 
-  // Most "invalid URL" reports are just a missing scheme — add it on blur
-  // rather than rejecting "github.com/name".
-  const normalizeUrl = (i: number) => {
-    const path = `founders.${founderIndex}.custom_links.${i}.url` as const;
-    const raw = (form.getValues(path) ?? "").trim();
-    if (!raw || /^https?:\/\//i.test(raw)) return;
-    form.setValue(path, `https://${raw}`, { shouldValidate: true });
-  };
 
   return (
     <div className="mt-3">
@@ -237,9 +230,7 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
                       placeholder="https://"
                       aria-invalid={Boolean(urlErr)}
                       data-field={`founders.${founderIndex}.custom_links.${i}.url`}
-                      {...form.register(`founders.${founderIndex}.custom_links.${i}.url`, {
-                        onBlur: () => normalizeUrl(i),
-                      })}
+                      {...urlRegister(form, `founders.${founderIndex}.custom_links.${i}.url`)}
                     />
                   </div>
                   <button
