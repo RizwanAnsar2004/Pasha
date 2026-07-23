@@ -270,9 +270,21 @@ function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
     case InputType.PHONE:
       schema = req ? requiredPhone : optionalPhone;
       break;
-    default:
+    default: {
       // TEXT, TEXTAREA, SELECT, RADIO_CARDS, PHONE, DATE, FILE_UPLOAD
-      schema = req ? makeRequiredString(spec) : makeOptionalString(spec);
+      const base = req ? makeRequiredString(spec) : makeOptionalString(spec);
+      // Text/textarea fields that used to be rich-text can hold legacy HTML —
+      // strip it (only when tags are present, so multi-line plain text is left
+      // untouched) so length checks and the saved value use the visible text.
+      if (field.input_type === InputType.TEXT || field.input_type === InputType.TEXTAREA) {
+        schema = z.preprocess(
+          (v) => (typeof v === "string" && /<[^>]+>/.test(v) ? htmlToPlainText(v) : v),
+          base
+        );
+      } else {
+        schema = base;
+      }
+    }
   }
   return withYearFoundedMax(field, schema);
 }

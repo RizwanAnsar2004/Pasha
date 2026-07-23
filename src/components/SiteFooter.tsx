@@ -18,7 +18,7 @@ export function SiteFooter() {
       <div className="site-container py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-2 md:pr-10">
-            <PashaLogo width={130} href="/" className="brightness-0 invert" />
+            <PashaLogo width={130} href="/" src="/pasha-logo-dark.svg" />
             <p className="mt-5 text-sm leading-relaxed text-white/50 max-w-md">
               The Pakistan Software Houses Association (PASHA) maintains the PASHA Startup
               Hub — a curated network of founders, mentors, and investors shaping

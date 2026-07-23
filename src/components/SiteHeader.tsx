@@ -21,7 +21,7 @@ const MENU_LINKS = [
   { label: "Home", href: "/" },
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
-  // { label: "Committee", href: "/committee" },
+  { label: "Committee", href: "/committee" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Join the Hub", href: JOIN_HREF },
@@ -70,7 +70,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
     <div className={`${styles["hero-photo-container"]} flex items-center justify-between`}>
       <Link aria-label="PASHA Startup Hub home" className={styles["hero-photo-brand"]} href="/">
         <PashaLogo href={null} width={92} alt="PASHA" className={styles["hero-photo-brand-logo"]} />
-        <strong>PASHA Startup Hub</strong>
+        {/* <strong>PASHA Startup Hub</strong> */}
       </Link>
       <div className={styles["hero-photo-top-actions"]}>
         {!hideAuthCtas && (
@@ -103,8 +103,8 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const solidBar = (
     <div className="site-container flex items-center justify-between">
       <Link aria-label="PASHA Startup Hub home" href="/" className="inline-flex items-center gap-3 text-pasha-ink">
-        <PashaLogo href={null} width={92} alt="PASHA" />
-        <strong className="hidden text-[15px] font-bold tracking-tight sm:inline">PASHA Startup Hub</strong>
+        <PashaLogo href={null} width={104} alt="PASHA" />
+        {/* <strong className="hidden text-[15px] font-bold tracking-tight sm:inline">PASHA Startup Hub</strong> */}
       </Link>
       <div className="flex items-center gap-2.5">
         {!hideAuthCtas && (

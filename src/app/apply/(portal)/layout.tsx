@@ -25,7 +25,7 @@ export default async function ApplicantPortalLayout({
       <header className="border-b border-pasha-line bg-white">
         <div className="mx-auto max-w-5xl px-4 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <PashaLogo width={100} href="/apply" />
+            <PashaLogo width={84} href="/apply" />
             <span className="hidden md:block h-4 w-px bg-pasha-line" />
             <span className="hidden md:block font-mono text-[10px] uppercase tracking-[2px] text-pasha-muted">
               Applicant Portal

@@ -10,24 +10,44 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 const FAQS = [
   {
-    q: "What is the benefit for founders?",
-    a: "Founders can create credible startup profiles, strengthen visibility and become discoverable to customers, investors, partners, talent, programmes and relevant recognition opportunities.",
+    q: "How can I showcase my startup to Pakistan's tech ecosystem?",
+    a: "Create a verified startup profile and get listed once, discovered everywhere — by investors, enterprise buyers, press, talent, and peers. PASHA's verification badge adds credibility to everything you share.",
   },
   {
-    q: "What can investors discover?",
-    a: "Investors can explore companies using sector, stage, city, verification and other profile context. Dedicated investor onboarding and interest workflows are planned as the platform expands.",
+    q: "How do I connect with investors and funding opportunities?",
+    a: "Investors browse the directory by sector, stage, city, and traction to build their pipeline, so a complete, verified profile puts you in front of them. Dedicated investor interest workflows are expanding as the platform grows.",
   },
   {
-    q: "How can enterprises participate?",
-    a: "Enterprises can identify locally built solutions, share relevant opportunities, support programmes and connect with startups working on real business challenges.",
+    q: "How can I find mentors and industry experts?",
+    a: "The Hub connects you to PASHA's network of mentors and experienced operators, who contribute guidance, expertise, and opportunities through the Hub team and its programmes.",
   },
   {
-    q: "How are startup profiles verified?",
-    a: "The verified indicator is shown only where PASHA has reviewed the relevant profile information under the Hub's verification process. It is not a commercial endorsement or investment recommendation.",
+    q: "Where can I discover startup events, competitions, and programs?",
+    a: "The Events section surfaces upcoming programmes, competitions, and community gatherings across the ecosystem — including PASHA's own initiatives — so you always know what's next.",
   },
   {
-    q: "Can ecosystem partners contribute?",
-    a: "Mentors, community partners and global organisations can contribute expertise, opportunities, events, partnerships and market-access pathways through the Hub team.",
+    q: "How can I connect with incubators, accelerators, and innovation hubs?",
+    a: "The Hub is one trusted entry point into Pakistan's ecosystem, linking founders with incubators, accelerators, and innovation partners. Highlight your incubation history on your profile and find programmes suited to your stage.",
+  },
+  {
+    q: "How do I find potential customers and business partners?",
+    a: "Enterprises use the Hub to find vetted local vendors and pilot partners without a lengthy RFP. A strong profile makes your solution discoverable to companies looking for what you build.",
+  },
+  {
+    q: "How can I hire talent or join a startup team?",
+    a: "Talent explores the Hub to see which startups are growing and hiring. Founders can signal they're hiring on their profile; jobseekers can discover startups by sector, stage, and momentum.",
+  },
+  {
+    q: "Where can I access startup resources, guides, and templates?",
+    a: "Through the Hub and PASHA's wider capacity-building work — career resources, salary surveys, and industry insights — you get the knowledge and tools to build and scale with confidence.",
+  },
+  {
+    q: "How can I increase my startup's visibility and credibility?",
+    a: "A complete profile plus PASHA's verification badge is your credibility signal. More complete profiles rank higher and become more discoverable to investors, buyers, and partners.",
+  },
+  {
+    q: "How do I become part of Pakistan's startup community?",
+    a: "Join the Hub — create your account and build your profile to plug into Pakistan's national startup network: a 1600+ member ecosystem, events, mentors, and the people moving it forward.",
   },
 ];
 
@@ -42,7 +62,7 @@ export function FAQ() {
             <div className="lg:sticky lg:top-20">
               <Kicker>Frequently asked</Kicker>
               <h2 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink text-balance">
-                What does the Hub offer you?
+                How Can the Hub Help You?
               </h2>
               <p className="mt-4 text-pasha-muted leading-relaxed max-w-sm">
                 Clear questions for the people participating in the ecosystem.

@@ -18,6 +18,7 @@ import {
   resolveOptions,
   isOtherSelected,
   otherFieldKey,
+  htmlToPlainText,
   type FormFieldConfig,
 } from "@/lib/forms/form-config";
 import { useOptionRegistry } from "@/components/form/OptionListsContext";
@@ -53,6 +54,19 @@ export function DynamicField({
     : "__noop_cond__";
   const condValue = useWatch({ control: form.control, name: condName });
   const value = useWatch({ control: form.control, name: path });
+
+  // Legacy drafts of text / textarea fields (e.g. the one-line description that
+  // used to be a rich-text editor) hold HTML. Strip the tags once so the plain
+  // <textarea> shows readable text instead of "<p>…</p>" — and the cleaned value
+  // is what then autosaves back.
+  const isTextInput =
+    field.input_type === InputType.TEXT || field.input_type === InputType.TEXTAREA;
+  useEffect(() => {
+    if (!isTextInput) return;
+    if (typeof value === "string" && /<[^>]+>/.test(value)) {
+      form.setValue(path, htmlToPlainText(value), { shouldDirty: false });
+    }
+  }, [isTextInput, value, path, form]);
 
   // Built-in composite controls — only meaningful at the top level.
   if (!namePrefix && field.input_type === InputType.CITY_COMPOSITE) {

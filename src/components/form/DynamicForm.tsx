@@ -25,9 +25,55 @@ import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
+// Separate key for the server-persist safety net: written to localStorage in
+// parallel with the API save so a refresh mid-save never loses the latest edit.
+const SERVER_BACKUP_KEY = "pasha-apply-draft-dyn-backup-v1";
 const DRAFT_DEBOUNCE_MS = 1000;
+const DRAFT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Values = Record<string, unknown>;
+
+// Order-independent stringify so two drafts with the same content but different
+// key insertion order compare equal (react-hook-form values vs server JSON).
+function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v) ?? "null";
+  if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
+  const obj = v as Record<string, unknown>;
+  return (
+    "{" +
+    Object.keys(obj)
+      .sort()
+      .map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k]))
+      .join(",") +
+    "}"
+  );
+}
+
+function readServerBackup(): { savedAt?: number; values?: Values; current_step?: number } | null {
+  try {
+    const raw = window.localStorage.getItem(SERVER_BACKUP_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeServerBackup(values: Values, step: number) {
+  try {
+    window.localStorage.setItem(
+      SERVER_BACKUP_KEY,
+      JSON.stringify({ savedAt: Date.now(), values, current_step: step })
+    );
+  } catch {
+    // quota — ignore; the API save is still the primary path
+  }
+}
+
+function clearServerBackup() {
+  try {
+    window.localStorage.removeItem(SERVER_BACKUP_KEY);
+  } catch {}
+}
 
 export function DynamicForm({
   config,
@@ -149,17 +195,40 @@ export function DynamicForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Hydrate draft once (localStorage only).
+  // Hydrate draft once on mount.
   useEffect(() => {
-    if (serverPersist) return;
     if (draftRestoredOnce.current) return;
     draftRestoredOnce.current = true;
+    if (typeof window === "undefined") return;
     try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(DRAFT_KEY) : null;
+      // Server-persist flow: the server draft came in via initialValues (already
+      // merged into the form defaults). Restore the localStorage backup only if
+      // it DIVERGES from that server state — i.e. it holds edits the last API
+      // save never confirmed (a refresh landed mid-save). The autosave effect
+      // then re-pushes the restored values to the server.
+      if (serverPersist) {
+        const backup = readServerBackup();
+        if (!backup?.values) return;
+        if (Date.now() - (backup.savedAt ?? 0) > DRAFT_MAX_AGE_MS) {
+          clearServerBackup();
+          return;
+        }
+        const serverState = form.getValues();
+        if (stableStringify(backup.values) === stableStringify(serverState)) return;
+        form.reset({ ...serverState, ...backup.values });
+        if (typeof backup.current_step === "number") {
+          const max = Math.max(0, steps.length - 1);
+          setStepIdx(Math.min(Math.max(0, backup.current_step), max));
+        }
+        setDraftRestored(true);
+        return;
+      }
+
+      const raw = window.localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw) as { savedAt?: number; values?: Values };
       if (!draft?.values) return;
-      if (Date.now() - (draft.savedAt ?? 0) > 30 * 24 * 60 * 60 * 1000) {
+      if (Date.now() - (draft.savedAt ?? 0) > DRAFT_MAX_AGE_MS) {
         window.localStorage.removeItem(DRAFT_KEY);
         return;
       }
@@ -185,13 +254,31 @@ export function DynamicForm({
       }
       if (payload === lastSavedRef.current) return; // nothing actually changed
 
+      // Local backup, written immediately (not debounced): a synchronous
+      // localStorage write can't be interrupted by a refresh, so even if the
+      // API save below never completes, the latest edit survives.
+      writeServerBackup(values, stepIdx);
+
       const handle = window.setTimeout(() => {
         // Mark saved up front so the re-render from setSaveState doesn't re-fire (and so a failing endpoint isn't hammered on every render).
         lastSavedRef.current = payload;
         setSaveState("saving");
         api
           .put(ENDPOINTS.applicant.draft, draft)
-          .then(() => setSaveState("saved"))
+          .then(() => {
+            setSaveState("saved");
+            // Drop the backup only if it still matches exactly what the server
+            // just confirmed — if the user kept typing while the save was in
+            // flight, the newer backup is left intact for the next sync.
+            const backup = readServerBackup();
+            if (
+              backup &&
+              stableStringify(backup.values) === stableStringify(draft.data) &&
+              backup.current_step === draft.current_step
+            ) {
+              clearServerBackup();
+            }
+          })
           .catch(() => setSaveState("idle"));
       }, DRAFT_DEBOUNCE_MS);
       return () => window.clearTimeout(handle);
@@ -211,6 +298,10 @@ export function DynamicForm({
     try {
       window.localStorage.removeItem(DRAFT_KEY);
     } catch {}
+    // Dismissing the "draft restored" banner also discards the local backup so
+    // it can't re-restore on the next load (the values are already in the form
+    // and will sync to the server).
+    clearServerBackup();
     setDraftRestored(false);
   };
 
@@ -227,7 +318,10 @@ export function DynamicForm({
     setSaveState("saving");
     try {
       if (serverPersist) {
+        // Mirror the autosave path: local backup first, then the API save.
+        writeServerBackup(draft.data as Values, stepIdx);
         await api.put(ENDPOINTS.applicant.draft, draft);
+        clearServerBackup();
       } else {
         window.localStorage.setItem(
           DRAFT_KEY,
@@ -296,6 +390,7 @@ export function DynamicForm({
       try {
         window.localStorage.removeItem(DRAFT_KEY);
       } catch {}
+      clearServerBackup();
       const params = new URLSearchParams({
         tier: result.tier ?? "listed",
         score: String(result.score ?? 0),

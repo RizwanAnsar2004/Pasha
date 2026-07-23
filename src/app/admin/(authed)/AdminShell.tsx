@@ -89,11 +89,11 @@ export function AdminShell({
           {/* Logo — hidden only when collapsed on desktop */}
           <div
             className={cn(
-              "overflow-hidden transition-all duration-300 w-[84px]",
+              "overflow-hidden transition-all duration-300 w-[72px]",
               collapsed && "lg:opacity-0 lg:w-0 lg:pointer-events-none"
             )}
           >
-            <PashaLogo width={84} href="/admin" />
+            <PashaLogo width={72} href="/admin" />
           </div>
 
           {/* Desktop collapse toggle */}

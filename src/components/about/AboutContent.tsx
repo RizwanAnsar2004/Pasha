@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
+  Building2,
   Compass,
   Globe2,
   ShieldCheck,
@@ -177,6 +178,11 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
     ...roster.filter((m) => m.type !== "chairman"),
   ];
 
+  // About only previews the core committee; the full roster lives on /committee.
+  const CORE_LIMIT = 6;
+  const core = ordered.slice(0, CORE_LIMIT);
+  const hasMore = ordered.length > core.length;
+
   return (
     <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
       <div className="mx-auto max-w-4xl px-4 sm:px-8">
@@ -194,40 +200,68 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
           </span>
         </motion.div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {ordered.map((member, i) => (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {core.map((member, i) => (
             <motion.div
               key={member.email}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.45, delay: (i % 2) * 0.05, ease: EASE }}
-              className="group flex items-start gap-4 rounded-xl border border-pasha-ink/10 bg-white p-4 transition-colors hover:border-pasha-red/25"
+              transition={{ duration: 0.5, delay: (i % 3) * 0.06, ease: EASE }}
+              whileHover={{ y: -4 }}
+              className="group flex h-full flex-col rounded-2xl border border-pasha-ink/10 bg-white p-6 shadow-[0_2px_16px_rgba(14,14,16,0.05)] transition-all duration-300 hover:border-pasha-red/25 hover:shadow-[0_20px_48px_-14px_rgba(14,14,16,0.16)]"
             >
-              <MemberAvatar name={member.name} photoUrl={member.photo_url} />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-serif text-[15px] leading-snug text-pasha-ink transition-colors group-hover:text-pasha-red">
+              {/* Chair / Member tag */}
+              <span
+                className={
+                  "self-start inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] " +
+                  (member.type === "chairman"
+                    ? "bg-pasha-red/[0.07] border border-pasha-red/20 text-pasha-red/90"
+                    : "bg-pasha-stone/80 border border-pasha-line/60 text-pasha-ink/40")
+                }
+              >
+                {member.type === "chairman" ? "Chair" : "Committee Member"}
+              </span>
+
+              <MemberAvatar
+                name={member.name}
+                photoUrl={member.photo_url}
+                size="w-20 h-20"
+                className="mt-5 group-hover:scale-105"
+              />
+
+              <div className="mt-4 flex flex-col gap-0.5">
+                <h3 className="font-serif text-lg leading-snug text-pasha-ink transition-colors group-hover:text-pasha-red">
                   {member.name}
                 </h3>
-                {member.type === "chairman" && (
-                  <span className="mt-1 inline-flex items-center rounded-full bg-pasha-red/[0.07] border border-pasha-red/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] text-pasha-red/90">
-                    Chair
-                  </span>
-                )}
                 {member.role && (
-                  <p className="mt-1 text-[11px] font-semibold text-pasha-red/70">
+                  <p className="text-xs font-semibold text-pasha-red/70">
                     {member.role}
                   </p>
                 )}
                 {member.org && (
-                  <p className="mt-0.5 truncate text-[11px] text-pasha-muted/70">
-                    {member.org}
-                  </p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 shrink-0 text-pasha-muted/50" />
+                    <p className="truncate text-xs text-pasha-muted/70">{member.org}</p>
+                  </div>
                 )}
               </div>
             </motion.div>
           ))}
         </div>
+
+        {/* Link out to the full roster + committee mission on /committee. */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="mt-10"
+        >
+          <PillButton href="/committee" variant="outline" dot={false}>
+            {hasMore ? "View all committee members" : "Meet the full committee"}
+          </PillButton>
+        </motion.div>
       </div>
     </section>
   );
