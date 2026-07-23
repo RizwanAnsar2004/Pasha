@@ -12,6 +12,22 @@ import { compressImage } from "@/lib/utils/compress-image";
 
 export type UploadBucket = "logos" | "founder-photos" | "pitch-decks";
 
+// Recover a human-readable filename from a stored upload URL. Uploads made
+// through this app carry the original base name after a "<ts>-<rand>__" prefix
+// in the object key (see /api/upload). This lets the saved name survive a
+// reload, when the picked File — and so the local fileName state — is gone.
+// Older files without the prefix (or non-app URLs) fall back to a generic label.
+function displayNameFromUrl(url: string | undefined): string {
+  if (!url || url.startsWith("blob:")) return "Uploaded";
+  try {
+    const seg = decodeURIComponent(new URL(url, "http://x").pathname.split("/").pop() ?? "");
+    const m = seg.match(/^\d+-[a-z0-9]+__(.+)$/i);
+    return m ? m[1] : "Uploaded";
+  } catch {
+    return "Uploaded";
+  }
+}
+
 export function FileUpload({
   bucket,
   value,
@@ -158,7 +174,7 @@ export function FileUpload({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-pasha-ink truncate">
-                {fileName ?? "Uploaded"}
+                {fileName ?? displayNameFromUrl(value)}
               </p>
               <p className="text-xs text-pasha-muted flex items-center gap-1.5 mt-0.5">
                 <Check className="w-3 h-3 text-tier-featured" />

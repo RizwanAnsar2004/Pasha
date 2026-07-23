@@ -173,6 +173,18 @@ function safeExt(filename: string): string {
   return (parts[parts.length - 1] ?? "").toLowerCase();
 }
 
+// The original filename minus its extension, reduced to a storage-safe slug.
+// We keep it in the object key so the UI can show the real filename again after
+// a reload — the form only persists the resulting URL, not the picked File.
+// Underscores are dropped because "__" is our separator in the key (see below),
+// and the length is capped to keep keys short.
+function safeBaseName(filename: string): string {
+  const cleaned = filename.replace(/[^a-zA-Z0-9._-]/g, "");
+  const dot = cleaned.lastIndexOf(".");
+  const base = dot > 0 ? cleaned.slice(0, dot) : cleaned;
+  return base.replace(/_/g, "-").slice(0, 60);
+}
+
 function matchesAny(
   headBytes: Uint8Array,
   profiles: readonly (readonly number[])[]
@@ -306,8 +318,12 @@ export async function POST(req: Request) {
     // Store under the format's canonical content type, never the client's claim.
     const serverContentType = typeDef.contentType;
 
-    // Generate a clean random filename
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    // A random, unguessable prefix keeps the key clean and safe; the sanitised
+    // original base name is appended after a "__" boundary so the UI can recover
+    // a legible filename from the URL later (see displayNameFromUrl in FileUpload).
+    const base = safeBaseName(file.name);
+    const rand = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const name = base ? `${rand}__${base}.${ext}` : `${rand}.${ext}`;
 
     const { error: upErr } = await supabase.storage
       .from(bucketName)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useFormContext, useWatch, useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Field } from "@/components/form/Field";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/forms/form-config";
 import { useOptionRegistry } from "@/components/form/OptionListsContext";
 import { coerceOptionValue, coerceOptionValues } from "@/lib/options/choice";
+import { cn } from "@/lib/utils";
 
 // Read a nested error message off RHF's errors object by dotted path.
 function errorAt(errors: unknown, path: string): string | undefined {
@@ -104,6 +105,24 @@ export function DynamicField({
   const label = field.label ?? undefined;
   const hint = field.hint ?? undefined;
   const required = field.required;
+  const maxLen = field.validation?.maxLength;
+
+  // Live character counter for length-capped text fields. Sits on the same row
+  // as the hint (right-aligned) and warms to amber near the cap, red once over.
+  function hintWithCounter(base?: ReactNode): ReactNode {
+    if (!maxLen) return base;
+    const len = typeof value === "string" ? value.length : 0;
+    const tone =
+      len > maxLen ? "text-pasha-red" : len >= maxLen * 0.9 ? "text-amber-600" : "text-pasha-muted";
+    return (
+      <span className="flex items-baseline justify-between gap-3">
+        <span>{base}</span>
+        <span aria-hidden className={cn("shrink-0 tabular-nums", tone)}>
+          {len}/{maxLen}
+        </span>
+      </span>
+    );
+  }
 
   // Companion free-text input, revealed when the user picks "Other" so the real
   const otherPath = namePrefix
@@ -128,7 +147,7 @@ export function DynamicField({
   switch (field.input_type) {
     case InputType.TEXTAREA:
       return (
-        <Field label={label} hint={hint} required={required} error={error}>
+        <Field label={label} hint={hintWithCounter(hint)} required={required} error={error}>
           <Textarea placeholder={field.placeholder ?? undefined} maxLength={field.validation?.maxLength} {...form.register(path)} />
         </Field>
       );
@@ -194,7 +213,8 @@ export function DynamicField({
             bucket={v.bucket ?? "logos"}
             fieldKey={field.field_key}
             label={field.placeholder ?? "Upload file"}
-            hint={hint}
+            // Hint is rendered once by the Field wrapper above; don't repeat it
+            // inside the dropzone — the box keeps its default "Max NMB" line.
             accept={v.accept}
             maxSizeMB={v.maxSizeMB ?? 5}
             value={(value as string | undefined) || undefined}
@@ -223,7 +243,7 @@ export function DynamicField({
         );
       }
       return (
-        <Field label={label} hint={hint} required={required} error={error}>
+        <Field label={label} hint={hintWithCounter(hint)} required={required} error={error}>
           <Input
             placeholder={field.placeholder ?? undefined}
             maxLength={field.validation?.maxLength}

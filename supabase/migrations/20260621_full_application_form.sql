@@ -228,7 +228,7 @@ CROSS JOIN (VALUES
   (NULL,'pitch_deck_url','Pitch deck (PDF)',NULL,NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,'pitch_deck_url',true,1,NULL),
   (NULL,'business_profile_pdf','Business profile (PDF)','Optional one-pager. Investor-only by default.',NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,2,NULL),
 
-  (NULL,'h_verification','Verification (admin-only)',NULL,'Used by the committee to verify your startup. Admin-only — never public.',30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,3,NULL),
+  (NULL,'h_verification','Verification (private)',NULL,'Used by the committee to verify your startup. Private — visible to admins only, never shown publicly.',30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,3,NULL),
   (NULL,'company_reg_cert','Company registration certificate',NULL,NULL,90,false,'{"bucket":"pitch-decks","maxSizeMB":10,"accept":{"application/pdf":[".pdf"]}}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,4,NULL),
   (NULL,'ntn_number','NTN / tax number',NULL,NULL,0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,5,NULL),
   (NULL,'pasha_membership_number','PASHA membership number','If you are already a PASHA member.',NULL,0,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,6,NULL),
