@@ -20,7 +20,7 @@ export function CTA() {
             <div>
               <Kicker tone="light">Join the Hub</Kicker>
               <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white text-balance">
-                Ready to take your place in the Pasha Startup Hub?
+                Ready to take your place in the PASHA Startup Hub?
               </h2>
             </div>
             <div>

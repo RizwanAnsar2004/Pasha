@@ -4,6 +4,7 @@ import { HomeSearchProvider } from "@/components/landing/HomeSearchProvider";
 import { DirectoryBento } from "@/components/landing/DirectoryBento";
 import { WomenFounders } from "@/components/landing/WomenFounders";
 import { AwardWinningStartups } from "@/components/landing/AwardWinningStartups";
+import { StartupDiscovery } from "@/components/landing/StartupDiscovery";
 import { Manifesto } from "@/components/landing/Manifesto";
 import { JoinCTA } from "@/components/landing/JoinCTA";
 import { Ecosystem } from "@/components/landing/Ecosystem";
@@ -95,6 +96,7 @@ export default async function Home() {
         {/* Community CTA sits high on the page, right after the directory */}
         {/* <JoinCommunity /> */}
         <WomenFounders startups={womenLed.startups} totalCount={womenLed.totalCount} />
+        <StartupDiscovery />
         {/* <AwardWinningStartups startups={awardWinners} /> */}
         <JoinCTA />
         <Ecosystem />

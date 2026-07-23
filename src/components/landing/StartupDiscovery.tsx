@@ -19,7 +19,7 @@ export function StartupDiscovery() {
         <Reveal>
           <Kicker tone="light">Startup discovery</Kicker>
           <h2 className="mt-5 max-w-3xl text-balance font-serif text-4xl font-extrabold leading-[0.96] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
-            Discover the startups building Pakistan&apos;s future.
+            Discover the startup building Pakistan&apos;s future.
           </h2>
           <p className="mt-6 max-w-xl text-base leading-[1.78] text-white/85 sm:text-lg">
             The directory remains an important part of the Hub—but now as its discovery engine,
@@ -44,7 +44,7 @@ export function StartupDiscovery() {
                 id="startup-discovery-search"
                 name="q"
                 type="text"
-                placeholder="Search by startup"
+                placeholder="Search by Keyword"
                 className="h-[68px] min-w-0 flex-1 rounded-2xl border border-pasha-ink/12 px-5 text-base text-pasha-ink outline-none transition focus:border-pasha-red focus:ring-4 focus:ring-pasha-red/10"
               />
               <button
