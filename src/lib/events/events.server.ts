@@ -122,22 +122,35 @@ export async function getEventBySlug(slug: string): Promise<EventRow | null> {
   return fetchEventByIdPrefix(prefix, true);
 }
 
+// Recommendations for an event's sidebar: the next upcoming published events,
+// soonest first, excluding the one being viewed. Deliberately not filtered by
+// event_type — any upcoming event is a better recommendation than an empty
+// panel, and the type filter would blank the section on one-off event types.
 export async function getRelatedEvents(
   currentId: string,
-  eventType: string,
   limit = 3
 ): Promise<EventRow[]> {
+  const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
   const supabase = createServiceClient();
+
   const { data, error } = await supabase
     .from("events")
     .select(EVENT_COLS)
     .eq("status", "published")
     .neq("id", currentId)
-    .order("event_date", { ascending: false })
+    // Soonest first, and nothing in the past — matches the /events listing, so
+    // a recommendation never points at an event that has already happened.
+    .gte("event_date", today)
+    .order("event_date", { ascending: true })
     .limit(limit);
 
   if (error) {
-    if (isMissingTable(error.message)) return [];
+    // A failing sidebar must not take down the event page, so this degrades to
+    // "no recommendations" — but a real query error is worth seeing in the
+    // server log rather than vanishing silently.
+    if (!isMissingTable(error.message)) {
+      console.error("getRelatedEvents:", error.message);
+    }
     return [];
   }
   return (data ?? []).map((r) => normalizeEvent(r as Record<string, unknown>));

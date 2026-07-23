@@ -41,7 +41,7 @@ export default async function EventDetailPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const related = await getRelatedEvents(event.id, event.event_type);
+  const related = await getRelatedEvents(event.id);
 
   return (
     <>

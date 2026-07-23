@@ -366,7 +366,7 @@ export function EventDetailContent({
 
             {related.length > 0 && (
               <div className="rounded-2xl border border-pasha-line bg-white p-5">
-                <h3 className="font-serif text-base text-pasha-ink">Related Events</h3>
+                <h3 className="font-serif text-base text-pasha-ink">Recommended Events</h3>
                 <ul className="mt-4 space-y-3">
                   {related.map((r) => (
                     <li key={r.id}>
