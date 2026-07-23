@@ -97,6 +97,10 @@ export type DatabankRow = {
   key_persons: KeyPerson[] | null;
   // Dynamic admin-defined form fields (cover_image, etc.) live here.
   answers: Record<string, unknown> | null;
+  // Plus any other databank column — the row is loaded with select("*"), so
+  // promoted/badge columns (fundraising, women_led, …) arrive without needing
+  // to be enumerated here. Read/written dynamically via fieldStore.
+  [key: string]: unknown;
 };
 
 type KeyPerson = {
@@ -117,12 +121,12 @@ type KeyPerson = {
 // "" / number sentinel for input wiring.
 type Edits = Partial<DatabankRow>;
 
-// A form field's `column_map` names a column on SUBMISSIONS, not on databank —
-// and several are renamed when a submission is published (see
-// api/admin/submission). Reading row[column_map] therefore returned undefined
-// for all of these, which is why they looked empty here despite having values
-// on the submission. This maps form field_key → the real databank column.
-const DATABANK_COLUMN: Record<string, keyof DatabankRow> = {
+// Publishing a submission copies its `answers` bag onto the databank row almost
+// verbatim (see api/admin/submission), so a dynamic field's value lives in
+// `answers` under its exact field_key — no per-field wiring needed. The only
+// exception is the handful of fields promoted to real, RENAMED columns at
+// publish time; those aren't in the answers bag, so they need this map.
+const PROMOTED_COLUMN: Record<string, string> = {
   primary_sector: "primary_industry",
   secondary_sector: "secondary_industries",
   business_model: "business_types",
@@ -136,20 +140,22 @@ const DATABANK_COLUMN: Record<string, keyof DatabankRow> = {
   currently_raising: "fundraising",
 };
 
-// Where a field's value actually lives on the databank row: an explicit rename,
-// a column of the same name, or (returning null) the `answers` JSONB bag.
-function databankColumnFor(
-  def: DynamicFieldDef,
-  row: DatabankRow
-): keyof DatabankRow | null {
-  const renamed = DATABANK_COLUMN[def.field_key];
-  if (renamed) return renamed;
-  // The row comes from `select("*")`, so its own keys are the real column list.
-  if (def.field_key in row) return def.field_key as keyof DatabankRow;
-  if (def.column_map && def.column_map in row) {
-    return def.column_map as keyof DatabankRow;
-  }
-  return null;
+type FieldStore = { kind: "answers" } | { kind: "column"; col: string };
+
+// Where a dynamic field's value actually lives — answers bag first (the dynamic
+// default), then a promoted/renamed column, then a same-named column. Operates
+// on the row as a plain bag: databank columns come from select("*") at runtime,
+// so nothing here has to be spelled out in a type.
+function fieldStore(def: DynamicFieldDef, row: DatabankRow): FieldStore {
+  const bag = row as Record<string, unknown>;
+  const answers = (row.answers ?? {}) as Record<string, unknown>;
+  // The form is dynamic: answers is keyed by field_key and holds the value.
+  if (def.field_key in answers) return { kind: "answers" };
+  const promoted = PROMOTED_COLUMN[def.field_key];
+  if (promoted && promoted in bag) return { kind: "column", col: promoted };
+  if (def.field_key in bag) return { kind: "column", col: def.field_key };
+  // Never captured on this row — default new values into the answers bag.
+  return { kind: "answers" };
 }
 
 function asNumber(v: string): number | null {
@@ -226,6 +232,36 @@ export function EditDatabankClient({
 
   const hasChanges = Object.keys(diff).length > 0;
 
+  // DEBUG — logs the raw databank row, the answers bag, and how each dynamic
+  // field resolves (store + raw value). Remove once field mapping is verified.
+  useMemo(() => {
+    if (typeof window === "undefined") return null;
+    console.group("[databank-edit] API data");
+    console.log("row (columns):", initial);
+    console.log("answers bag:", initial.answers);
+    console.log("optionLists keys:", Object.keys(optionLists ?? {}));
+    const table = dynamicFields.map((f) => {
+      const store = fieldStore(f, initial);
+      const raw =
+        store.kind === "column"
+          ? (initial as Record<string, unknown>)[store.col]
+          : (initial.answers ?? {})[f.field_key];
+      return {
+        field_key: f.field_key,
+        label: f.label,
+        store: store.kind === "column" ? `col:${store.col}` : "answers",
+        options_source: f.options_source ?? "",
+        raw_value: raw,
+        empty: raw === null || raw === undefined || raw === "",
+      };
+    });
+    console.table(table);
+    console.groupEnd();
+    return null;
+    // Log once per loaded record.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
+
   function update<K extends keyof DatabankRow>(key: K, value: DatabankRow[K]) {
     setRow((r) => ({ ...r, [key]: value }));
   }
@@ -235,17 +271,24 @@ export function EditDatabankClient({
     setRow((r) => ({ ...r, answers: { ...(r.answers ?? {}), [key]: value } }));
   }
 
-  // Read/write a config field against whichever backing store actually holds
-  // it — a real column, or the answers bag.
+  // Set an arbitrary databank column (dynamic — not every column is in the
+  // hand-written editors, so this can't require keyof).
+  function setColumn(col: string, value: unknown) {
+    setRow((r) => ({ ...r, [col]: value }));
+  }
+
+  // Read/write a config field against wherever its value actually lives —
+  // resolved once from the ORIGINAL row so a value cleared mid-edit doesn't
+  // relocate the field to a different store.
   const readField = (def: DynamicFieldDef): unknown => {
-    const col = databankColumnFor(def, initial);
-    return col
-      ? (row as Record<string, unknown>)[col]
+    const store = fieldStore(def, initial);
+    return store.kind === "column"
+      ? (row as Record<string, unknown>)[store.col]
       : (row.answers ?? {})[def.field_key];
   };
   const writeField = (def: DynamicFieldDef, v: unknown) => {
-    const col = databankColumnFor(def, initial);
-    if (col) update(col, v as never);
+    const store = fieldStore(def, initial);
+    if (store.kind === "column") setColumn(store.col, v);
     else setAnswer(def.field_key, v);
   };
 
@@ -258,8 +301,8 @@ export function EditDatabankClient({
   const covered = useMemo(() => {
     const s = new Set<string>(configColumns);
     for (const f of dynamicFields) {
-      const col = databankColumnFor(f, initial);
-      if (col) s.add(col as string);
+      const store = fieldStore(f, initial);
+      if (store.kind === "column") s.add(store.col);
     }
     return s;
   }, [configColumns, dynamicFields, initial]);
@@ -1152,7 +1195,8 @@ function DynamicFieldControl({
     return (
       <SelectMenu
         className="w-full"
-        value={typeof value === "string" ? value : ""}
+        // Coerce so a legacy value (or an id) both resolve to a live option.
+        value={coerceOptionValue(value, options) ?? (typeof value === "string" ? value : "")}
         onValueChange={(v) => onChange(v || null)}
         placeholder={def.placeholder ?? "Select"}
         options={options}
@@ -1416,7 +1460,10 @@ function KeyPersonsEditor({
             <Field label="Gender">
               <SelectMenu
                 className="w-full"
-                value={p.gender ?? ""}
+                // Founders store the legacy value ("male"), but the options
+                // table keys on UUIDs — coerce so the saved value matches an
+                // option and the select isn't blank.
+                value={coerceOptionValue(p.gender, genderOptions) ?? ""}
                 onValueChange={(v) => patch(idx, { gender: v })}
                 placeholder="Select gender"
                 options={genderOptions}

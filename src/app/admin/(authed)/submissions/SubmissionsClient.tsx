@@ -818,11 +818,10 @@ function SubmissionDrawer({
               <FieldKV
                 fieldKey="awards"
                 labels={fieldLabels}
-                v={
-                  typeof (row as Record<string, unknown>).awards === "string"
-                    ? renderMultilineText((row as Record<string, unknown>).awards as string)
-                    : "—"
-                }
+                v={renderAwards(
+                  (row as Record<string, unknown>).awards ??
+                    (row.answers as Record<string, unknown> | undefined)?.awards
+                )}
               />
               <FieldKV
                 fieldKey="certifications"
@@ -1236,6 +1235,33 @@ function renderMultilineText(text: string): React.ReactNode {
   // Single-line URL → file/link preview; multiline text keeps line breaks.
   if (!trimmed.includes("\n") && isSafeHttpUrl(trimmed)) return renderFileUrl(trimmed);
   return <span className="whitespace-pre-line">{trimmed}</span>;
+}
+
+// Awards can be a legacy free-text string OR the structured repeatable group
+// (array of { title, year, description }). Render either.
+function renderAwards(v: unknown): React.ReactNode {
+  if (typeof v === "string") return renderMultilineText(v);
+  if (!Array.isArray(v) || v.length === 0) return "—";
+  const items = v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (items.length === 0) return "—";
+  return (
+    <ul className="space-y-1.5">
+      {items.map((a, i) => {
+        const title = typeof a.title === "string" ? a.title.trim() : "";
+        const year = a.year != null && a.year !== "" ? String(a.year) : "";
+        const desc = typeof a.description === "string" ? a.description.trim() : "";
+        return (
+          <li key={i}>
+            <span className="font-medium text-pasha-ink">
+              {title || "Award"}
+              {year ? ` (${year})` : ""}
+            </span>
+            {desc ? <span className="block text-pasha-muted">{desc}</span> : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function renderAnswerValue(val: unknown, index: OptionIndex): React.ReactNode {

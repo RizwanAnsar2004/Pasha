@@ -284,10 +284,19 @@ async function postHandler(req: Request) {
       return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
     }
 
-    // Finalise the applicant's draft: link it to the new submission and stamp it so the apply page shows the submitted state instead of the wizard.
+    // Finalise the applicant's draft: overwrite its data with exactly what was
+    // submitted, link it to the new submission, and stamp it. Writing `data`
+    // here is what keeps the draft authoritative — the debounced autosave can
+    // lag (a field filled just before Submit may never have been saved), which
+    // left the reopened form missing values like awards. The submitted formData
+    // is the source of truth, so persist it.
     await supabase
       .from("application_drafts")
-      .update({ submission_id: row.id, submitted_at: new Date().toISOString() })
+      .update({
+        data: formData,
+        submission_id: row.id,
+        submitted_at: new Date().toISOString(),
+      })
       .eq("user_id", user.id);
 
     // Best-effort confirmation email, sent after the response.

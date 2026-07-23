@@ -154,6 +154,24 @@ export const getDatabankEditableFields = cache(
   }
 );
 
+// Every application field that maps to a real submission column, as
+// { field_key, column_map } pairs. The publish path uses this to mirror ALL
+// column-backed values onto the databank row dynamically — instead of a
+// hand-maintained list where fields (stage, pitch deck) were silently dropped.
+export const getColumnMappedFields = cache(
+  async (): Promise<{ field_key: string; column_map: string }[]> => {
+    const config = await getFormConfig("application");
+    if (!config) return [];
+    const out: { field_key: string; column_map: string }[] = [];
+    for (const section of config) {
+      for (const field of section.fields) {
+        if (field.column_map) out.push({ field_key: field.field_key, column_map: field.column_map });
+      }
+    }
+    return out;
+  }
+);
+
 // field_key / column_map → label for the application form. Cached per-request.
 export const getFieldLabelMap = cache(
   async (formKey: string = "application"): Promise<FieldLabelMap> => {

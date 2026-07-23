@@ -712,6 +712,34 @@ export function DirectoryClient({
   const [view, setView] = useState<"grid" | "list">("grid");
   // On mobile the filter controls collapse behind a "Filters" toggle; on sm+ they're always visible (this flag only affects the small-screen layout).
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
+
+  // Close the mobile filters when tapping outside the panel. The filter
+  // dropdowns (Radix) portal to <body>, so a tap on an option lands outside the
+  // panel — ignore anything inside a Radix popper/listbox so choosing a filter
+  // doesn't collapse the panel.
+  useEffect(() => {
+    if (!filtersOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (filterPanelRef.current?.contains(target)) return;
+      // A filter dropdown is open — this tap is meant to dismiss THAT, not the
+      // whole panel. Let Radix handle it and keep the panel open.
+      if (document.querySelector("[data-radix-popper-content-wrapper]")) return;
+      // The tap itself landed inside a dropdown's option list (portaled).
+      if (
+        target.closest(
+          "[data-radix-popper-content-wrapper],[role='listbox'],[role='dialog']"
+        )
+      ) {
+        return;
+      }
+      setFiltersOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [filtersOpen]);
   // Local mirror of the search box so typing stays instant; it's pushed to the URL (which triggers the server refetch) after a short debounce.
   const [searchInput, setSearchInput] = useState(filters.q);
   // Re-sync the box during render when the URL's q changes from elsewhere (Reset, browser back/forward) — React's recommended pattern over an effect.
@@ -796,7 +824,7 @@ export function DirectoryClient({
   return (
     <>
       {/* ─────────────────────────────────────────────────────── */}
-      <div className="sticky top-20 z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
+      <div ref={filterPanelRef} className="sticky top-20 z-30 mb-8 rounded-[20px] border border-pasha-ink/10 bg-white/95 backdrop-blur-xl p-3 shadow-[0_22px_60px_rgba(23,23,23,0.1)]">
         {/* Search */}
         <div className="relative flex h-11 items-center gap-2.5 rounded-[14px] border border-pasha-ink/10 bg-pasha-stone px-3.5">
           <Search className="h-4 w-4 shrink-0 text-pasha-ink/45" />
@@ -1162,20 +1190,21 @@ export function DirectoryClient({
                 )}
               </div>
 
-              {/* §13 directory badges */}
-              <DirectoryBadges r={r} className="relative z-20 pointer-events-none mt-2.5" />
+              {/* §13 directory badges — mb-3 guarantees a gap above the facts
+                  row even when mt-auto has no slack to give (full cards). */}
+              <DirectoryBadges r={r} className="relative z-20 pointer-events-none mt-2.5 mb-3" />
 
               {/* Facts row — Stage / Team size / Business model */}
               {statItems.length > 0 && (
                 <div
                   className={cn(
-                    "relative z-20 pointer-events-none mt-auto grid divide-x divide-pasha-ink/[0.07] rounded-[12px] bg-pasha-stone/60 py-2.5",
+                    "relative z-20 pointer-events-none mt-auto grid divide-x divide-pasha-ink/[0.07] rounded-[12px] bg-pasha-stone/60 py-3",
                     statItems.length >= 3 ? "grid-cols-3" : statItems.length === 2 ? "grid-cols-2" : "grid-cols-1"
                   )}
                 >
                   {statItems.map((s, si) => (
-                    <div key={si} className="px-3">
-                      <small className="block text-[8px] font-medium uppercase tracking-[1px] text-pasha-muted mb-0.5">{s.label}</small>
+                    <div key={si} className="min-w-0 px-3.5">
+                      <small className="block text-[8px] font-medium uppercase tracking-[1px] text-pasha-muted mb-1">{s.label}</small>
                       <strong className="block truncate text-[10px] text-pasha-ink">{s.value}</strong>
                     </div>
                   ))}

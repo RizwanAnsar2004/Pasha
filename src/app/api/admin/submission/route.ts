@@ -6,7 +6,7 @@ import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured-startups.server";
-import { getFieldLabelMap } from "@/lib/forms/form-config.server";
+import { getFieldLabelMap, getColumnMappedFields } from "@/lib/forms/form-config.server";
 import { isYes } from "@/lib/startups/vetting/badges";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { notifyRagDatabank } from "@/lib/ai/rag-sync";
@@ -224,11 +224,11 @@ async function patchHandler(req: Request) {
 
   // 3b. On approval, materialise the submission into the public databank table so it appears on /directory.
   if (status === "approved") {
+    // select("*") so no column-backed field can be missed — the specific
+    // columns we copy are derived from the form config below, not hand-listed.
     const { data: full } = await supabase
       .from("submissions")
-      .select(
-        "id, startup_name, tagline, website, year_founded, description, logo_url, hq_city, hq_other, outside_pakistan, hq_country, primary_sector, secondary_sector, business_model, total_employees, female_employees, nic_name, founders, company_linkedin, company_x, company_instagram, company_facebook, company_youtube, awards, certifications, founder_name, founder_email, currently_raising, answers"
-      )
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 
@@ -246,6 +246,21 @@ async function patchHandler(req: Request) {
       // §13 badge flags.
       const answers = (full.answers ?? {}) as Record<string, unknown>;
 
+      // Mirror EVERY column-backed field onto the answers bag under its
+      // field_key. The databank editor reads answers-first, so this guarantees
+      // every field the applicant filled is editable there — without any
+      // hand-maintained per-field copy that could (and did) drop stage / pitch
+      // deck. Column-mapped values that only live on submission columns (not in
+      // the answers JSON) are pulled in here.
+      const columnFields = await getColumnMappedFields();
+      const fullBag = full as Record<string, unknown>;
+      const mergedAnswers: Record<string, unknown> = { ...answers };
+      for (const { field_key, column_map } of columnFields) {
+        if (mergedAnswers[field_key] !== undefined && mergedAnswers[field_key] !== null) continue;
+        const v = fullBag[column_map];
+        if (v !== undefined && v !== null) mergedAnswers[field_key] = v;
+      }
+
       const databankRow = {
         source: "submission",
         source_id: full.id,
@@ -258,6 +273,7 @@ async function patchHandler(req: Request) {
         primary_industry: full.primary_sector ?? null,
         secondary_industries: full.secondary_sector ?? null,
         business_types: full.business_model ?? null,
+        product_stage: full.stage ?? null,
         city,
         nic_name: full.nic_name ?? null,
         contact_person: full.founder_name ?? null,
@@ -277,12 +293,17 @@ async function patchHandler(req: Request) {
         hq_country: full.hq_country ?? null,
         awards: full.awards ?? null,
         certifications: full.certifications ?? null,
+        // Pitch deck (PDF) and pitch video — these were captured on the
+        // submission but weren't being carried onto the public row.
+        pitch_deck_url: full.pitch_deck_url ?? null,
+        video_pitch: full.pitch_video ?? null,
         // §13 badges
         women_led: isYes(answers.women_led),
         hiring: isYes(answers.currently_hiring),
         fundraising: full.currently_raising ?? isYes(answers.currently_raising),
-        // Dynamic form fields (problem, solution, USP, traction, market, …) mirrored from the submission so the public profile can show them.
-        answers,
+        // Dynamic form fields plus every column-backed field, keyed by
+        // field_key — the databank editor reads this, so nothing is dropped.
+        answers: mergedAnswers,
         updated_at: new Date().toISOString(),
       };
 

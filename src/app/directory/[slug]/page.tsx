@@ -337,12 +337,19 @@ function formatPKR(n: number | null | undefined): string | null {
   return `Rs ${n.toLocaleString("en-PK")}`;
 }
 
+// Compact currency that never overflows — "$6.8M", "$1.2B", "$3.4T" — for any
+// magnitude, via Intl compact notation. The old hand-rolled tiers stopped at B
+// and produced long strings ("$679302.8B") that broke out of the card.
+const USD_COMPACT = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
 function formatUSDCompact(n: number | null | undefined): string | null {
   if (!n || n <= 0) return null;
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toLocaleString("en-US")}`;
+  return USD_COMPACT.format(n);
 }
 
 function formatDate(s: string | null | undefined): string | null {
@@ -713,10 +720,15 @@ export default async function StartupDetailPage({
                     {snapshotTiles.map((t, i) => (
                       <div
                         key={t.label}
-                        className={`min-h-[100px] border-b border-white/[0.09] p-5 ${i % 2 === 0 ? "border-r border-white/[0.09]" : ""}`}
+                        className={`min-w-0 min-h-[100px] border-b border-white/[0.09] p-5 ${i % 2 === 0 ? "border-r border-white/[0.09]" : ""}`}
                       >
                         <small className="block text-[10px] font-medium uppercase tracking-[1.5px] text-white/40">{t.label}</small>
-                        <strong className="text-base leading-tight text-white">{t.value}</strong>
+                        {/* Zero-width break after "/" lets "Production/market fit"
+                            wrap at the slash ("Production/" · "market fit") instead
+                            of overflowing or breaking mid-word. */}
+                        <strong className="mt-0.5 block text-base leading-tight text-white break-words">
+                          {t.value.replace(/\//g, "/​")}
+                        </strong>
                       </div>
                     ))}
                   </div>
@@ -843,7 +855,7 @@ export default async function StartupDetailPage({
                               {String(i + 1).padStart(2, "0")}
                             </span>
                           </div>
-                          <strong className="block font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink">
+                          <strong className="block font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink break-words leading-none">
                             {m.value}
                           </strong>
                           <h3 className="mt-3 text-base font-semibold tracking-tight text-pasha-ink">{m.label}</h3>
@@ -1501,7 +1513,7 @@ function SidebarSocialRow({
 }) {
   const items: { label: string; href: string; glyph: React.ReactNode; primary?: boolean }[] = [];
   if (websiteShown && websiteHref !== "#") {
-    items.push({ label: "Website", href: websiteHref, glyph: <Globe className="h-[18px] w-[18px]" aria-hidden />, primary: true });
+    items.push({ label: "Website", href: websiteHref, glyph: <Globe className="h-[18px] w-[18px]" aria-hidden /> });
   }
   function push(label: string, raw: string | null | undefined, glyph: React.ReactNode) {
     if (!raw) return;
@@ -1531,11 +1543,7 @@ function SidebarSocialRow({
             rel="noopener noreferrer"
             aria-label={it.label}
             title={it.label}
-            className={`grid h-12 place-items-center rounded-[13px] border transition-colors ${
-              it.primary
-                ? "bg-pasha-ink text-white border-pasha-ink"
-                : "border-pasha-ink/10 bg-pasha-stone text-pasha-ink hover:bg-pasha-ink hover:text-white hover:border-pasha-ink"
-            }`}
+            className="grid h-12 place-items-center rounded-[13px] border border-pasha-ink/10 bg-pasha-stone text-pasha-ink transition-colors hover:bg-pasha-ink hover:text-white hover:border-pasha-ink"
           >
             {it.glyph}
           </a>

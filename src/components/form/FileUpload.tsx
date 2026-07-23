@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, ImageIcon, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageCropper, type CropShape } from "./ImageCropper";
+import { compressImage } from "@/lib/utils/compress-image";
 
 export type UploadBucket = "logos" | "founder-photos" | "pitch-decks";
 
@@ -54,8 +55,14 @@ export function FileUpload({
       setFileName(file.name);
 
       try {
+        // Shrink large photos client-side so they clear the reverse-proxy body
+        // limit (often ~1 MB) that sits in front of the app. Logos on public
+        // image buckets keep their format via the cropper; here we only touch
+        // oversized raster images.
+        const toSend = await compressImage(file);
+
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", toSend);
         fd.append("bucket", bucket);
         if (fieldKey) fd.append("fieldKey", fieldKey);
 
