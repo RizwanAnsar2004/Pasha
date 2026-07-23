@@ -19,6 +19,10 @@ export function ReapplyButton() {
       router.refresh();
     } catch (e) {
       setError(apiErrorMessage(e, "Couldn't reopen application"));
+    } finally {
+      // Don't rely on the navigation unmounting this button to clear the
+      // spinner — if the server still renders the rejected stage for any
+      // reason, the user would be left staring at it.
       setLoading(false);
     }
   };

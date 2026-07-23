@@ -117,6 +117,12 @@ function asNumber(v: string): number | null {
 }
 
 // A legacy column "has data" when it isn't null/undefined/blank.
+//
+// These gates are always fed the ORIGINAL loaded record, never the live edited
+// state. Reading the live row meant clearing a value — removing a logo, or
+// emptying a text input — made its own field disappear mid-edit, with no way
+// to put anything back. Which columns are on screen is decided once, by what
+// the record held when it was opened.
 function has(v: unknown): boolean {
   return v !== null && v !== undefined && v !== "";
 }
@@ -326,9 +332,9 @@ export function EditDatabankClient({
 
       {showStaticFields && (
         <>
-      {anyHas(row.logo_url, row.startup_name, row.company_name, row.tagline, row.website, row.founded_date, row.pasha_verified) && (
+      {anyHas(initial.logo_url, initial.startup_name, initial.company_name, initial.tagline, initial.website, initial.founded_date, initial.pasha_verified) && (
       <Section title="Branding & identity">
-        {has(row.logo_url) && (
+        {has(initial.logo_url) && (
         <Field label="Logo" hint="PNG / JPG / SVG. Square works best.">
           <FileUpload
             bucket="logos"
@@ -356,7 +362,7 @@ export function EditDatabankClient({
         </Field>
         )}
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.startup_name) && (
+          {has(initial.startup_name) && (
           <Field label="Startup name">
             <Input
               value={row.startup_name ?? ""}
@@ -364,7 +370,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.company_name) && (
+          {has(initial.company_name) && (
           <Field label="Legal / company name">
             <Input
               value={row.company_name ?? ""}
@@ -373,7 +379,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(row.tagline) && (
+        {has(initial.tagline) && (
         <Field label="Tagline" hint="Rich text — shown publicly under the name.">
           <TaglineEditor
             value={row.tagline ?? ""}
@@ -382,7 +388,7 @@ export function EditDatabankClient({
         </Field>
         )}
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.website) && (
+          {has(initial.website) && (
           <Field label="Website">
             <Input
               type="url"
@@ -392,7 +398,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.founded_date) && (
+          {has(initial.founded_date) && (
           <Field label="Year founded" hint="4-digit year.">
             <Input
               type="number"
@@ -408,7 +414,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(row.pasha_verified) && (
+        {has(initial.pasha_verified) && (
         <Field
           label="PASHA verified"
           hint="Flip on to publish the badge + tooltip on the public profile."
@@ -422,10 +428,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.city, row.hq_country, row.primary_industry, row.secondary_industries, row.business_types, row.product_stage) && (
+      {anyHas(initial.city, initial.hq_country, initial.primary_industry, initial.secondary_industries, initial.business_types, initial.product_stage) && (
       <Section title="Location & category">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.city) && (
+          {has(initial.city) && (
           <Field label="HQ city (or 'Other' for write-in)">
             <SelectMenu
               className="w-full"
@@ -436,7 +442,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.hq_country) && (
+          {has(initial.hq_country) && (
           <Field label="Country (if outside Pakistan)">
             <SelectMenu
               className="w-full"
@@ -447,7 +453,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.primary_industry) && (
+          {has(initial.primary_industry) && (
           <Field label="Primary industry">
             <SelectMenu
               className="w-full"
@@ -458,7 +464,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.secondary_industries) && (
+          {has(initial.secondary_industries) && (
           <Field label="Secondary industries">
             <Input
               value={row.secondary_industries ?? ""}
@@ -469,7 +475,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.business_types) && (
+          {has(initial.business_types) && (
           <Field label="Business model / type">
             <SelectMenu
               className="w-full"
@@ -480,7 +486,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.product_stage) && (
+          {has(initial.product_stage) && (
           <Field label="Product stage">
             <SelectMenu
               className="w-full"
@@ -495,10 +501,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.nic_name, row.incubation_stage, row.cohort, row.joining_date) && (
+      {anyHas(initial.nic_name, initial.incubation_stage, initial.cohort, initial.joining_date) && (
       <Section title="Incubation">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.nic_name) && (
+          {has(initial.nic_name) && (
           <Field label="NIC / incubation center">
             <SelectMenu
               className="w-full"
@@ -509,7 +515,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.incubation_stage) && (
+          {has(initial.incubation_stage) && (
           <Field label="Stage of incubation">
             <Input
               value={row.incubation_stage ?? ""}
@@ -519,7 +525,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.cohort) && (
+          {has(initial.cohort) && (
           <Field label="Cohort">
             <Input
               value={row.cohort ?? ""}
@@ -527,7 +533,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.joining_date) && (
+          {has(initial.joining_date) && (
           <Field label="Joining date" hint="YYYY-MM-DD">
             <Input
               type="date"
@@ -540,10 +546,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.total_employees, row.female_employees, row.jobs_created, row.number_of_customers, row.current_revenue, row.investment_raised, row.investment_commitment, row.investment_raised_from) && (
+      {anyHas(initial.total_employees, initial.female_employees, initial.jobs_created, initial.number_of_customers, initial.current_revenue, initial.investment_raised, initial.investment_commitment, initial.investment_raised_from) && (
       <Section title="Team & traction">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.total_employees) && (
+          {has(initial.total_employees) && (
           <Field label="Total employees">
             <Input
               type="number"
@@ -553,7 +559,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.female_employees) && (
+          {has(initial.female_employees) && (
           <Field label="Female employees">
             <Input
               type="number"
@@ -565,7 +571,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.jobs_created) && (
+          {has(initial.jobs_created) && (
           <Field label="Jobs created">
             <Input
               type="number"
@@ -575,7 +581,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.number_of_customers) && (
+          {has(initial.number_of_customers) && (
           <Field label="Customers">
             <Input
               type="number"
@@ -587,7 +593,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.current_revenue) && (
+          {has(initial.current_revenue) && (
           <Field label="Annual revenue (PKR)">
             <Input
               type="number"
@@ -600,7 +606,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.investment_raised) && (
+          {has(initial.investment_raised) && (
           <Field label="Investment raised (PKR, lifetime)">
             <Input
               type="number"
@@ -613,7 +619,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.investment_commitment) && (
+          {has(initial.investment_commitment) && (
           <Field label="Investment commitments (PKR)">
             <Input
               value={row.investment_commitment ?? ""}
@@ -623,7 +629,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.investment_raised_from) && (
+          {has(initial.investment_raised_from) && (
           <Field label="Source of capital">
             <Input
               value={row.investment_raised_from ?? ""}
@@ -638,9 +644,9 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.startup_idea, row.business_model, row.social_impact, row.sdgs, row.video_pitch) && (
+      {anyHas(initial.startup_idea, initial.business_model, initial.social_impact, initial.sdgs, initial.video_pitch) && (
       <Section title="About" subtitle="Long-form text shown on the public profile. HTML is sanitised on render.">
-        {has(row.startup_idea) && (
+        {has(initial.startup_idea) && (
         <Field label="Tagline / startup idea (paragraph)">
           <Textarea
             value={stripTags(row.startup_idea ?? "")}
@@ -649,7 +655,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(row.business_model) && (
+        {has(initial.business_model) && (
         <Field label="Business model (paragraph)">
           <Textarea
             value={stripTags(row.business_model ?? "")}
@@ -658,7 +664,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(row.social_impact) && (
+        {has(initial.social_impact) && (
         <Field label="Social impact">
           <Textarea
             value={row.social_impact ?? ""}
@@ -667,7 +673,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(row.sdgs) && (
+        {has(initial.sdgs) && (
         <Field label="SDGs" hint="Pipe / semicolon / comma separated.">
           <Input
             value={row.sdgs ?? ""}
@@ -675,7 +681,7 @@ export function EditDatabankClient({
           />
         </Field>
         )}
-        {has(row.video_pitch) && (
+        {has(initial.video_pitch) && (
         <Field label="Pitch video URL">
           <Input
             type="url"
@@ -688,7 +694,7 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {has(row.certifications) && (
+      {has(initial.certifications) && (
       <Section title="Recognition">
         {/* Awards are managed in Admin → Award Winners (not here). */}
         <Field label="Certifications" hint="ISO, SOC 2, PCI-DSS, etc.">
@@ -701,10 +707,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.contact_person, row.contact_email, row.outreach_status, row.outreach_notes) && (
+      {anyHas(initial.contact_person, initial.contact_email, initial.outreach_status, initial.outreach_notes) && (
       <Section title="Contact (private)" subtitle="Not shown on the public profile. Used by the secretariat for outreach.">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.contact_person) && (
+          {has(initial.contact_person) && (
           <Field label="Primary contact">
             <Input
               value={row.contact_person ?? ""}
@@ -714,7 +720,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.contact_email) && (
+          {has(initial.contact_email) && (
           <Field label="Primary contact email">
             <Input
               type="email"
@@ -723,7 +729,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.outreach_status) && (
+          {has(initial.outreach_status) && (
           <Field label="Outreach status">
             <SelectMenu
               className="w-full"
@@ -741,7 +747,7 @@ export function EditDatabankClient({
           </Field>
           )}
         </div>
-        {has(row.outreach_notes) && (
+        {has(initial.outreach_notes) && (
         <Field label="Outreach notes">
           <Textarea
             value={row.outreach_notes ?? ""}
@@ -753,10 +759,10 @@ export function EditDatabankClient({
       </Section>
       )}
 
-      {anyHas(row.company_linkedin, row.company_x, row.company_instagram, row.company_facebook, row.company_youtube) && (
+      {anyHas(initial.company_linkedin, initial.company_x, initial.company_instagram, initial.company_facebook, initial.company_youtube) && (
       <Section title="Company socials">
         <div className="grid sm:grid-cols-2 gap-5">
-          {has(row.company_linkedin) && (
+          {has(initial.company_linkedin) && (
           <Field label="LinkedIn">
             <Input
               type="url"
@@ -767,7 +773,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.company_x) && (
+          {has(initial.company_x) && (
           <Field label="X / Twitter">
             <Input
               type="url"
@@ -776,7 +782,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.company_instagram) && (
+          {has(initial.company_instagram) && (
           <Field label="Instagram">
             <Input
               type="url"
@@ -787,7 +793,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.company_facebook) && (
+          {has(initial.company_facebook) && (
           <Field label="Facebook">
             <Input
               type="url"
@@ -798,7 +804,7 @@ export function EditDatabankClient({
             />
           </Field>
           )}
-          {has(row.company_youtube) && (
+          {has(initial.company_youtube) && (
           <Field label="YouTube">
             <Input
               type="url"

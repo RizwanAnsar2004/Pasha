@@ -30,7 +30,7 @@ type Slide = {
 // AwardWinningStartups.tsx and DirectoryBento.tsx.
 const SLIDES: Slide[] = [
   {
-    image: "/hero-hub.jpg",
+    image: "/hero-hub.png",
     alt: "Startup team collaborating around ideas and plans",
     kicker: "Pakistan's national startup ecosystem platform",
     heading: "PASHA Startup Hub",
@@ -61,7 +61,7 @@ const SLIDES: Slide[] = [
     tabTitle: "ICT Awards",
   },
   {
-    image: "/hero-directory.jpg",
+    image: "/hero-directory.png",
     alt: "Startup team reviewing a digital product together",
     shadeClass: "hero-photo-shade-directory",
     kicker: "Discover the builders shaping Pakistan's future",

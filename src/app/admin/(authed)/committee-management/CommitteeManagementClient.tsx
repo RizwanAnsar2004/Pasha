@@ -12,6 +12,7 @@ import { useListNav } from "../_components/useListNav";
 import { ShimmerOverlay } from "../_components/ShimmerOverlay";
 import { FileUpload } from "@/components/form/FileUpload";
 import { MemberAvatar } from "@/components/committee/MemberAvatar";
+import { cn } from "@/lib/utils";
 import type { MemberRow } from "./page";
 import {
   COMMITTEE_MEMBER_TYPES,
@@ -510,6 +511,20 @@ export function CommitteeManagementClient({
                         className={fieldCls}
                       />
                     </Field>
+                    {/* Shown but locked: the email is the member's sign-in
+                        identity, so it can't be reassigned from here. Rendering
+                        it disabled makes that obvious, rather than leaving the
+                        field missing and looking like an oversight. */}
+                    <Field label="Email">
+                      <input
+                        type="email"
+                        value={editingEmail ?? ""}
+                        readOnly
+                        disabled
+                        aria-describedby="committee-email-locked"
+                        className={cn(fieldCls, "cursor-not-allowed bg-pasha-stone/40 text-pasha-muted")}
+                      />
+                    </Field>
                     <Field label="Member type">
                       <SelectMenu
                         value={editType}
@@ -550,7 +565,7 @@ export function CommitteeManagementClient({
                         hint="Square works best. Shown on the public committee and about pages."
                       />
                     </Field>
-                    <p className="text-xs text-pasha-muted">
+                    <p id="committee-email-locked" className="text-xs text-pasha-muted">
                       The email address is the member&rsquo;s sign-in identity and
                       can&rsquo;t be changed here. Remove and re-add the member to
                       move them to a different address.

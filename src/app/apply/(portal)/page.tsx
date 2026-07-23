@@ -115,7 +115,12 @@ export default async function ApplicantOverviewPage({
     : null;
 
   const stage = deriveStage({
-    submitted: Boolean(submissionStatus),
+    // Must be the draft's own submitted flag, not "a submission row exists".
+    // Reopening after a rejection clears submitted_at but deliberately keeps
+    // submission_id, so keying off the submission row left the stage stuck on
+    // "rejected" — the Reapply button then never unmounted and its spinner
+    // span forever even though the API had succeeded.
+    submitted: draft.submitted,
     status: submissionStatus?.status,
     pashaVerified: submissionStatus?.pashaVerified,
     featuredActive: submissionStatus?.featuredActive,
