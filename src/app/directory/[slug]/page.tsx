@@ -855,7 +855,10 @@ export default async function StartupDetailPage({
                               {String(i + 1).padStart(2, "0")}
                             </span>
                           </div>
-                          <strong className="block font-serif text-4xl sm:text-5xl font-extrabold tracking-tight text-pasha-ink break-words leading-none">
+                          {/* Compact currency is always short ("$200.0M",
+                              "$1.2B") — keep it on one line and scale the size to
+                              the card so it never wraps ("$200.0" / "M"). */}
+                          <strong className="block whitespace-nowrap font-serif text-[clamp(1.6rem,4.5vw,2.75rem)] font-extrabold tracking-tight tabular-nums text-pasha-ink leading-none">
                             {m.value}
                           </strong>
                           <h3 className="mt-3 text-base font-semibold tracking-tight text-pasha-ink">{m.label}</h3>

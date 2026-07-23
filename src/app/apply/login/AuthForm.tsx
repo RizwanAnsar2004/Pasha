@@ -27,6 +27,7 @@ import {
   applicantPasswordError,
 } from "@/lib/auth/applicant/applicant-password";
 import { cn } from "@/lib/utils";
+import { useRouteProgress } from "@/components/RouteProgress";
 
 type Values = Record<string, unknown>;
 
@@ -46,6 +47,7 @@ function AuthInner({
 }) {
   const sp = useSearchParams();
   const router = useRouter();
+  const routeProgress = useRouteProgress();
   const redirect = sp.get("redirect") ?? "/apply";
 
   const hasRegForm = !!(registrationConfig && registrationConfig.length > 0);
@@ -278,17 +280,21 @@ function AuthInner({
     setInfo(null);
     setNeedsVerify(false);
     setLoading(true);
+    // Sign-in does async work before navigating — show the top bar for it.
+    routeProgress.start();
     try {
       const { res, j } = await postAuth({ action: "login", email, password });
       if (!res.ok) {
         if (j.needsVerification) setNeedsVerify(true);
         applyApiError(j.error ?? "Something went wrong");
+        routeProgress.done();
         return;
       }
       router.replace(redirect);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      routeProgress.done();
     } finally {
       setLoading(false);
     }

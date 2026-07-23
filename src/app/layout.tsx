@@ -4,7 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Suspense } from "react";
 import { ChatWidget } from "@/components/ChatWidget";
-import { RouteProgress } from "@/components/RouteProgress";
+import { RouteProgressProvider } from "@/components/RouteProgress";
 import { SITE_URL } from "@/lib/utils/site-url";
 
 const poppins = Poppins({
@@ -107,14 +107,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
-        {/* Top bar shown while a route change is in flight. Suspense because it
-            reads useSearchParams, which would otherwise opt every page out of
-            static rendering. */}
-        <Suspense fallback={null}>
-          <RouteProgress />
+        {/* Top bar shown while a navigation is in flight, plus the context that
+            lets programmatic flows (sign-in, submit) trigger it. Suspense
+            because it reads useSearchParams, which would otherwise opt every
+            page out of static rendering. */}
+        <Suspense fallback={children}>
+          <RouteProgressProvider>
+            {/* Per-navigation enter animation lives in app/template.tsx */}
+            {children}
+          </RouteProgressProvider>
         </Suspense>
-        {/* Per-navigation enter animation lives in app/template.tsx, which Next */}
-        {children}
         <ChatWidget />
       </body>
       {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
