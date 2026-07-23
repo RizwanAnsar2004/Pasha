@@ -152,13 +152,6 @@ function LoginInner() {
                       className="mt-1.5 h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                     />
                   </div>
-                  {/* One instance per form — only one renders at a time, so
-                      `captchaRef` always points at the live widget. */}
-                  <CaptchaWidget
-                    ref={captchaRef}
-                    onToken={setCaptchaToken}
-                    className="flex justify-center"
-                  />
                   <button
                     type="submit"
                     disabled={loading}
@@ -216,11 +209,6 @@ function LoginInner() {
                     className="h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                   />
                 </div>
-                <CaptchaWidget
-                  ref={captchaRef}
-                  onToken={setCaptchaToken}
-                  className="flex justify-center"
-                />
                 <button
                   type="submit"
                   disabled={loading}
@@ -236,6 +224,15 @@ function LoginInner() {
                   )}
                 </button>
               </form>
+            )}
+            {/* One captcha for BOTH the sign-in and forgot forms. Mounted here,
+                outside the forgot/sign-in branch, so toggling between them
+                reconciles the same widget instead of remounting it and firing a
+                fresh Cloudflare challenge each time. */}
+            {captchaConfigured && (
+              <div className="mt-4 flex justify-center">
+                <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+              </div>
             )}
               </>
             )}

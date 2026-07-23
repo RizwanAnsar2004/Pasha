@@ -110,33 +110,15 @@ function AuthInner({
   const isRegistrationStep =
     screen === "form" && isRegister && regStep === 2 && hasRegForm;
 
-  // Rendered directly above whichever submit button is on screen. Declared here,
-  // ahead of the screen consts that use it, because those are plain `const`s
-  // evaluated in order — referencing this from `forgotScreen` while it was
-  // declared further down was a temporal-dead-zone crash.
-  //
-  // The screens are mutually exclusive, so only one instance is ever mounted and
-  // `captchaRef` always points at the live widget.
-  //
-  // Visible wherever a real submit happens. The one exception is sign-up step 1
-  // (email + password → Continue), which only probes whether the address
-  // exists: the challenge runs silently there so the funnel stays clean, then
-  // shows itself on step 2 where the account is actually created. With no
-  // registration form configured there is no step 2, so step 1 is the create
-  // step and stays visible. The server verifies the token identically either
-  // way — only the presentation changes.
-  const captchaNode = (
-    <CaptchaWidget
-      ref={captchaRef}
-      onToken={setCaptchaToken}
-      appearance={
-        screen === "form" && isRegister && regStep === 1 && hasRegForm
-          ? "interaction-only"
-          : "always"
-      }
-      className="flex justify-center"
-    />
-  );
+  // A SINGLE captcha widget is mounted once, at a stable position below the card
+  // body (see the return), and merely shown/hidden per screen. It deliberately
+  // lives OUTSIDE the per-screen markup: rendering it inside each screen's branch
+  // placed it at a different position in the React tree per screen, so switching
+  // login → forgot / step 1 → step 2 remounted it and fired a fresh Cloudflare
+  // challenge every time (the "verifies twice" bug). Kept mounted, it reconciles
+  // in place and challenges exactly once. Hidden only on screens with no submit
+  // (the verify prompt and the "reset link sent" confirmation).
+  const captchaNeeded = screen === "form" || (screen === "forgot" && !info);
 
   function registrationFieldSpan(field: FormFieldConfig) {
     if (
@@ -482,7 +464,6 @@ function AuthInner({
               <span>{error}</span>
             </div>
           )}
-          {captchaNode}
           <button
             type="submit"
             disabled={loading}
@@ -660,7 +641,6 @@ function AuthInner({
               />
               <div className="sm:col-span-2 space-y-4">
                 {errorBlock}
-                {captchaNode}
                 <button
                 type="button"
                 disabled={loading}
@@ -704,7 +684,6 @@ function AuthInner({
         >
           {accountFields}
           {errorBlock}
-          {captchaNode}
           <button
             type="submit"
             disabled={loading}
@@ -764,6 +743,16 @@ function AuthInner({
             )}
           >
             {bodyContent}
+            {captchaConfigured && (
+              <div
+                className={cn(
+                  "mt-5 flex justify-center",
+                  !captchaNeeded && "hidden"
+                )}
+              >
+                <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+              </div>
+            )}
           </motion.div>
         </div>
       </main>

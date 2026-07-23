@@ -120,6 +120,11 @@ export const CaptchaWidget = forwardRef<
   // doesn't tear down and re-render the challenge.
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
+  // Same reasoning for `appearance`: keep it out of the mount effect's deps so a
+  // parent that flips it (e.g. register step 1 → step 2) can't tear the widget
+  // down and trigger a fresh Cloudflare challenge. It's read once, at render.
+  const appearanceRef = useRef(appearance);
+  appearanceRef.current = appearance;
 
   useImperativeHandle(
     ref,
@@ -166,7 +171,7 @@ export const CaptchaWidget = forwardRef<
         // attribute is passed as a render param instead. Account-level analytics
         // attribution only — the challenge works identically without it.
         action: CAPTCHA_ACTION,
-        appearance,
+        appearance: appearanceRef.current,
         callback: (token) => {
           setStatus("ready");
           setErrorCode(null);
@@ -185,7 +190,7 @@ export const CaptchaWidget = forwardRef<
       // render() throws synchronously on a malformed sitekey.
       fail(e instanceof Error ? e.message : "render-failed");
     }
-  }, [fail, appearance]);
+  }, [fail]);
 
   useEffect(() => {
     void mount();

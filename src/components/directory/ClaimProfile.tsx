@@ -67,17 +67,6 @@ export function ClaimProfile({
     );
   }
 
-  // Needed on both steps: "Resend code" on the code step calls sendCode, which
-  // is the same gated `start` action. Only one step renders at a time, so
-  // `captchaRef` always points at the mounted widget.
-  const captchaNode = (
-    <CaptchaWidget
-      ref={captchaRef}
-      onToken={setCaptchaToken}
-      className="flex justify-start"
-    />
-  );
-
   return (
     <div className="mb-8 rounded-2xl border border-pasha-red/30 bg-pasha-red/[0.08] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-white/85">
       <p className="leading-relaxed">
@@ -98,7 +87,6 @@ export function ClaimProfile({
       {step === "email" && (
         <div className="mt-3 space-y-2">
           <label className="block text-[13px] text-white/70">Your company email address</label>
-          {captchaNode}
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="email"
@@ -142,10 +130,19 @@ export function ClaimProfile({
               {busy && <Loader2 className="h-4 w-4 animate-spin" />} Verify
             </button>
           </div>
-          {captchaNode}
           <button type="button" onClick={sendCode} disabled={busy} className="text-[12px] text-white/55 underline hover:text-white">
             Resend code
           </button>
+        </div>
+      )}
+
+      {/* One captcha for BOTH the email and code steps (the code step's "Resend
+          code" re-runs the gated `start` action). Mounted here, outside the
+          per-step blocks, so advancing email → code keeps the SAME widget rather
+          than remounting it and firing a second Cloudflare challenge. */}
+      {captchaConfigured && (step === "email" || step === "code") && (
+        <div className="mt-3 flex justify-start">
+          <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
         </div>
       )}
 
