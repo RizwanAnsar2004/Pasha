@@ -213,8 +213,9 @@ export default async function ApplicantOverviewPage({
           {greetingName ? `Welcome, ${greetingName}` : "Welcome"} 👋
         </h1>
         <p className="mt-1.5 text-sm text-pasha-muted">
-          Apply to join the PASHA Startup Hub. Your progress is saved automatically — you can
-          leave and pick up where you left off anytime.
+          {editable
+            ? "Apply to join the PASHA Startup Hub. Your progress is saved automatically — you can leave and pick up where you left off anytime."
+            : "Here's the status of your PASHA Startup Hub application."}
         </p>
       </div>
 
@@ -305,12 +306,23 @@ export default async function ApplicantOverviewPage({
           ))}
         </div>
 
-        {completion.nextLevel && completion.nextLevel.missing.length > 0 && (
+        {/* The "add X next" nudge only makes sense while the applicant can still
+            edit — once it's with the committee there's no action to take. */}
+        {editable && completion.nextLevel && completion.nextLevel.missing.length > 0 && (
           <p className="mt-4 text-sm text-pasha-muted">
             <span className="font-medium text-pasha-ink">
               Next — {completion.nextLevel.label} ({completion.nextLevel.percent}%):
             </span>{" "}
             add {completion.nextLevel.missing.map((m) => m.label).join(", ")}.
+          </p>
+        )}
+
+        {!editable && stage !== "rejected" && (
+          <p className="mt-4 rounded-lg border border-pasha-line bg-pasha-stone/30 px-3 py-2 text-sm text-pasha-muted leading-relaxed">
+            <span className="font-medium text-pasha-ink">No action needed right now.</span>{" "}
+            {stage === "submitted"
+              ? "Your application is locked while the committee reviews it — we'll email you when the status changes."
+              : "Your profile is locked. We'll email you if the committee needs anything."}
           </p>
         )}
 

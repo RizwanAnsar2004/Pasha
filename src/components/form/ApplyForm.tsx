@@ -28,6 +28,7 @@ const DRAFT_DEBOUNCE_MS = 1000;
 import { api } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
+import { AutoOptionalLabels } from "./Field";
 import { Step1Startup } from "./steps/Step1Startup";
 import { Step2Founders } from "./steps/Step2Founders";
 import { Step3Recognition } from "./steps/Step3Recognition";
@@ -373,6 +374,7 @@ const form = useForm<SubmissionInput>({
   return (
     <FormProvider {...form}>
       <OptionListsProvider value={optionLists ?? {}}>
+      <AutoOptionalLabels>
       {/* ═══════════════════════════════════════════════════════ */}
       {process.env.NODE_ENV !== "production" && (
         <div className="mb-4 flex items-center justify-end gap-2">
@@ -571,6 +573,7 @@ const form = useForm<SubmissionInput>({
           </div>
         </div>
       </div>
+      </AutoOptionalLabels>
       </OptionListsProvider>
     </FormProvider>
   );

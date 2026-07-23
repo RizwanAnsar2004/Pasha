@@ -47,6 +47,24 @@ export function resolveOptionLabel(
   return index.labelByValue[key(type, raw)] ?? raw;
 }
 
+// Public-facing label for a stored choice: "Other" is a data-entry affordance,
+// never something a visitor should read, so swap in the free text the applicant
+// typed alongside it (answers.<field>_other). Falls back to the label when the
+// companion text is missing.
+export function resolveChoiceLabel(
+  index: OptionIndex,
+  type: string,
+  stored: string | null | undefined,
+  otherText: unknown
+): string | null {
+  const label = resolveOptionLabel(index, type, stored);
+  if (label !== OTHER_LABEL) return label;
+  const custom = typeof otherText === "string" ? otherText.trim() : "";
+  return custom || null;
+}
+
+const OTHER_LABEL = "Other";
+
 // Display label for a stored choice, without needing to know its option type.
 export function optionLabelOf(index: OptionIndex, stored: unknown): string | null {
   const raw = typeof stored === "string" ? stored.trim() : "";

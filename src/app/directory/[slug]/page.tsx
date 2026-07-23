@@ -618,7 +618,9 @@ export default async function StartupDetailPage({
                     <img
                       src={row.logo_url!}
                       alt={`${row.startup_name} logo`}
-                      className="h-full w-full object-cover"
+                      // Contain + padding so wide wordmarks show in full instead
+                      // of being cropped to their middle by object-cover.
+                      className="h-full w-full object-contain p-4 sm:p-5"
                       loading="eager"
                       decoding="async"
                     />
@@ -975,7 +977,7 @@ export default async function StartupDetailPage({
                       <div className="grid h-[74px] w-[74px] place-items-center overflow-hidden rounded-[20px] bg-white font-serif text-lg font-bold text-pasha-ink">
                         {logoOk ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={row.logo_url!} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          <img src={row.logo_url!} alt="" className="h-full w-full object-contain p-2.5" loading="lazy" decoding="async" />
                         ) : (
                           <span aria-hidden>{initials(row.startup_name)}</span>
                         )}
@@ -1296,7 +1298,7 @@ function RelatedCard({
         >
           {logoOk ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={safeLogo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+            <img src={safeLogo} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain p-1.5" />
           ) : (
             <span aria-hidden>{initials(startup.startup_name)}</span>
           )}

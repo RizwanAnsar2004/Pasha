@@ -79,6 +79,9 @@ export type DirectoryFilters = {
   womenLed: boolean;
   hiring: boolean;
   fundraising: boolean;
+  // Admin-curated sets (featured_startups window / startup_awards rows).
+  featured: boolean;
+  awarded: boolean;
   sort: string; // "featured" | "az" | "newest" | "oldest"
 };
 
@@ -236,7 +239,9 @@ function LogoTile({
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
+          // Contain + padding: wordmark logos are wide, and cover would crop
+          // them down to whatever happens to sit in the middle.
+          className="w-full h-full object-contain p-1.5"
           onError={() => setErrored(true)}
         />
       ) : (
@@ -757,7 +762,9 @@ export function DirectoryClient({
     filters.verified ||
     filters.womenLed ||
     filters.hiring ||
-    filters.fundraising;
+    filters.fundraising ||
+    filters.featured ||
+    filters.awarded;
 
   // Count of active filters (search excluded — it has its own always-visible box) for the mobile "Filters" toggle badge.
   const activeFilterCount = [
@@ -768,6 +775,8 @@ export function DirectoryClient({
     filters.womenLed,
     filters.hiring,
     filters.fundraising,
+    filters.featured,
+    filters.awarded,
   ].filter(Boolean).length;
 
   // Scroll to top of listing when the page changes.
@@ -873,8 +882,14 @@ export function DirectoryClient({
             <QuickChip active={filters.verified} onClick={() => updateParams({ verified: filters.verified ? null : "1", page: null })}>
               Verified
             </QuickChip>
+            <QuickChip active={filters.featured} onClick={() => updateParams({ featured: filters.featured ? null : "1", page: null })}>
+              Featured
+            </QuickChip>
             <QuickChip active={filters.womenLed} onClick={() => updateParams({ women_led: filters.womenLed ? null : "1", page: null })}>
               Women-led
+            </QuickChip>
+            <QuickChip active={filters.awarded} onClick={() => updateParams({ awarded: filters.awarded ? null : "1", page: null })}>
+              Award-winning
             </QuickChip>
             {/* Hiring quick filter — hidden for now.
             <QuickChip active={filters.hiring} onClick={() => updateParams({ hiring: filters.hiring ? null : "1", page: null })}>
@@ -994,7 +1009,10 @@ export function DirectoryClient({
             resolveOptionLabel(optionIndex, "SECTORS", clean(r.primary_industry)),
             (r.answers as Record<string, unknown> | null)?.primary_sector_other
           );
-          const city = resolveOptionLabel(optionIndex, "HQ_CITIES", clean(r.city));
+          const city = resolveOther(
+            resolveOptionLabel(optionIndex, "HQ_CITIES", clean(r.city)),
+            (r.answers as Record<string, unknown> | null)?.hq_other
+          );
           const website = isSafeUrl(r.website) ? r.website : null;
           const logoUrl = safeLogoUrl(r.logo_url);
 
@@ -1014,7 +1032,10 @@ export function DirectoryClient({
           const raisedDisplay = investment
             ? investment.replace("Rs ", "")
             : bandLabel(a.total_funding_raised, raisedBandLabel);
-          const productStage = resolveOptionLabel(optionIndex, "STAGES", clean(r.product_stage));
+          const productStage = resolveOther(
+            resolveOptionLabel(optionIndex, "STAGES", clean(r.product_stage)),
+            a.stage_other
+          );
           const teamSize = r.total_employees && r.total_employees > 0 ? compact(r.total_employees) : null;
           const businessModel =
             splitMulti(r.business_types)
@@ -1082,7 +1103,7 @@ export function DirectoryClient({
                 >
                   {logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={logoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                    <img src={logoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-contain p-1.5" />
                   ) : (
                     <span aria-hidden>{initials(r.startup_name)}</span>
                   )}

@@ -208,9 +208,20 @@ function makeNumber(spec: ValidationSpec, required: boolean): z.ZodTypeAny {
   );
 }
 
-function makeBool(required: boolean): z.ZodTypeAny {
+function makeBool(required: boolean, mustBeTrue = false): z.ZodTypeAny {
+  if (mustBeTrue) {
+    return optionalBool.refine((v) => v === true, {
+      message: "You must accept the agreement to continue.",
+    });
+  }
   if (!required) return optionalBool;
   return optionalBool.refine((v) => v !== undefined, { message: "Required" });
+}
+
+// Consent-style yes/no fields where "No" is not a valid answer — answering No
+// must block the form, unlike an ordinary yes/no question.
+export function isConsentField(fieldKey: string): boolean {
+  return /(^|_)(terms|consent)(_|$)|agree/.test(fieldKey);
 }
 
 const filterStrings = (v: unknown) =>
@@ -239,7 +250,7 @@ function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
       schema = makeNumber(spec, req);
       break;
     case InputType.YES_NO:
-      schema = makeBool(req);
+      schema = makeBool(req, field.required && isConsentField(field.field_key));
       break;
     case InputType.MULTISELECT:
       schema = makeArray(req);

@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { startupSlug } from "@/lib/utils/slug";
 import type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { resolveOptionLabel, resolveOptionValue, type OptionIndex } from "@/lib/options/resolve";
+import { resolveChoiceLabel, resolveOptionLabel, resolveOptionValue, type OptionIndex } from "@/lib/options/resolve";
 
 export type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 
@@ -64,10 +64,11 @@ function toWomenLedStartup(row: DatabankRow, index: OptionIndex): WomenLedStartu
     startup_name: row.startup_name,
     founder_name: founderNameFromKeyPersons(row.key_persons, index),
     founder_mobile: founderMobileFromKeyPersons(row.key_persons, index),
-    primary_industry: resolveOptionLabel(index, "SECTORS", row.primary_industry),
-    city: resolveOptionLabel(index, "HQ_CITIES", row.city),
+    // "Other" is never shown publicly — swap in the applicant's own words.
+    primary_industry: resolveChoiceLabel(index, "SECTORS", row.primary_industry, row.answers?.primary_sector_other),
+    city: resolveChoiceLabel(index, "HQ_CITIES", row.city, row.answers?.hq_other),
     tagline: row.tagline,
-    product_stage: resolveOptionLabel(index, "STAGES", row.product_stage),
+    product_stage: resolveChoiceLabel(index, "STAGES", row.product_stage, row.answers?.stage_other),
     contact_email: row.contact_email,
     website: row.website,
     logo_url: row.logo_url ?? null,

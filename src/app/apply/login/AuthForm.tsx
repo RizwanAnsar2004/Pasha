@@ -552,7 +552,7 @@ function AuthInner({
         <div className="mt-3">
           <h1 className="font-serif text-2xl tracking-tight text-pasha-ink">A few startup basics</h1>
           <p className="mt-1.5 text-sm text-pasha-muted leading-relaxed">
-            You can complete the full profile after you verify your email and sign in.
+            You can complete the full profile after you create your account.
           </p>
         </div>
         <FormProvider {...form}>
@@ -620,7 +620,7 @@ function AuthInner({
         </h1>
         <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
           {isRegister
-            ? "Create an account to start your application. You'll verify your email, then you can save your progress and finish anytime."
+            ? "Create an account to start your application. Save your progress and finish anytime."
             : "Sign in to continue your application. You can pick up right where you left off."}
         </p>
 

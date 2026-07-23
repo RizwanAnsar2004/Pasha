@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { FeaturedStartup } from "@/components/landing/FeaturedStartups";
 import type { WatchlistStartup } from "@/components/landing/DirectoryBento";
 import { getOptionIndex } from "@/lib/options/index.server";
-import { resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
+import { resolveChoiceLabel, resolveOptionLabel, type OptionIndex } from "@/lib/options/resolve";
 
 export type FeaturedSettings = {
   auto_rotate: boolean;
@@ -12,7 +12,7 @@ export type FeaturedSettings = {
 };
 
 const DATABANK_COLS =
-  "id,startup_name,tagline,primary_industry,city,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage,answers";
+  "id,startup_name,tagline,primary_industry,city,website,company_linkedin,logo_url,current_revenue,total_employees,female_employees,number_of_customers,pasha_verified,product_stage,incubation_stage,answers";
 
 const DEFAULT_SETTINGS: FeaturedSettings = {
   auto_rotate: true,
@@ -115,11 +115,14 @@ export async function getActiveFeaturedStartups(now = new Date()): Promise<{
   const startups = (data ?? [])
     .map((row) => databankOfJoin(row.databank as FeaturedStartup | FeaturedStartup[] | null))
     .filter((s): s is FeaturedStartup => s !== null)
-    .map((s) => ({
-      ...s,
-      primary_industry: resolveOptionLabel(index, "SECTORS", s.primary_industry),
-      city: resolveOptionLabel(index, "HQ_CITIES", s.city),
-    }));
+    .map((s) => {
+      const answers = (s as DatabankFeatured).answers ?? null;
+      return {
+        ...s,
+        primary_industry: resolveChoiceLabel(index, "SECTORS", s.primary_industry, answers?.primary_sector_other),
+        city: resolveChoiceLabel(index, "HQ_CITIES", s.city, answers?.hq_other),
+      };
+    });
 
   return { settings, startups };
 }
@@ -127,6 +130,8 @@ export async function getActiveFeaturedStartups(now = new Date()): Promise<{
 type DatabankFeatured = FeaturedStartup & {
   product_stage?: string | null;
   incubation_stage?: string | null;
+  website?: string | null;
+  company_linkedin?: string | null;
   answers?: Record<string, unknown> | null;
 };
 
@@ -137,17 +142,34 @@ function coverFromAnswers(answers: Record<string, unknown> | null | undefined): 
 }
 
 function toWatchlistStartup(s: DatabankFeatured, index: OptionIndex): WatchlistStartup {
+  // "Other" never reaches the homepage — resolveChoiceLabel swaps in the free
+  // text the applicant typed for it.
   return {
     id: s.id,
     startup_name: s.startup_name,
     tagline: s.tagline,
-    primary_industry: resolveOptionLabel(index, "SECTORS", s.primary_industry),
-    city: resolveOptionLabel(index, "HQ_CITIES", s.city),
-    product_stage: stageLabel(resolveOptionLabel(index, "STAGES", s.product_stage), s.incubation_stage),
+    primary_industry: resolveChoiceLabel(index, "SECTORS", s.primary_industry, s.answers?.primary_sector_other),
+    city: resolveChoiceLabel(index, "HQ_CITIES", s.city, s.answers?.hq_other),
+    product_stage: stageLabel(
+      resolveChoiceLabel(index, "STAGES", s.product_stage, s.answers?.stage_other),
+      s.incubation_stage
+    ),
     pasha_verified: s.pasha_verified,
     logo_url: s.logo_url ?? null,
     cover_image: coverFromAnswers(s.answers),
+    // Real outbound links for the card footer — fall back to the answers blob
+    // for rows whose links were only ever captured in the application form.
+    website: s.website ?? answerString(s.answers, "website"),
+    company_linkedin: s.company_linkedin ?? answerString(s.answers, "company_linkedin"),
   };
+}
+
+function answerString(
+  answers: Record<string, unknown> | null | undefined,
+  key: string
+): string | null {
+  const v = answers?.[key];
+  return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
 export async function getHomepageFeaturedWatchlist(): Promise<WatchlistStartup[]> {

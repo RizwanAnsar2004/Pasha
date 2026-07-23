@@ -5,7 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Globe, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
-import { safeImageSrc } from "@/lib/validators/safe-url";
+import { safeImageSrc, safeHref } from "@/lib/validators/safe-url";
+import { startupSlug } from "@/lib/utils/slug";
 import { RichText } from "@/components/ui/RichText";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
@@ -25,6 +26,8 @@ export type WatchlistStartup = {
   pasha_verified?: boolean | null;
   logo_url?: string | null;
   cover_image?: string | null;
+  website?: string | null;
+  company_linkedin?: string | null;
 };
 
 const MINI_TINTS = ["#DDF3F3", "#E9E3F3", "#DDF3E9", "#FFF0B9"];
@@ -89,21 +92,67 @@ function LinkedInGlyph({ className }: { className?: string }) {
   );
 }
 
-function CardFooterLinks({ dark = false }: { dark?: boolean }) {
+// Normalise a stored link into a usable external href — bare domains
+// ("acme.com") get https://, anything unsafe or empty resolves to null so the
+// link is dropped rather than rendered as a dead "#".
+function externalHref(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v || v.toUpperCase() === "NULL") return null;
+  const href = safeHref(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`);
+  return href === "#" ? null : href;
+}
+
+// Footer links point at the startup's OWN website / LinkedIn. Anything missing
+// is dropped; if the startup has neither, we fall back to its profile page so
+// the card still leads somewhere meaningful.
+function CardFooterLinks({ startup, dark = false }: { startup: WatchlistStartup; dark?: boolean }) {
   const cls = dark
     ? "text-[10px] font-bold text-white hover:text-white/70"
     : "text-[10px] font-bold text-pasha-ink hover:text-pasha-ink/60";
+  const linkCls = `inline-flex items-center gap-1.5 transition-colors ${cls}`;
+
+  const website = externalHref(startup.website);
+  const linkedin = externalHref(startup.company_linkedin);
+  const hasLink = Boolean(website || linkedin);
+  const profileHref = `/directory/${startupSlug(startup.startup_name, startup.id)}`;
+
   return (
-    <div className={`mt-5 flex items-center justify-between border-t pt-4 ${dark ? "border-white/15" : "border-pasha-ink/10"}`}>
-      <Link href="/directory" className={`inline-flex items-center gap-1.5 transition-colors ${cls}`}>
-        <Globe className="h-3.5 w-3.5" aria-hidden />
-        Website
-        <ArrowUpRight className="h-3.5 w-3.5" />
-      </Link>
-      <Link href="/directory" className={`inline-flex items-center gap-1.5 transition-colors ${cls}`}>
-        <LinkedInGlyph className="h-3.5 w-3.5" />
-        LinkedIn
-      </Link>
+    <div
+      className={`mt-5 flex items-center justify-between gap-3 border-t pt-4 ${
+        dark ? "border-white/15" : "border-pasha-ink/10"
+      }`}
+    >
+      {website && (
+        <a
+          href={website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkCls}
+          aria-label={`${startup.startup_name} website (opens in new tab)`}
+        >
+          <Globe className="h-3.5 w-3.5" aria-hidden />
+          Website
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </a>
+      )}
+      {linkedin && (
+        <a
+          href={linkedin}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkCls}
+          aria-label={`${startup.startup_name} on LinkedIn (opens in new tab)`}
+        >
+          <LinkedInGlyph className="h-3.5 w-3.5" />
+          LinkedIn
+        </a>
+      )}
+      {!hasLink && (
+        <Link href={profileHref} className={linkCls}>
+          View profile
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      )}
     </div>
   );
 }
@@ -143,7 +192,7 @@ function MiniCard({ startup, tint, optionIndex }: { startup: WatchlistStartup; t
         )}
       </div>
 
-      <CardFooterLinks />
+      <CardFooterLinks startup={startup} />
     </article>
   );
 }
@@ -203,7 +252,7 @@ function SpotlightCard({ startup, optionIndex }: { startup: WatchlistStartup; op
           )}
         </div>
 
-        <CardFooterLinks dark />
+        <CardFooterLinks startup={startup} dark />
       </div>
     </article>
   );

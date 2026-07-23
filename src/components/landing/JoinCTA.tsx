@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
+import { PASHA_FACEBOOK } from "@/lib/content/community";
+import { FacebookGlyph } from "@/components/community/FacebookGlyph";
 
 const BENEFITS = ["Trusted startup profile", "Global visibility", "Opportunity pathways"];
 
@@ -44,20 +46,39 @@ export function JoinCTA() {
                 ))}
               </div>
 
-              <Link
-                href="/apply"
-                className="group mt-9 inline-flex items-center gap-6 rounded-2xl bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
-              >
-                <span className="flex flex-col items-start">
-                  <span className="text-[11px] font-medium uppercase tracking-[1.5px] text-white/70">
-                    Ready when you are
+              <div className="mt-9 flex flex-wrap items-stretch gap-3">
+                <Link
+                  href="/apply"
+                  className="group inline-flex items-center gap-6 rounded-2xl bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
+                >
+                  <span className="flex flex-col items-start">
+                    <span className="text-[11px] font-medium uppercase tracking-[1.5px] text-white/70">
+                      Ready when you are
+                    </span>
+                    <span className="text-md sm:text-md font-extrabold text-white">Start your application</span>
                   </span>
-                  <span className="text-md sm:text-md font-extrabold text-white">Start your application</span>
-                </span>
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-pasha-red transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                  <ArrowUpRight className="h-6 w-6" strokeWidth={2.5} />
-                </span>
-              </Link>
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-pasha-red transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    <ArrowUpRight className="h-6 w-6" strokeWidth={2.5} />
+                  </span>
+                </Link>
+
+                {/* Secondary path — the members' Facebook group (not the public
+                    page). items-stretch on the row keeps it the same height as
+                    the primary CTA, so the single line stays vertically centred. */}
+                <a
+                  href={PASHA_FACEBOOK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.06] px-5 transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.1]"
+                >
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-white transition-colors group-hover:bg-white/20">
+                    <FacebookGlyph className="h-5 w-5" />
+                  </span>
+                  <span className="whitespace-nowrap text-sm font-extrabold text-white/90 group-hover:text-white">
+                    Join the community
+                  </span>
+                </a>
+              </div>
               <p className="mt-3 text-sm text-white/35">Review typically takes about two weeks.</p>
             </div>
 

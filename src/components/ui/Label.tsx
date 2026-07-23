@@ -3,10 +3,13 @@ import { cn } from "@/lib/utils";
 
 interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
   required?: boolean;
+  // Renders a muted "Optional" tag — the counterpart to the required asterisk,
+  // so applicants never have to guess which fields they can skip.
+  optional?: boolean;
 }
 
 export const Label = forwardRef<HTMLLabelElement, LabelProps>(
-  ({ className, required, children, ...props }, ref) => (
+  ({ className, required, optional, children, ...props }, ref) => (
     <label
       ref={ref}
       className={cn("text-sm font-medium text-pasha-ink leading-snug", className)}
@@ -18,6 +21,9 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
           <span aria-hidden className="ml-1 text-pasha-red">*</span>
           <span className="sr-only">(required)</span>
         </>
+      )}
+      {!required && optional && (
+        <span className="ml-1.5 text-xs font-normal text-pasha-muted">(optional)</span>
       )}
     </label>
   )

@@ -17,6 +17,7 @@ import {
   type FormConfig,
 } from "@/lib/forms/form-config";
 import { DynamicField } from "./DynamicField";
+import { AutoOptionalLabels } from "./Field";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
 import { api } from "@/lib/api/client";
@@ -289,6 +290,7 @@ export function DynamicForm({
   return (
     <FormProvider {...form}>
       <OptionListsProvider value={optionLists ?? {}}>
+      <AutoOptionalLabels>
       <AnimatePresence>
         {draftRestored && (
           <motion.div
@@ -500,6 +502,7 @@ export function DynamicForm({
           )}
         </div>
       </div>
+      </AutoOptionalLabels>
       </OptionListsProvider>
     </FormProvider>
   );

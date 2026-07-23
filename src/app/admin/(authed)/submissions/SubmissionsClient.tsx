@@ -628,7 +628,7 @@ function SubmissionDrawer({
             <div className="flex items-start gap-4 mb-6">
               {row.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={safeImageSrc(row.logo_url as string)} alt="" className="w-16 h-16 rounded-lg border border-pasha-line object-cover" />
+                <img src={safeImageSrc(row.logo_url as string)} alt="" className="w-16 h-16 rounded-lg border border-pasha-line bg-white object-contain p-1.5" />
               ) : null}
               <div className="min-w-0 flex-1">
                 <h2 className="font-serif text-2xl tracking-tight text-pasha-ink truncate">
