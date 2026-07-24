@@ -57,6 +57,17 @@ export function ChatWidget() {
     if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
+  // Full-screen on mobile behaves like a modal sheet — lock background scroll
+  // while it's open. The floating desktop panel doesn't need this.
+  useEffect(() => {
+    if (!open) return;
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   const clearChat = () => {
     setMessages([GREETING]);
     nextId.current = 1;
@@ -118,7 +129,7 @@ export function ChatWidget() {
       {/* Panel */}
       {open && (
         <div
-          className="fixed bottom-24 right-5 z-[60] flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-black/10"
+          className="fixed inset-0 z-[60] flex flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl shadow-black/10 sm:inset-auto sm:bottom-24 sm:right-5 sm:h-[28rem] sm:max-h-[calc(100dvh-7rem)] sm:w-[22rem] sm:max-w-[calc(100vw-2.5rem)] sm:rounded-2xl"
           role="dialog"
           aria-label="Kai"
         >

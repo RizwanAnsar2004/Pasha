@@ -46,12 +46,12 @@ export function JoinCTA() {
                 ))}
               </div>
 
-              <div className="mt-9 flex flex-wrap items-stretch gap-3">
+              <div className="mt-9 flex flex-col sm:flex-row sm:flex-wrap items-stretch gap-3">
                 <Link
                   href="/apply"
-                  className="group inline-flex items-center gap-6 rounded-2xl bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
+                  className="group flex w-full sm:w-auto items-center gap-6 rounded-2xl bg-pasha-red py-3 pl-8 pr-3 shadow-[0_18px_38px_rgba(233,33,39,0.28)] transition-all hover:-translate-y-0.5 hover:bg-pasha-red-dark"
                 >
-                  <span className="flex flex-col items-start">
+                  <span className="flex flex-1 sm:flex-none flex-col items-start">
                     <span className="text-[11px] font-medium uppercase tracking-[1.5px] text-white/70">
                       Ready when you are
                     </span>
@@ -63,15 +63,16 @@ export function JoinCTA() {
                 </Link>
 
                 {/* Secondary path — the members' Facebook group (not the public
-                    page). items-stretch on the row keeps it the same height as
-                    the primary CTA, so the single line stays vertically centred. */}
+                    page). w-full on mobile matches the primary CTA's full-bleed
+                    width (not just its height), so the pair reads as a matched
+                    set when they stack instead of sitting side by side. */}
                 <a
                   href={PASHA_FACEBOOK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.06] px-5 transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.1]"
+                  className="group flex w-full sm:w-auto items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.06] py-[11px] px-5 transition-all hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.1]"
                 >
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-white transition-colors group-hover:bg-white/20">
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition-colors group-hover:bg-white/20">
                     <FacebookGlyph className="h-5 w-5" />
                   </span>
                   <span className="whitespace-nowrap text-sm font-extrabold text-white/90 group-hover:text-white">

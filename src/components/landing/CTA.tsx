@@ -29,9 +29,9 @@ export function CTA() {
               </p>
               <Link
                 href="/apply"
-                className="group mt-6 inline-flex items-center gap-6 rounded-2xl bg-white py-3 pl-7 pr-3 shadow-[0_18px_38px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5"
+                className="group mt-6 flex w-full sm:w-auto items-center gap-6 rounded-2xl bg-white py-3 pl-7 pr-3 shadow-[0_18px_38px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5"
               >
-                <span className="flex flex-col items-start">
+                <span className="flex flex-1 sm:flex-none flex-col items-start">
                   <span className="text-[11px] font-bold uppercase tracking-[1.5px] text-pasha-red">
                     Join the Hub
                   </span>
