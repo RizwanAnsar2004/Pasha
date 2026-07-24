@@ -16,13 +16,31 @@ export type CommitteeActivityRow = {
   created_at: string;
 };
 
-export type CommitteeMemberType = "chairman" | "member" | "admin";
+// 'secretariat' is the P@SHA Secretariat — a body distinct from the Committee,
+// shown on the public rosters under its own tag. It carries the same rights as
+// 'member' (i.e. none for management); only 'admin' and 'chairman' can manage
+// committee members. Mirrored by the admin_users_member_type_chk CHECK
+// constraint — widening this union needs a migration.
+export type CommitteeMemberType = "chairman" | "member" | "secretariat" | "admin";
 
 export const COMMITTEE_MEMBER_TYPES: { value: CommitteeMemberType; label: string }[] = [
   { value: "chairman", label: "Chairman" },
   { value: "member", label: "Committee Member" },
+  { value: "secretariat", label: "Secretariat" },
   { value: "admin", label: "Admin" },
 ];
+
+// Types listed on the public /committee and /about rosters. 'admin' is an
+// access role rather than a public one, so it is deliberately absent.
+export const PUBLIC_COMMITTEE_MEMBER_TYPES: CommitteeMemberType[] = [
+  "chairman",
+  "member",
+  "secretariat",
+];
+
+export function isPublicCommitteeMember(type: CommitteeMemberType) {
+  return PUBLIC_COMMITTEE_MEMBER_TYPES.includes(type);
+}
 
 export function committeeMemberTypeLabel(type: CommitteeMemberType) {
   return COMMITTEE_MEMBER_TYPES.find((t) => t.value === type)?.label ?? type;
@@ -43,6 +61,16 @@ export type CommitteeMemberRow = {
 
 export const COMMITTEE_MEMBER_TAG = "Committee Member";
 export const COMMITTEE_CHAIR_TAG = "PASHA Startup & Entrepreneurship Committee";
+export const COMMITTEE_SECRETARIAT_TAG = "Secretariat";
+
+// Chip text on a public roster card. Secretariat members share the committee
+// card layout but must not be labelled "Committee Member" — they are a separate
+// body. 'admin' never reaches a public card, so it falls back to the plain label.
+export function committeeMemberTagLabel(type: CommitteeMemberType) {
+  if (type === "secretariat") return COMMITTEE_SECRETARIAT_TAG;
+  if (type === "member") return COMMITTEE_MEMBER_TAG;
+  return committeeMemberTypeLabel(type);
+}
 
 export const COMMITTEE_ACTIVITY_TYPES: { value: CommitteeActivityType; label: string }[] = [
   { value: "verification", label: "Verification" },

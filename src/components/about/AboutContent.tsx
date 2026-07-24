@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { MemberAvatar } from "@/components/committee/MemberAvatar";
-import type { CommitteeMemberRow } from "@/lib/committee/committee";
+import {
+  committeeMemberTagLabel,
+  isPublicCommitteeMember,
+  type CommitteeMemberRow,
+} from "@/lib/committee/committee";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { JoinCommunity } from "@/components/community/JoinCommunity";
@@ -327,13 +331,14 @@ function WhatYouFind() {
 // on /committee, sharing its avatar component so photos and initials-fallbacks
 // stay consistent between the two pages.
 function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
-  const roster = members.filter((m) => m.type === "chairman" || m.type === "member");
+  const roster = members.filter((m) => isPublicCommitteeMember(m.type));
   if (roster.length === 0) return null;
 
-  // Chair(s) lead the grid.
+  // Public priority: Chairman, then Secretariat, then Committee Members.
   const ordered = [
     ...roster.filter((m) => m.type === "chairman"),
-    ...roster.filter((m) => m.type !== "chairman"),
+    ...roster.filter((m) => m.type === "secretariat"),
+    ...roster.filter((m) => m.type === "member"),
   ];
 
   // About only previews the core committee; the full roster lives on /committee.
@@ -369,7 +374,7 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
               whileHover={{ y: -4 }}
               className="group flex h-full flex-col rounded-2xl border border-pasha-ink/10 bg-white p-6 shadow-[0_2px_16px_rgba(14,14,16,0.05)] transition-all duration-300 hover:border-pasha-red/25 hover:shadow-[0_20px_48px_-14px_rgba(14,14,16,0.16)]"
             >
-              {/* Chair / Member tag */}
+              {/* Chair / Secretariat / Member tag */}
               <span
                 className={
                   "self-start inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[1.5px] " +
@@ -378,7 +383,7 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
                     : "bg-pasha-stone/80 border border-pasha-line/60 text-pasha-ink/40")
                 }
               >
-                {member.type === "chairman" ? "Chair" : "Committee Member"}
+                {member.type === "chairman" ? "Chair" : committeeMemberTagLabel(member.type)}
               </span>
 
               <MemberAvatar

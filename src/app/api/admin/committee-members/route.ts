@@ -8,7 +8,10 @@ import { generatePassword, sendCommitteeInvite } from "@/lib/committee/committee
 import { emailOrigin } from "@/lib/utils/site-url";
 import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
-const memberTypeSchema = z.enum(["chairman", "member", "admin"]);
+// Mirrors CommitteeMemberType and the admin_users_member_type_chk constraint.
+// 'secretariat' is a roster role only — the management gate below still admits
+// just 'admin' and 'chairman'.
+const memberTypeSchema = z.enum(["chairman", "member", "secretariat", "admin"]);
 
 const addSchema = z.object({
   email: z.string().email(),
