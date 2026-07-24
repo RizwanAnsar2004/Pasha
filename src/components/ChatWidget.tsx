@@ -14,7 +14,7 @@ const STORAGE_KEY = "pasha-chat-history";
 const GREETING: Message = {
   id: 0,
   role: "bot",
-  text: "Hi! 👋 I'm Kai, the PASHA assistant. Ask me anything about the community, the application, or the directory.",
+  text: "Hi! 👋 I’m Kai! Welcome to the P@SHA Startup Hub. I can help you discover startups, connect with the ecosystem, and find the information you need.",
 };
 
 export function ChatWidget() {

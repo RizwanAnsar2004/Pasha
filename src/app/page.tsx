@@ -90,7 +90,7 @@ export default async function Home() {
       <main id="top" className="flex-1">
         <HomeSearchProvider>
         <Hero />
-        <Manifesto />
+        <Ecosystem />
         <DirectoryBento startups={watchlist} optionIndex={optionIndex} />
         </HomeSearchProvider>
         {/* Community CTA sits high on the page, right after the directory */}
@@ -99,7 +99,7 @@ export default async function Home() {
         <StartupDiscovery />
         {/* <AwardWinningStartups startups={awardWinners} /> */}
         <JoinCTA />
-        <Ecosystem />
+        <Manifesto />
         {/* <NewsCarousel /> */}
         {/* <UpcomingEvents events={upcomingEvents} /> */}
         <FAQ />

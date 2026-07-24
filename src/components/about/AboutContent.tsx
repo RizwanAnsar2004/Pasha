@@ -3,10 +3,15 @@
 import { motion } from "framer-motion";
 import {
   ArrowRight,
+  BadgeCheck,
   BookOpen,
   Building2,
+  CalendarDays,
   Compass,
   Globe2,
+  Handshake,
+  Rocket,
+  Share2,
   ShieldCheck,
   Network,
   Mail,
@@ -20,6 +25,30 @@ import { Reveal } from "@/components/landing/shared/Reveal";
 import { JoinCommunity } from "@/components/community/JoinCommunity";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+// Kept as data rather than inline JSX so the copy stays in one editable block —
+// this is the text the committee signs off on.
+const INTRO_PARAGRAPHS = [
+  "P@SHA Startup Hub is Pakistan’s digital home for startups. Developed through the joint efforts of the P@SHA Startups & Entrepreneurship Committee and the P@SHA Secretariat, it connects founders with opportunities, investors, incubators, accelerators, corporates, mentors, and the broader technology ecosystem.",
+  "Whether you are building your first startup or scaling an established venture, the Hub helps you increase visibility, discover support programs, build meaningful connections, and access opportunities that accelerate growth.",
+];
+
+const MISSION =
+  "Our mission is simple: to strengthen Pakistan’s startup ecosystem by making it easier for startups to be discovered, supported, and connected.";
+
+const WHAT_YOU_FIND = [
+  { icon: BadgeCheck, text: "A verified directory of Pakistani startups." },
+  { icon: Rocket, text: "Startup profiles showcasing products, founders, and achievements." },
+  {
+    icon: Handshake,
+    text: "Access to ecosystem partners, including incubators, accelerators, investors, mentors, and service providers.",
+  },
+  { icon: CalendarDays, text: "Community updates, events, and ecosystem opportunities." },
+  {
+    icon: Share2,
+    text: "A central platform that promotes collaboration across Pakistan’s innovation ecosystem.",
+  },
+];
 
 const SECTIONS = [
   {
@@ -87,15 +116,16 @@ export function AboutContent({
 
         <div className="relative site-container">
           <Reveal>
-            <Kicker tone="light">About the directory</Kicker>
+            <Kicker tone="light">About P@SHA Startup Hub</Kicker>
             <h1 className="mt-5 font-serif font-bold text-3xl sm:text-6xl lg:text-[4.75rem] leading-[0.94] tracking-tight text-white text-balance">
-              PASHA Startup <span className="text-pasha-red-light">Directory.</span>
+              Pakistan&apos;s digital{" "}
+              <span className="text-pasha-red-light">home for startups.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base sm:text-lg text-white/60 leading-relaxed text-pretty">
-              A curated directory of Pakistani startups, founders, investors, and
-              ecosystem enablers — stewarded by the Pakistan Software Houses
-              Association (P@SHA), the country&apos;s only national IT association,
-              representing 1,600+ member companies since 1992.
+              Developed through the joint efforts of the P@SHA Startups &amp;
+              Entrepreneurship Committee and the P@SHA Secretariat — connecting
+              founders with opportunities, investors, incubators, accelerators,
+              corporates, mentors, and the broader technology ecosystem.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/10">
@@ -115,9 +145,66 @@ export function AboutContent({
       </section>
 
       {/* ────────────────────────────────────────────────────── */}
+      {/* Narrative intro + mission. Sits ahead of the handbook: this is the
+          plain-language "what is this", the handbook is the detail. */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-8">
-          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5, ease: EASE }}
+            className="flex items-center gap-3 mb-12 pb-4 border-b border-pasha-ink/10"
+          >
+            <Kicker>Overview</Kicker>
+            <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
+              The Hub
+            </span>
+          </motion.div>
+
+          <div className="space-y-6 text-base sm:text-[17px] text-pasha-ink/75 leading-relaxed text-pretty">
+            {INTRO_PARAGRAPHS.map((para, i) => (
+              <motion.p
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.55, delay: i * 0.06, ease: EASE }}
+              >
+                {para}
+              </motion.p>
+            ))}
+          </div>
+
+          {/* Mission reads as the page's thesis, so it gets pull-quote weight
+              rather than sitting as a third indistinguishable paragraph. */}
+          <motion.blockquote
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.6, delay: 0.1, ease: EASE }}
+            className="mt-12 border-l-2 border-pasha-red pl-6 sm:pl-8"
+          >
+            <p className="font-serif text-xl sm:text-2xl leading-snug tracking-tight text-pasha-ink text-balance">
+              {MISSION}
+            </p>
+          </motion.blockquote>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────── */}
+      <WhatYouFind />
+
+      {/* HANDBOOK (§1–6) — TEMPORARILY HIDDEN.
+          The whole <section> is commented out, wrapper included: leaving the
+          wrapper live rendered a tall empty white band. Its two CTAs were moved
+          into WhatYouFind so the page keeps a call to action — move them back
+          here when restoring, wrapped in
+          "mt-16 pt-10 border-t border-pasha-ink/10". The SECTIONS data and
+          ArticleSection component are deliberately left in place. */}
+      {/*
+      <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -131,14 +218,12 @@ export function AboutContent({
             </span>
           </motion.div>
 
-          {/* Sections list */}
           <div className="space-y-10 sm:space-y-12">
             {SECTIONS.map((section, i) => (
               <ArticleSection key={section.num} section={section} index={i} />
             ))}
           </div>
 
-          {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -155,6 +240,7 @@ export function AboutContent({
           </motion.div>
         </div>
       </section>
+      */}
 
       {/* ────────────────────────────────────────────────────── */}
       <CommitteeRoster members={members} />
@@ -162,6 +248,78 @@ export function AboutContent({
       {/* ────────────────────────────────────────────────────── */}
       <JoinCommunity />
     </>
+  );
+}
+
+// The five things the Hub offers. Stone background so it reads as a distinct
+// band between the two white prose sections either side of it.
+function WhatYouFind() {
+  return (
+    <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28">
+      <div className="mx-auto max-w-4xl px-4 sm:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="flex items-center gap-3 mb-12 pb-4 border-b border-pasha-ink/10"
+        >
+          <Kicker>What you&apos;ll find</Kicker>
+          <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
+            {String(WHAT_YOU_FIND.length).padStart(2, "0")} things
+          </span>
+        </motion.div>
+
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {WHAT_YOU_FIND.map((item, i) => (
+            <motion.li
+              key={item.text}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: (i % 2) * 0.06, ease: EASE }}
+              whileHover={{ y: -4 }}
+              className={
+                "group flex h-full items-start gap-4 rounded-2xl border border-pasha-ink/10 bg-white p-6 shadow-[0_2px_16px_rgba(14,14,16,0.05)] transition-all duration-300 hover:border-pasha-red/25 hover:shadow-[0_20px_48px_-14px_rgba(14,14,16,0.16)]" +
+                // Odd count: the last card spans both columns so the grid ends flush.
+                (i === WHAT_YOU_FIND.length - 1 && WHAT_YOU_FIND.length % 2 === 1
+                  ? " sm:col-span-2"
+                  : "")
+              }
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-pasha-stone transition-colors group-hover:bg-pasha-red/10">
+                <item.icon
+                  className="h-5 w-5 text-pasha-ink/70 transition-colors group-hover:text-pasha-red"
+                  strokeWidth={1.75}
+                />
+              </span>
+              <p className="pt-1.5 text-base text-pasha-ink/75 leading-relaxed text-pretty">
+                {item.text}
+              </p>
+            </motion.li>
+          ))}
+        </ul>
+
+        {/* CTAs HIDDEN — these came from the handbook section. They belong with
+            it, so restore them there (not here) when the handbook comes back. */}
+        {/*
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+          className="mt-12 pt-10 border-t border-pasha-ink/10 flex flex-col sm:flex-row items-center gap-3"
+        >
+          <PillButton href="/apply" variant="solid" dot={false}>
+            Apply to join
+          </PillButton>
+          <PillButton href="/directory" variant="outline" dot={false}>
+            Browse the directory
+          </PillButton>
+        </motion.div>
+        */}
+      </div>
+    </section>
   );
 }
 
