@@ -328,12 +328,18 @@ export function ChatWidget() {
         </div>
       )}
 
-      {/* Floating button */}
+      {/* Floating button — toggles the panel. On desktop the panel is a card that
+          sits above this FAB, so it stays visible and works as the open/close
+          toggle. On mobile the panel goes full-screen with the input pinned to
+          the bottom, right where this FAB floats, so it would cover the mic/send
+          buttons — hide it there when open (the header's X closes the panel). */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close Kai" : "Open Kai"}
-        className="fixed bottom-5 right-5 z-[60] grid h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95"
+        className={`fixed bottom-5 right-5 z-[60] h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95 ${
+          open ? "hidden sm:grid" : "grid"
+        }`}
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
