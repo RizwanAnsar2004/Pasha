@@ -102,9 +102,8 @@
   letter-spacing: -0.02em;
 }
 .hero-photo-brand-logo {
-  height: 40px !important;
+  height: 62px !important;
   display: block;
-  background: #fdfdfd;
   border-radius: 8px;
   padding: 7px 9px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
@@ -415,7 +414,7 @@
 .hub-menu-nav {
   min-height: 100vh;
   overflow-y: auto;
-  padding: clamp(90px, 8vw, 125px) clamp(28px, 5vw, 80px) 50px;
+  padding: clamp(50px, 6vw, 125px) clamp(28px, 5vw, 80px) 50px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -427,7 +426,7 @@
 }
 .hub-menu-link {
   position: relative;
-  min-height: 94px;
+  min-height: 85px;
   padding: 24px 28px;
   border-left: 1px solid rgba(255, 255, 255, 0.16);
   border-right: 1px solid rgba(255, 255, 255, 0.16);

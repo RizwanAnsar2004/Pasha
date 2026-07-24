@@ -9,7 +9,7 @@ export function PashaLogo({
   priority = false,
   // Light lockup (dark text) for light backgrounds; pass the dark variant
   // (white text) for dark backgrounds like the footer.
-  src = "/pasha-logo.svg",
+  src = "/pasha-logo-dark.svg",
 }: {
   className?: string;
   href?: string | null;
