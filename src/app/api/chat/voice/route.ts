@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     // Key missing or rejected — our misconfiguration, not the user's fault.
     if (res.status === 401 || res.status === 403) {
       return json(
-        { error: "Kai isn't available right now. Please contact startups@pasha.org.pk if this continues." },
+        { error: "PAi isn't available right now. Please contact startups@pasha.org.pk if this continues." },
         { status: 503 }
       );
     }
@@ -116,8 +116,8 @@ export async function POST(req: Request) {
         {
           error:
             res.status >= 500
-              ? "Kai couldn't hear that one. Please try recording again."
-              : "Kai couldn't handle that recording. Please try again.",
+              ? "PAi couldn't hear that one. Please try recording again."
+              : "PAi couldn't handle that recording. Please try again.",
         },
         { status: res.status >= 500 ? 503 : 400 }
       );
@@ -135,8 +135,8 @@ export async function POST(req: Request) {
     return json(
       {
         error: timedOut
-          ? "Kai took too long to answer that one. Please try again with a shorter question."
-          : "Kai is offline at the moment. Please try again in a few minutes.",
+          ? "PAi took too long to answer that one. Please try again with a shorter question."
+          : "PAi is offline at the moment. Please try again in a few minutes.",
       },
       { status: timedOut ? 504 : 503 }
     );

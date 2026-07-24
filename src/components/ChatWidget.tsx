@@ -2,7 +2,7 @@
 import { api, ApiError } from "@/lib/api/client";
 import { getChatSessionId } from "@/lib/ai/chat-session";
 
-// Floating chat widget wired to Kai, the PASHA RAG assistant (/api/chat).
+// Floating chat widget wired to PAi, the PASHA RAG assistant (/api/chat).
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send, Mic, Square } from "lucide-react";
@@ -14,7 +14,7 @@ const STORAGE_KEY = "pasha-chat-history";
 const GREETING: Message = {
   id: 0,
   role: "bot",
-  text: "Hi! 👋 I’m Kai! Welcome to the P@SHA Startup Hub. I can help you discover startups, connect with the ecosystem, and find the information you need.",
+  text: "Hi! 👋 I’m PAi! Welcome to the P@SHA Startup Hub. I can help you discover startups, connect with the ecosystem, and find the information you need.",
 };
 
 export function ChatWidget() {
@@ -127,7 +127,7 @@ export function ChatWidget() {
       setNow(Date.now());
       setLimitedUntil(Date.now() + retryAfter * 1000);
     }
-    const botText = e instanceof ApiError ? e.message : "Kai is offline at the moment. Please try again in a few minutes.";
+    const botText = e instanceof ApiError ? e.message : "PAi is offline at the moment. Please try again in a few minutes.";
     setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
   };
 
@@ -220,7 +220,7 @@ export function ChatWidget() {
         <div
           className="fixed inset-0 z-[60] flex flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl shadow-black/10 sm:inset-auto sm:bottom-24 sm:right-5 sm:h-[28rem] sm:max-h-[calc(100dvh-7rem)] sm:w-[22rem] sm:max-w-[calc(100vw-2.5rem)] sm:rounded-2xl"
           role="dialog"
-          aria-label="Kai"
+          aria-label="PAi"
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 bg-pasha-red px-4 py-3 text-white">
@@ -229,7 +229,7 @@ export function ChatWidget() {
                 <MessageCircle className="h-4 w-4" />
               </span>
               <div className="leading-tight">
-                <p className="text-sm font-semibold">Kai</p>
+                <p className="text-sm font-semibold">PAi</p>
                 <p className="text-[11px] text-white/70">Typically replies in a few minutes</p>
               </div>
             </div>
@@ -336,7 +336,7 @@ export function ChatWidget() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close Kai" : "Open Kai"}
+        aria-label={open ? "Close PAi" : "Open PAi"}
         className={`fixed bottom-5 right-5 z-[60] h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95 ${
           open ? "hidden sm:grid" : "grid"
         }`}

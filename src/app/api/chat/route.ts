@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { RAG_URL, RAG_KEY } from "@/lib/ai/rag-config";
 
-// Proxies chat questions to the PASHA RAG service (Kai).
+// Proxies chat questions to the PASHA RAG service (PAi).
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     // Key missing or rejected — our misconfiguration, not the user's fault.
     if (res.status === 401 || res.status === 403) {
       return json(
-        { error: "Kai isn't available right now. Please contact startups@pasha.org.pk if this continues." },
+        { error: "PAi isn't available right now. Please contact startups@pasha.org.pk if this continues." },
         { status: 503 }
       );
     }
@@ -109,8 +109,8 @@ export async function POST(req: Request) {
         {
           error:
             res.status >= 500
-              ? "Kai is temporarily offline while the service restarts. Please try again in a few minutes."
-              : "Kai couldn't handle that request. Please try rephrasing your question.",
+              ? "PAi is temporarily offline while the service restarts. Please try again in a few minutes."
+              : "PAi couldn't handle that request. Please try rephrasing your question.",
         },
         { status: res.status >= 500 ? 503 : 400 }
       );
@@ -128,8 +128,8 @@ export async function POST(req: Request) {
     return json(
       {
         error: timedOut
-          ? "Kai took too long to answer that one. Please try again, or ask something more specific."
-          : "Kai is offline at the moment. Please try again in a few minutes.",
+          ? "PAi took too long to answer that one. Please try again, or ask something more specific."
+          : "PAi is offline at the moment. Please try again in a few minutes.",
       },
       { status: timedOut ? 504 : 503 }
     );

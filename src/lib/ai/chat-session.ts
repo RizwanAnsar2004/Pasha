@@ -1,4 +1,4 @@
-// Chat session identity for Kai.
+// Chat session identity for PAi.
 //
 // The RAG service rate-limits per session, so this id is the bucket key: it has
 // to stay stable across a conversation, unlike the per-query request id minted
