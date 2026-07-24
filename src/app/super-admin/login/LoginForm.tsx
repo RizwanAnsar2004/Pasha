@@ -106,7 +106,10 @@ export function SuperAdminLoginForm() {
             />
             <button
               type="submit"
-              disabled={loading}
+              // Blocked until the challenge is solved. captchaConfigured is
+              // false when Turnstile has no site key (local dev), and the gate
+              // lifts then rather than making the form unsubmittable.
+              disabled={loading || (captchaConfigured && !captchaToken)}
               className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
             >
               {loading ? (

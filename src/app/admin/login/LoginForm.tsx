@@ -81,15 +81,22 @@ function LoginInner() {
     }
   }
 
+  // The captcha now lives inside each form, above its submit button, so
+  // switching branches unmounts one widget and mounts a fresh one. Any token
+  // held from the previous widget belongs to a challenge that no longer exists
+  // — clear it, or the new form's submit button would be enabled by a stale
+  // token the server will reject.
   function toForgot() {
     setForgot(true);
     setError(null);
     setNotice(null);
+    setCaptchaToken(null);
   }
   function toSignIn() {
     setForgot(false);
     setError(null);
     setNotice(null);
+    setCaptchaToken(null);
   }
 
   return (
@@ -158,9 +165,14 @@ function LoginInner() {
                       className="mt-1.5 h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                     />
                   </div>
+                  {captchaConfigured && (
+                    <div className="flex justify-center">
+                      <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+                    </div>
+                  )}
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || (captchaConfigured && !captchaToken)}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
                   >
                     {loading ? (
@@ -215,9 +227,14 @@ function LoginInner() {
                     className="h-11 w-full rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
                   />
                 </div>
+                {captchaConfigured && (
+                  <div className="flex justify-center">
+                    <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+                  </div>
+                )}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (captchaConfigured && !captchaToken)}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
                 >
                   {loading ? (
@@ -230,15 +247,6 @@ function LoginInner() {
                   )}
                 </button>
               </form>
-            )}
-            {/* One captcha for BOTH the sign-in and forgot forms. Mounted here,
-                outside the forgot/sign-in branch, so toggling between them
-                reconciles the same widget instead of remounting it and firing a
-                fresh Cloudflare challenge each time. */}
-            {captchaConfigured && (
-              <div className="mt-4 flex justify-center">
-                <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
-              </div>
             )}
               </>
             )}

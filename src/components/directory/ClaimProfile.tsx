@@ -97,6 +97,18 @@ export function ClaimProfile({
         </button>
       )}
 
+      {/* One captcha for BOTH the email and code steps (the code step's "Resend
+          code" re-runs the gated `start` action). Mounted here, outside the
+          per-step blocks, so advancing email → code keeps the SAME widget rather
+          than remounting it and firing a second Cloudflare challenge — which is
+          also why it sits above both steps rather than being duplicated above
+          each step's button. */}
+      {captchaConfigured && (step === "email" || step === "code") && (
+        <div className="mt-3 flex justify-start">
+          <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+        </div>
+      )}
+
       {step === "email" && (
         <div className="mt-3 space-y-2">
           <label className="block text-[13px] text-white/70">Your company email address</label>
@@ -110,7 +122,8 @@ export function ClaimProfile({
             />
             <button
               type="button"
-              disabled={busy || !email.trim()}
+              // `start` is the captcha-gated action, so this waits on a token.
+              disabled={busy || !email.trim() || (captchaConfigured && !captchaToken)}
               onClick={sendCode}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-pasha-red px-4 py-2 text-sm font-semibold text-white hover:bg-pasha-red-dark disabled:opacity-50"
             >
@@ -143,19 +156,16 @@ export function ClaimProfile({
               {busy && <Loader2 className="h-4 w-4 animate-spin" />} Verify
             </button>
           </div>
-          <button type="button" onClick={sendCode} disabled={busy} className="text-[12px] text-white/55 underline hover:text-white">
+          {/* Re-runs the gated `start` action, so it needs a fresh token too —
+              the previous one was spent sending the first code. */}
+          <button
+            type="button"
+            onClick={sendCode}
+            disabled={busy || (captchaConfigured && !captchaToken)}
+            className="text-[12px] text-white/55 underline hover:text-white disabled:opacity-50"
+          >
             Resend code
           </button>
-        </div>
-      )}
-
-      {/* One captcha for BOTH the email and code steps (the code step's "Resend
-          code" re-runs the gated `start` action). Mounted here, outside the
-          per-step blocks, so advancing email → code keeps the SAME widget rather
-          than remounting it and firing a second Cloudflare challenge. */}
-      {captchaConfigured && (step === "email" || step === "code") && (
-        <div className="mt-3 flex justify-start">
-          <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
         </div>
       )}
 

@@ -31,7 +31,13 @@ const csp = [
   `font-src 'self' data: https://fonts.gstatic.com`,
   // Self-hosted assets (Supabase Storage logos, /public) plus GA's tracking
   // pixel beacons (google-analytics.com / googletagmanager.com).
-  `img-src 'self' data: blob: https://${SUPABASE_HOST} https://*.google-analytics.com https://*.googletagmanager.com`,
+  // The /hub-launch ceremony page hot-links partner logos and speaker
+  // portraits from these hosts. Without them the images are silently blocked
+  // and render broken, with only a generic CSP violation in the console.
+  // These are stopgaps: see the note in public/hub-launch.html — the assets
+  // should be moved into /public so the page stops depending on third-party
+  // hosts that can change or expire.
+  `img-src 'self' data: blob: https://${SUPABASE_HOST} https://*.google-analytics.com https://*.googletagmanager.com https://www.pasha.org.pk https://encrypted-tbn0.gstatic.com https://www.pakpedia.pk`,
   // Supabase REST/Realtime plus GA4's data-collection endpoints (it POSTs hits
   // to region-specific *.google-analytics.com / *.analytics.google.com hosts).
   `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com ${TURNSTILE_HOST}`,
@@ -60,10 +66,20 @@ const securityHeaders = [
   },
 ];
 
-// Paths that serve the unlisted launch page. /launch is the public-facing URL;
-// /launch.html is the file it rewrites to, and is reachable directly, so both
-// need the header.
-const LAUNCH_PATHS = ["/launch", "/launch.html"];
+// Unlisted static event pages, served straight from /public.
+//
+// TO ADD ONE: put <slug>.html in public/ and add the slug here. That is all —
+// the rewrite to the clean URL and the noindex header are both derived below.
+// TO SWAP THE CONTENT of an existing one: overwrite public/<slug>.html. No
+// config change, no rebuild of anything else.
+//
+// Also add the slug to the disallow list in src/app/robots.ts, which cannot
+// import from this file (it is outside the src alias).
+const STATIC_EVENT_PAGES = ["launch", "hub-launch"];
+
+// Both the clean URL and the underlying .html need the header: the file stays
+// directly reachable at /<slug>.html regardless of the rewrite.
+const LAUNCH_PATHS = STATIC_EVENT_PAGES.flatMap((slug) => [`/${slug}`, `/${slug}.html`]);
 
 // Belt-and-suspenders against indexing. The HTML carries a robots meta tag too,
 // but a crawler that only reads headers (or fetches with HEAD) never sees it.
@@ -94,12 +110,15 @@ const nextConfig: NextConfig = {
       ...LAUNCH_PATHS.map((source) => ({ source, headers: noindexHeaders })),
     ];
   },
-  // Serves public/launch.html at the clean /launch URL the event invites point
-  // at. It stays a static file rather than an app route because it is a
+  // Serves public/<slug>.html at the clean /<slug> URL the event invites point
+  // at. These stay static files rather than app routes because each is a
   // self-contained fullscreen event screen with its own styles and no shared
-  // header, footer, or layout.
+  // header, footer, or layout — so the HTML can be swapped wholesale.
   async rewrites() {
-    return [{ source: "/launch", destination: "/launch.html" }];
+    return STATIC_EVENT_PAGES.map((slug) => ({
+      source: `/${slug}`,
+      destination: `/${slug}.html`,
+    }));
   },
   // Allow next/image to optimize our own Supabase Storage URLs.
   // Everything else is served from /public on this origin.

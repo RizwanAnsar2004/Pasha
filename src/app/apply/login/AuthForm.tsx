@@ -120,6 +120,45 @@ function AuthInner({
   // (the verify prompt and the "reset link sent" confirmation).
   const captchaNeeded = screen === "form" || (screen === "forgot" && !info);
 
+  // NOTE — this supersedes the comment above. The widget was moved back inside
+  // each screen, directly above that screen's submit button, because the
+  // challenge sitting *below* the button (and below "Create an account") read as
+  // unrelated furniture. The documented cost is back with it: the widget sits at
+  // a different tree position per screen, so login -> forgot and step 1 -> step 2
+  // remount it and run a second challenge.
+  //
+  // What is NOT back is a stale token surviving that remount — the effect below
+  // clears it, so the new screen's button stays disabled until its own challenge
+  // resolves. Previously nothing cleared it, which is what let a spent token
+  // reach the server.
+  const captchaBlock = captchaConfigured ? (
+    <div className="flex justify-center">
+      <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
+    </div>
+  ) : null;
+
+  // Submission is gated on a solved challenge. When Turnstile has no site key
+  // (local dev) captchaConfigured is false and the gate lifts, rather than
+  // leaving every form permanently unsubmittable.
+  const captchaBlocked = captchaConfigured && captchaNeeded && !captchaToken;
+
+  // Changing screen relocates the widget in the tree, which remounts it and
+  // invalidates any token already held — clear it, or the new screen's button
+  // would be enabled by a challenge that no longer exists. Keyed on `screen`
+  // only: login and register share one position, so toggling mode reconciles
+  // the same widget and the solved token stays valid.
+  //
+  // Adjusted during render rather than in an effect — React's "adjust state
+  // when a prop changes" pattern, the same one CommitteeManagementClient uses.
+  // An effect here trips react-hooks/set-state-in-effect and would also clear
+  // the token a render later than the remount, briefly leaving the button
+  // enabled by a dead token.
+  const [captchaScreen, setCaptchaScreen] = useState(screen);
+  if (captchaScreen !== screen) {
+    setCaptchaScreen(screen);
+    setCaptchaToken(null);
+  }
+
   function registrationFieldSpan(field: FormFieldConfig) {
     if (
       field.input_type === InputType.CITY_COMPOSITE ||
@@ -464,9 +503,10 @@ function AuthInner({
               <span>{error}</span>
             </div>
           )}
+          {captchaBlock}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || captchaBlocked}
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -641,9 +681,10 @@ function AuthInner({
               />
               <div className="sm:col-span-2 space-y-4">
                 {errorBlock}
+                {captchaBlock}
                 <button
                 type="button"
-                disabled={loading}
+                disabled={loading || captchaBlocked}
                 onClick={() => form.handleSubmit((data) => submitRegister(data))()}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
               >
@@ -684,9 +725,14 @@ function AuthInner({
         >
           {accountFields}
           {errorBlock}
+          {/* Unconditional: login and register share this branch and both want
+              the challenge directly above their button ("Sign in" /
+              "Continue"). Because the position is identical for both, toggling
+              between them reconciles the same widget instead of remounting it. */}
+          {captchaBlock}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || captchaBlocked}
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-pasha-red px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors disabled:opacity-60"
           >
             {loading ? (
@@ -742,17 +788,10 @@ function AuthInner({
               isRegistrationStep ? "p-5 sm:p-8 lg:p-10" : "p-6 sm:p-8"
             )}
           >
+            {/* The captcha is no longer mounted here — it now renders inside
+                each screen, directly above that screen's submit button. See
+                captchaBlock above. */}
             {bodyContent}
-            {captchaConfigured && (
-              <div
-                className={cn(
-                  "mt-5 flex justify-center",
-                  !captchaNeeded && "hidden"
-                )}
-              >
-                <CaptchaWidget ref={captchaRef} onToken={setCaptchaToken} />
-              </div>
-            )}
           </motion.div>
         </div>
       </main>
