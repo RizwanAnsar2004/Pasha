@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarDays,
   Compass,
+  Eye,
   Globe2,
   Handshake,
   Rocket,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   Network,
   Mail,
+  Target,
   Users,
 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
@@ -22,6 +24,7 @@ import { MemberAvatar } from "@/components/committee/MemberAvatar";
 import {
   committeeMemberTagLabel,
   isPublicCommitteeMember,
+  sortCommitteeRoster,
   type CommitteeMemberRow,
 } from "@/lib/committee/committee";
 import { PillButton } from "@/components/landing/shared/PillButton";
@@ -37,8 +40,21 @@ const INTRO_PARAGRAPHS = [
   "Whether you are building your first startup or scaling an established venture, the Hub helps you increase visibility, discover support programs, build meaningful connections, and access opportunities that accelerate growth.",
 ];
 
-const MISSION =
-  "Our mission is simple: to strengthen Pakistan’s startup ecosystem by making it easier for startups to be discovered, supported, and connected.";
+// Supersedes the earlier single "Our mission is simple…" line — that said the
+// same thing in shorter form, so keeping both would have repeated the page's
+// thesis twice within one section.
+const VISION_MISSION = [
+  {
+    icon: Eye,
+    label: "Vision",
+    text: "Our vision is to build Pakistan’s most connected and collaborative startup ecosystem.",
+  },
+  {
+    icon: Target,
+    label: "Mission",
+    text: "Our mission is to make it easier for every Pakistani startup to be discovered, supported, and connected with the opportunities they need to grow and succeed.",
+  },
+];
 
 const WHAT_YOU_FIND = [
   { icon: BadgeCheck, text: "A verified directory of Pakistani startups." },
@@ -180,21 +196,11 @@ export function AboutContent({
             ))}
           </div>
 
-          {/* Mission reads as the page's thesis, so it gets pull-quote weight
-              rather than sitting as a third indistinguishable paragraph. */}
-          <motion.blockquote
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.6, delay: 0.1, ease: EASE }}
-            className="mt-12 border-l-2 border-pasha-red pl-6 sm:pl-8"
-          >
-            <p className="font-serif text-xl sm:text-2xl leading-snug tracking-tight text-pasha-ink text-balance">
-              {MISSION}
-            </p>
-          </motion.blockquote>
         </div>
       </section>
+
+      {/* ────────────────────────────────────────────────────── */}
+      <VisionMission />
 
       {/* ────────────────────────────────────────────────────── */}
       <WhatYouFind />
@@ -252,6 +258,68 @@ export function AboutContent({
       {/* ────────────────────────────────────────────────────── */}
       <JoinCommunity />
     </>
+  );
+}
+
+// Vision + Mission — the page's thesis, so it gets its own full-bleed dark
+// section rather than sitting as a quiet pull-quote inside the prose. Breaking
+// the run of white sections is what actually makes it read as prominent;
+// scaling the type inside the prose block was not enough.
+function VisionMission() {
+  return (
+    <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
+      {/* max-w-4xl and the kicker + meta + rule header are copied from the
+          Overview / What you'll find / Committee sections. A centred layout
+          with its own large heading made this read as a different page's
+          design dropped into the middle of About. */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="flex items-center gap-3 mb-12 pb-4 border-b border-pasha-ink/10"
+        >
+          <Kicker>Why we exist</Kicker>
+          <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
+            Vision &amp; Mission
+          </span>
+        </motion.div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          {VISION_MISSION.map((item, i) => (
+            <motion.blockquote
+              key={item.label}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6, delay: i * 0.09, ease: EASE }}
+              whileHover={{ y: -4 }}
+              className="group flex h-full flex-col rounded-2xl border border-pasha-ink/10 bg-white p-6 shadow-[0_2px_16px_rgba(14,14,16,0.05)] transition-all duration-300 hover:border-pasha-red/25 hover:shadow-[0_20px_48px_-14px_rgba(14,14,16,0.16)]"
+            >
+              {/* Card chrome and type copied from the "What you'll find" cards
+                  so the two sections read as one system. */}
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-pasha-stone transition-colors group-hover:bg-pasha-red/10">
+                <item.icon
+                  className="h-5 w-5 text-pasha-ink/70 transition-colors group-hover:text-pasha-red"
+                  strokeWidth={1.75}
+                />
+              </span>
+
+              <span className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[2.5px] text-pasha-ink/45">
+                {item.label}
+              </span>
+
+              {/* Same size as the Overview paragraphs; full-strength ink rather
+                  than /75 is the only emphasis, so it doesn't fight the page. */}
+              <p className="mt-2.5 text-base sm:text-[17px] leading-relaxed text-pasha-ink text-pretty">
+                {item.text}
+              </p>
+            </motion.blockquote>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -334,12 +402,9 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
   const roster = members.filter((m) => isPublicCommitteeMember(m.type));
   if (roster.length === 0) return null;
 
-  // Public priority: Chairman, then Secretariat, then Committee Members.
-  const ordered = [
-    ...roster.filter((m) => m.type === "chairman"),
-    ...roster.filter((m) => m.type === "secretariat"),
-    ...roster.filter((m) => m.type === "member"),
-  ];
+  // Manual priority first, then the Chairman -> Secretariat -> Committee Member
+  // default. Shared with /committee so the two rosters can't drift.
+  const ordered = sortCommitteeRoster(roster);
 
   // About only previews the core committee; the full roster lives on /committee.
   const CORE_LIMIT = 6;

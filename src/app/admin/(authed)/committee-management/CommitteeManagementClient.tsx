@@ -29,6 +29,15 @@ const TYPE_BADGE: Record<CommitteeMemberType, string> = {
   admin: "bg-sky-50 text-sky-700 border-sky-200",
 };
 
+// Blank field means "unranked" (null). Anything unparseable is also treated as
+// blank rather than silently becoming 0, which would be the top priority.
+function parsePriority(v: string): number | null {
+  const t = v.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
 // SelectMenu's option shape, derived from the shared committee vocabulary.
 const TYPE_OPTIONS = COMMITTEE_MEMBER_TYPES.map((t) => ({
   value: t.value,
@@ -76,6 +85,10 @@ export function CommitteeManagementClient({
   const [org, setOrg] = useState("");
   const [type, setType] = useState<CommitteeMemberType>("member");
   const [photoUrl, setPhotoUrl] = useState<string>("");
+  // Kept as a string so the field can be blank (= unranked). "" is sent as
+  // null; parsing to a number here would turn an empty box into 0, which is a
+  // real — and top — priority.
+  const [priority, setPriority] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -83,6 +96,7 @@ export function CommitteeManagementClient({
   const [editOrg, setEditOrg] = useState("");
   const [editType, setEditType] = useState<CommitteeMemberType>("member");
   const [editPhotoUrl, setEditPhotoUrl] = useState<string>("");
+  const [editPriority, setEditPriority] = useState("");
   const [savingEmail, setSavingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -111,6 +125,7 @@ export function CommitteeManagementClient({
     setEditOrg(row.org ?? "");
     setEditType(row.type);
     setEditPhotoUrl(row.photo_url ?? "");
+    setEditPriority(row.priority === null ? "" : String(row.priority));
     setError(null);
     setSuccess(null);
   }
@@ -132,6 +147,7 @@ export function CommitteeManagementClient({
         org: editOrg.trim(),
         type: editType,
         photo_url: editPhotoUrl,
+        priority: parsePriority(editPriority),
       });
       setRows((prev) => prev.map((r) => (r.email === targetEmail ? j.member : r)));
       setSuccess(`Updated ${targetEmail}.`);
@@ -156,6 +172,7 @@ export function CommitteeManagementClient({
         org: org.trim() || undefined,
         type,
         photo_url: photoUrl || undefined,
+        priority: parsePriority(priority),
       });
       if (j.emailed) {
         setSuccess(`Added ${j.email}. Their login email, role, and password have been emailed to them.`);
@@ -171,6 +188,7 @@ export function CommitteeManagementClient({
       setName("");
       setRoles("");
       setOrg("");
+      setPriority("");
       setType("member");
       setPhotoUrl("");
       await refresh();
@@ -278,6 +296,18 @@ export function CommitteeManagementClient({
               className="h-11 w-full"
               options={TYPE_OPTIONS}
             />
+            {/* Roster order. Blank = unranked, which sorts last. */}
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              step={1}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              placeholder="Priority (blank = last)"
+              title="Roster order within this member type. Lower shows first; leave blank to sort last."
+              className="h-11 w-full min-w-0 text-ellipsis rounded-lg border border-pasha-line bg-white px-3.5 text-sm focus-visible:outline-none focus-visible:border-pasha-red focus-visible:ring-2 focus-visible:ring-pasha-red/15"
+            />
           </div>
           <div className="max-w-sm">
             <p className="mb-1.5 text-xs font-medium text-pasha-ink">
@@ -341,6 +371,7 @@ export function CommitteeManagementClient({
               <Th>Type</Th>
               <Th>Role</Th>
               <Th>Company</Th>
+              <Th>Priority</Th>
               <Th>Added</Th>
               <Th />
             </tr>
@@ -383,6 +414,15 @@ export function CommitteeManagementClient({
                   </Td>
                   <Td>
                     <span className="text-xs text-pasha-muted">{r.org || "—"}</span>
+                  </Td>
+                  <Td>
+                    {r.priority === null ? (
+                      <span className="text-xs text-pasha-muted">—</span>
+                    ) : (
+                      <span className="inline-flex min-w-[1.75rem] items-center justify-center rounded-md border border-pasha-line bg-pasha-stone px-1.5 py-0.5 font-mono text-[11px] font-bold text-pasha-ink">
+                        {r.priority}
+                      </span>
+                    )}
                   </Td>
                   <Td>
                     <span className="text-xs text-pasha-muted">
@@ -528,15 +568,30 @@ export function CommitteeManagementClient({
                         className={cn(fieldCls, "cursor-not-allowed bg-pasha-stone/40 text-pasha-muted")}
                       />
                     </Field>
-                    <Field label="Member type">
-                      <SelectMenu
-                        value={editType}
-                        onValueChange={(v) => setEditType(v as CommitteeMemberType)}
-                        aria-label="Member type"
-                        className="h-11 w-full"
-                        options={TYPE_OPTIONS}
-                      />
-                    </Field>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Member type">
+                        <SelectMenu
+                          value={editType}
+                          onValueChange={(v) => setEditType(v as CommitteeMemberType)}
+                          aria-label="Member type"
+                          className="h-11 w-full"
+                          options={TYPE_OPTIONS}
+                        />
+                      </Field>
+                      <Field label="Priority">
+                        <input
+                          type="number"
+                          min={0}
+                          max={9999}
+                          step={1}
+                          value={editPriority}
+                          onChange={(e) => setEditPriority(e.target.value)}
+                          placeholder="Blank = last"
+                          title="Roster order within this member type. Lower shows first; leave blank to sort last."
+                          className={fieldCls}
+                        />
+                      </Field>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field label="Role">
                         <input

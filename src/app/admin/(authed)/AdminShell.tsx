@@ -93,7 +93,11 @@ export function AdminShell({
               collapsed && "lg:opacity-0 lg:w-0 lg:pointer-events-none"
             )}
           >
-            <PashaLogo width={92} href="/admin" />
+            {/* src is explicit: PashaLogo defaults to the dark-background
+                variant (white wordmark), which is invisible on this white
+                sidebar — only the red P and dot showed. The default is left
+                alone because SiteHeader's hero overlay relies on it. */}
+            <PashaLogo width={92} href="/admin" src="/pasha-logo.svg" />
           </div>
 
           {/* Desktop collapse toggle */}

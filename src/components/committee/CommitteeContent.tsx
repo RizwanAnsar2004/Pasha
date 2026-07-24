@@ -25,6 +25,7 @@ import {
   committeeActivityTypeLabel,
   committeeMemberTagLabel,
   isPublicCommitteeMember,
+  sortCommitteeRoster,
   type CommitteeActivityRow,
   type CommitteeMemberRow,
 } from "@/lib/committee/committee";
@@ -33,18 +34,18 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 // Static committee roster — source of truth for the organogram.
 const STATIC_COMMITTEE: CommitteeMemberRow[] = [
-  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          type: "chairman", added_at: "", photo_url: null },
-  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             type: "member", added_at: "", photo_url: null },
-  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            type: "member", added_at: "", photo_url: null },
-  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    type: "member", added_at: "", photo_url: null },
-  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              type: "member", added_at: "", photo_url: null },
-  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               type: "member", added_at: "", photo_url: null },
-  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      type: "member", added_at: "", photo_url: null },
-  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          type: "member", added_at: "", photo_url: null },
-  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   type: "member", added_at: "", photo_url: null },
-  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", type: "member", added_at: "", photo_url: null },
-  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            type: "member", added_at: "", photo_url: null },
-  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", type: "member", added_at: "", photo_url: null },
+  { email: "chair@pasha.org.pk",  name: "Usman Akbar",            role: "CEO",                                org: "PureLogics",          type: "chairman", added_at: "", photo_url: null, priority: null },
+  { email: "m01@pasha.org.pk",    name: "Noman Hassan",           role: "CEO",                                org: "GeekInn",             type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m02@pasha.org.pk",    name: "Talha Bin Afzal",        role: "CEO",                                org: "Algoryte",            type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m03@pasha.org.pk",    name: "Shawana Iftikhar",       role: "CEO",                                org: "Work Generations",    type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m04@pasha.org.pk",    name: "Syed Junaid Ahmad",      role: "COO",                                org: "Softoo",              type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m05@pasha.org.pk",    name: "Asim Ishaq Khan",        role: "Director",                           org: "LMKT",               type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m06@pasha.org.pk",    name: "Muhammad Omer Khan",     role: "CEO",                                org: "Bits Collision",      type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m07@pasha.org.pk",    name: "Amna Masood",            role: "CEO",                                org: "MavenLogix",          type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m08@pasha.org.pk",    name: "Syed Rizwan Ali",        role: "Head of Business Incubation Center", org: "Bahria University",   type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m09@pasha.org.pk",    name: "Muhammad Irshad Kanwal", role: "CEO",                                org: "AllZone Technologies", type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m10@pasha.org.pk",    name: "Hamad Pervaiz",          role: "CEO",                                org: "BearPlex",            type: "member", added_at: "", photo_url: null, priority: null },
+  { email: "m11@pasha.org.pk",    name: "Muhammad Azeem Akram",   role: "CEO",                                org: "AlphaSquad Technologies", type: "member", added_at: "", photo_url: null, priority: null },
 ];
 
 const OBJECTIVES = [
@@ -203,15 +204,15 @@ export function CommitteeContent({
   const source = members.length > 0 ? members : STATIC_COMMITTEE;
   // Public page shows Chairmen, Secretariat and Committee Members ('admin' is
   // an access role, not a public one).
-  const roster = source.filter((m) => isPublicCommitteeMember(m.type));
-  // Chair(s) are explicit (member type).
+  // Manual priority first, then the Chairman -> Secretariat -> Committee Member
+  // default. Shared with /about so the two rosters can't drift.
+  const roster = sortCommitteeRoster(source.filter((m) => isPublicCommitteeMember(m.type)));
+  // Chair(s) are pulled into their own sticky column — that split is structural,
+  // so priority orders within each column rather than across them. The
+  // Secretariat and Committee Members share the right-hand grid, distinguished
+  // by the type chip on each card.
   const chairs = roster.filter((m) => m.type === "chairman");
-  // Public priority is Chairman, then Secretariat, then Committee Members. The
-  // latter two share one grid; their cards are distinguished by the type chip.
-  const nonChairs = [
-    ...roster.filter((m) => m.type === "secretariat"),
-    ...roster.filter((m) => m.type === "member"),
-  ];
+  const nonChairs = roster.filter((m) => m.type !== "chairman");
 
   return (
     <>

@@ -57,7 +57,42 @@ export type CommitteeMemberRow = {
   // Optional headshot set in Admin → Committee Management. Null falls back to
   // the initials avatar.
   photo_url: string | null;
+  // Manual roster order set in Admin → Committee Management. Lower sorts first;
+  // null means unranked and sorts after everyone who has a number.
+  priority: number | null;
 };
+
+// Fallback order once priority is exhausted — the roster's default shape.
+const TYPE_RANK: Record<CommitteeMemberType, number> = {
+  chairman: 0,
+  secretariat: 1,
+  member: 2,
+  admin: 3,
+};
+
+/**
+ * The public roster order, shared by /about and /committee so the two can never
+ * drift apart.
+ *
+ * Member type is the outer sort — Chairman, then Secretariat, then Committee
+ * Members — and `priority` orders people *within* their type. So a priority
+ * number promotes someone up their own group; it cannot lift a Committee
+ * Member above the Chair.
+ *
+ * Unranked members (priority null) sort after everyone ranked, then
+ * alphabetically, so adding the column changed nothing until numbers were set.
+ */
+export function sortCommitteeRoster<T extends CommitteeMemberRow>(members: T[]): T[] {
+  return [...members].sort((a, b) => {
+    const at = TYPE_RANK[a.type] ?? 99;
+    const bt = TYPE_RANK[b.type] ?? 99;
+    if (at !== bt) return at - bt;
+    const ap = a.priority ?? Number.POSITIVE_INFINITY;
+    const bp = b.priority ?? Number.POSITIVE_INFINITY;
+    if (ap !== bp) return ap - bp;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export const COMMITTEE_MEMBER_TAG = "Committee Member";
 export const COMMITTEE_CHAIR_TAG = "PASHA Startup & Entrepreneurship Committee";

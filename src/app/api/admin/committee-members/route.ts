@@ -13,6 +13,10 @@ import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 // just 'admin' and 'chairman'.
 const memberTypeSchema = z.enum(["chairman", "member", "secretariat", "admin"]);
 
+// Manual roster order. Nullable: null means unranked, and the client sends null
+// when the field is cleared. Bounded so a stray paste can't land a huge number.
+const prioritySchema = z.number().int().min(0).max(9999).nullable().optional();
+
 const addSchema = z.object({
   email: z.string().email(),
   name: z.string().max(200).optional(),
@@ -23,6 +27,7 @@ const addSchema = z.object({
   type: memberTypeSchema.optional(),
   // Optional headshot URL from /api/upload. "" clears it.
   photo_url: z.string().max(2000).optional(),
+  priority: prioritySchema,
 });
 
 const patchSchema = z.object({
@@ -33,6 +38,7 @@ const patchSchema = z.object({
   type: memberTypeSchema.optional(),
   // Optional headshot URL from /api/upload. "" clears it.
   photo_url: z.string().max(2000).optional(),
+  priority: prioritySchema,
 });
 
 const removeSchema = z.object({
@@ -40,7 +46,7 @@ const removeSchema = z.object({
 });
 
 const MEMBER_COLS =
-  "email, added_at, added_by, notes, org, member_type, name, photo_url";
+  "email, added_at, added_by, notes, org, member_type, name, photo_url, priority";
 
 function mapMember(m: Record<string, unknown>) {
   return {
@@ -52,6 +58,7 @@ function mapMember(m: Record<string, unknown>) {
     org: m.org ?? "",
     type: m.member_type ?? "member",
     photo_url: (m.photo_url as string | null) ?? "",
+    priority: (m.priority as number | null) ?? null,
   };
 }
 
@@ -157,6 +164,7 @@ async function postHandler(req: Request) {
         org,
         member_type: memberType,
         photo_url: parsed.data.photo_url?.trim() || null,
+        priority: parsed.data.priority ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "email" }
@@ -235,6 +243,9 @@ async function patchHandler(req: Request) {
   if (parsed.data.photo_url !== undefined) {
     updates.photo_url = parsed.data.photo_url.trim() || null;
   }
+  // Explicit null is meaningful here (clears the rank), so this checks for
+  // `undefined` rather than falsiness — 0 is a valid, and the highest, priority.
+  if (parsed.data.priority !== undefined) updates.priority = parsed.data.priority;
   updates.updated_at = new Date().toISOString();
 
   const { data, error: updErr } = await supabase

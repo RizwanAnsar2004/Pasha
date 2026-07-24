@@ -9,7 +9,11 @@ import {
 const ACTIVITY_COLS =
   "id,title,type,description,status,author_email,created_at";
 
-const MEMBER_COLS = "email,added_at,added_by,notes,org,member_type,name,photo_url";
+// Each fallback drops one migration-added optional column, newest first, so the
+// public roster still renders on a database that is a migration behind rather
+// than 500ing over one column.
+const MEMBER_COLS = "email,added_at,added_by,notes,org,member_type,name,photo_url,priority";
+const MEMBER_COLS_NO_PRIORITY = "email,added_at,added_by,notes,org,member_type,name,photo_url";
 const MEMBER_COLS_LEGACY = "email,added_at,added_by,notes,org,member_type,name";
 
 // Only return empty for a genuinely missing table, not a missing column.
@@ -33,6 +37,11 @@ function normalizeMember(row: Record<string, unknown>): CommitteeMemberRow {
     type,
     added_at: String(row.added_at ?? ""),
     photo_url: String(row.photo_url ?? "").trim() || null,
+    // Absent (older rows) and explicit NULL both mean "unranked".
+    priority:
+      row.priority === null || row.priority === undefined
+        ? null
+        : Number(row.priority),
   };
 }
 
@@ -66,8 +75,12 @@ export async function getCommitteeMembers(): Promise<CommitteeMemberRow[]> {
 
   let { data, error } = await query(MEMBER_COLS);
 
-  // photo_url is added by a migration — until it runs, retry without it rather
-  // than failing the whole public roster over one optional column.
+  // priority and photo_url are each added by a migration — until those run,
+  // retry without them rather than failing the whole public roster over one
+  // optional column. Narrowest fallback first.
+  if (error && /priority/.test(error.message)) {
+    ({ data, error } = await query(MEMBER_COLS_NO_PRIORITY));
+  }
   if (error && /photo_url/.test(error.message)) {
     ({ data, error } = await query(MEMBER_COLS_LEGACY));
   }

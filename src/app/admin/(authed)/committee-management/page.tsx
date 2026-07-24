@@ -16,6 +16,9 @@ export type MemberRow = {
   type: CommitteeMemberType;
   // Optional headshot, shown on the public committee/about rosters.
   photo_url: string;
+  // Manual roster order. Lower sorts first within the member's type; null means
+  // unranked and sorts last. See sortCommitteeRoster in lib/committee.
+  priority: number | null;
 };
 
 function normalizeType(v: unknown): CommitteeMemberType {
@@ -30,7 +33,7 @@ async function loadMembers(
   const supabase = createServiceClient();
   let query = supabase
     .from("admin_users")
-    .select("email, name, added_at, added_by, notes, org, member_type, photo_url", { count: "exact" });
+    .select("email, name, added_at, added_by, notes, org, member_type, photo_url, priority", { count: "exact" });
   if (q.length >= 1) {
     const pattern = `%${q}%`;
     query = query.or(
@@ -60,6 +63,7 @@ async function loadMembers(
     org: m.org ?? "",
     type: normalizeType(m.member_type),
     photo_url: m.photo_url ?? "",
+    priority: m.priority ?? null,
   })) as MemberRow[];
   return { rows, total: count ?? 0 };
 }
