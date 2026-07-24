@@ -73,6 +73,22 @@ export const EVENT_FORMATS: { value: EventFormat; label: string }[] = [
   { value: "online", label: "Online" },
 ];
 
+// Timezone is a display-only label appended after the event time
+// (e.g. "9:00 AM – 5:00 PM PKT") — it drives no date math, so this is a curated
+// list of short labels rather than the full IANA zone database. PKT covers most
+// PASHA events; the rest are here for regional/online sessions.
+export const TIMEZONES: { value: string; label: string }[] = [
+  { value: "PKT", label: "PKT — Pakistan (UTC+5)" },
+  { value: "GST", label: "GST — Gulf (UTC+4)" },
+  { value: "IST", label: "IST — India (UTC+5:30)" },
+  { value: "BST", label: "BST — Bangladesh (UTC+6)" },
+  { value: "SGT", label: "SGT — Singapore (UTC+8)" },
+  { value: "GMT", label: "GMT — London (UTC+0)" },
+  { value: "EST", label: "EST — US Eastern (UTC-5)" },
+  { value: "PST", label: "PST — US Pacific (UTC-8)" },
+  { value: "UTC", label: "UTC — Coordinated Universal" },
+];
+
 export const AGENDA_TAGS: { value: AgendaTag; label: string }[] = [
   { value: "networking", label: "Networking" },
   { value: "keynote", label: "Keynote" },

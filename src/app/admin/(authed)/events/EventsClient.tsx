@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ApiError, api as http } from "@/lib/api/client";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
@@ -23,6 +24,7 @@ import {
   AGENDA_TAGS,
   EVENT_FORMATS,
   EVENT_TYPES,
+  TIMEZONES,
   eventTypeLabel,
   type AgendaItem,
   type AudienceItem,
@@ -315,6 +317,7 @@ export function EventsClient({
   pageSize: number;
 }) {
   const { isPending, setParams } = useListNav();
+  const router = useRouter();
   const [rows, setRows] = useState<EventListRow[]>(initial);
   const [prevInitial, setPrevInitial] = useState(initial);
   if (prevInitial !== initial) {
@@ -413,6 +416,10 @@ export function EventsClient({
           setRows((prev) => [event, ...prev]);
           closeForm();
         }
+        // Re-fetch the server list so what's shown matches the DB's own order
+        // and pagination. Without this, the optimistic row can drift from the
+        // server view — a just-published event appeared to vanish until reload.
+        router.refresh();
       },
       status === "published" ? "Event published" : "Saved as draft"
     );
@@ -425,6 +432,7 @@ export function EventsClient({
       setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
       if (editingId === deleteTarget.id) closeForm();
+      router.refresh();
     });
 
   const [exporting, setExporting] = useState(false);
@@ -555,7 +563,7 @@ export function EventsClient({
                 <input type="time" className={cn(inputCls, errCls(errors.end_time))} value={form.end_time} onChange={(e) => set("end_time", e.target.value)} />
               </Field>
               <Field label="Timezone" name="timezone" error={errors.timezone}>
-                <input className={cn(inputCls, errCls(errors.timezone))} value={form.timezone} onChange={(e) => set("timezone", e.target.value)} />
+                <SelectMenu className="w-full" value={form.timezone} onValueChange={(v) => set("timezone", v)} options={TIMEZONES} />
               </Field>
             </div>
             <Field label="Venue" name="venue" error={errors.venue}>
@@ -638,7 +646,7 @@ export function EventsClient({
           onAdd={() =>
             set("agenda_items", [
               ...form.agenda_items,
-              { time: nextAgendaTime(form.agenda_items), title: "", tag: "other" },
+              { time: nextAgendaTime(form.agenda_items), title: "", tag: "networking" },
             ])
           }
         >
