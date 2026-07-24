@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Loader2, AlertCircle, MailCheck } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { useRouteProgress } from "@/components/RouteProgress";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import {
   CaptchaWidget,
@@ -18,6 +19,7 @@ import {
 function LoginInner() {
   const sp = useSearchParams();
   const router = useRouter();
+  const routeProgress = useRouteProgress();
   const redirect = sp.get("redirect") ?? "/admin";
   const authError = sp.get("error");
 
@@ -48,12 +50,16 @@ function LoginInner() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    // Sign-in does async work before navigating — show the top bar for it,
+    // matching the applicant login. Left running on success until the redirect.
+    routeProgress.start();
     try {
       await api.post(ENDPOINTS.admin.auth, { email, password, captchaToken });
       router.replace(redirect);
     } catch (e) {
       setError(apiErrorMessage(e, "Sign-in failed"));
       rearmCaptcha();
+      routeProgress.done();
     } finally {
       setLoading(false);
     }
