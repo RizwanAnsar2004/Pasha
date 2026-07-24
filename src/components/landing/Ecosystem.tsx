@@ -18,8 +18,7 @@ export function Ecosystem() {
         <Reveal className="max-w-4xl mb-12">
           <Kicker>One national platform. Many pathways.</Kicker>
           <h2 className="mt-4 font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-pasha-ink text-balance">
-            Built for everyone who helps startups move forward.
-          </h2>
+          A startup ecosystem grows when opportunity is easier to reach.          </h2>
         </Reveal>
 
         <Reveal delay={0.05} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-5">
