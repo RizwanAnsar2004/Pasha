@@ -24,6 +24,7 @@ import { getFormConfig } from "@/lib/forms/form-config.server";
 import { getAwardEntriesForDatabank, type AwardEntry } from "@/lib/startups/awards/awards.server";
 import { parseAwardsText } from "@/lib/startups/awards/awards-sync.server";
 import { fieldLabelMap } from "@/lib/forms/profile-completion";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
@@ -316,8 +317,12 @@ export async function generateMetadata({
       title: `${row.startup_name} · PASHA Startup Hub`,
       description,
       url: `/directory/${startupSlug(row.startup_name, row.id)}`,
-      images: row.logo_url ? [{ url: row.logo_url }] : undefined,
+      // Falls back to the site card rather than `undefined`: a profile with no
+      // logo would otherwise ship no og:image at all, and every platform then
+      // renders a bare text preview for the page people share most.
+      images: row.logo_url ? [{ url: row.logo_url }] : [OG_IMAGE],
     },
+    twitter: { ...TWITTER_DEFAULTS, title: row.startup_name, description },
   };
 }
 
@@ -451,7 +456,9 @@ export default async function StartupDetailPage({
 
   const ideaHtml = sanitizeHtml(row.startup_idea);
   const modelHtml = sanitizeHtml(row.business_model);
-  const impact = cleanText(row.social_impact);
+  // Rendered as plain text (not RichText), so strip any markup the rich-text
+  // editor stored — otherwise literal "<p>…</p>" shows up on the page.
+  const impact = cleanText(htmlToText(row.social_impact));
 
   const formConfig = await getFormConfig();
   const answerLabels = formConfig ? fieldLabelMap(formConfig) : {};

@@ -6,6 +6,7 @@ import {
   getCommitteeMembers,
   getPublishedCommitteeActivities,
 } from "@/lib/committee/committee.server";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 export const metadata: Metadata = {
   title: "Committee",
@@ -15,8 +16,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Committee · PASHA Startup Hub",
     url: "/committee",
+    images: [OG_IMAGE],
   },
   twitter: {
+    ...TWITTER_DEFAULTS,
     title: "Committee · PASHA Startup Hub",
   },
 };

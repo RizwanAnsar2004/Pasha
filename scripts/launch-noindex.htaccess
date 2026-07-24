@@ -1,0 +1,45 @@
+# ============================================================================
+#  /launch — keep the event landing page out of search engines
+# ============================================================================
+#
+#  WHY THIS FILE EXISTS
+#  The app already sends `X-Robots-Tag: noindex` for /launch and /launch.html
+#  from next.config.ts, and the page carries a robots meta tag. This is the
+#  Apache-level copy of the same rule, so the page stays protected even if it
+#  is ever served straight off disk, moved behind a different vhost, or the
+#  proxy is reconfigured to strip upstream headers.
+#
+#  HOW TO USE IT
+#  Append the block below to the .htaccess of the docroot that fronts
+#  startups.pasha.org.pk (or drop this file in and Include it). Requires
+#  mod_headers — enable with `a2enmod headers` if it is not already on.
+#
+#  IF THE FRONT-END IS NGINX, NOT APACHE
+#  .htaccess is ignored there. Use this inside the server block instead:
+#
+#      location ~ ^/launch(\.html)?$ {
+#          add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always;
+#          proxy_pass http://127.0.0.1:3000;
+#      }
+#
+#  VERIFY AFTER DEPLOY
+#      curl -sI https://startups.pasha.org.pk/launch | grep -i x-robots-tag
+#  Expect exactly one X-Robots-Tag line containing "noindex". If two appear,
+#  the proxy is adding its own on top of the app's — harmless, but drop one.
+# ============================================================================
+
+<IfModule mod_headers.c>
+    # Matches /launch and /launch.html, with or without a query string.
+    <LocationMatch "^/launch(\.html)?$">
+        Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex"
+    </LocationMatch>
+</IfModule>
+
+# If the vhost disallows <LocationMatch> in .htaccess (AllowOverride), use the
+# rewrite-based equivalent instead — same effect, works in a directory context:
+#
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteRule ^launch(\.html)?$ - [E=NOINDEX:1]
+#     Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" env=NOINDEX
+# </IfModule>

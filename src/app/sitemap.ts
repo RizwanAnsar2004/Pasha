@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/utils/site-url";
 
+// Note: /launch is intentionally absent. It is an unlisted event page and must
+// not be discoverable — see the noindex handling in robots.ts and next.config.ts.
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
   return [
