@@ -103,11 +103,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const solidBar = (
     <div className="site-container flex items-center justify-between">
       <Link aria-label="PASHA Startup Hub home" href="/" className="inline-flex items-center gap-3 text-pasha-ink">
-<<<<<<< HEAD
         <PashaLogo href={null} width={130} alt="PASHA" src="/pasha-logo.svg" />
-=======
-        <PashaLogo href={null} width={110} alt="PASHA" />
->>>>>>> 0fd3ff6fe0f6a1b7c026d8140b925fd735eda6d4
         {/* <strong className="hidden text-[15px] font-bold tracking-tight sm:inline">PASHA Startup Hub</strong> */}
       </Link>
       <div className="flex items-center gap-2.5">
