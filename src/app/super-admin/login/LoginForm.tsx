@@ -11,9 +11,15 @@ import {
   captchaConfigured,
   type CaptchaHandle,
 } from "@/components/auth/CaptchaWidget";
+import { useRouteProgress } from "@/components/RouteProgress";
 
+// Super-admin sign-in. Access URL: /super-admin/login — this is an unlinked
+// entry point (no nav links to it anywhere) for the single hardcoded super-admin
+// account that manages the admin allowlist. There is no magic-link or recovery
+// flow; reach it by typing the URL directly.
 export function SuperAdminLoginForm() {
   const router = useRouter();
+  const routeProgress = useRouteProgress();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +31,9 @@ export function SuperAdminLoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    // Sign-in does async work before navigating — show the top bar for it,
+    // matching the applicant login. Left running on success until the redirect.
+    routeProgress.start();
     try {
       await api.post(ENDPOINTS.superAdmin.auth, { email, password, captchaToken });
       router.replace("/super-admin");
@@ -36,6 +45,7 @@ export function SuperAdminLoginForm() {
         setCaptchaToken(null);
         captchaRef.current?.reset();
       }
+      routeProgress.done();
     } finally {
       setLoading(false);
     }

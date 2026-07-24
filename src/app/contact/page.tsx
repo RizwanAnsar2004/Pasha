@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ContactContent } from "@/components/contact/ContactContent";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -11,8 +12,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact · P@SHA Startup Hub",
     url: "/contact",
+    images: [OG_IMAGE],
   },
   twitter: {
+    ...TWITTER_DEFAULTS,
     title: "Contact · P@SHA Startup Hub",
   },
 };

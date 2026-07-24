@@ -29,8 +29,8 @@ export function Manifesto() {
       <div className="site-container">
         <Reveal>
           <h2 className="max-w-5xl font-serif text-2xl sm:text-6xl font-bold leading-[0.94] tracking-[-0.03em] text-pasha-ink text-balance">
-          Built for everyone who helps {" "}
-            <em className="not-italic text-pasha-red">startups move forward.</em>
+            A startup ecosystem grows when{" "}
+            <em className="not-italic text-pasha-red">opportunity is easier to reach.</em>
           </h2>
         </Reveal>
 

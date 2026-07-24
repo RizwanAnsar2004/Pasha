@@ -19,7 +19,7 @@ export type MemberRow = {
 };
 
 function normalizeType(v: unknown): CommitteeMemberType {
-  return v === "chairman" || v === "admin" ? v : "member";
+  return v === "chairman" || v === "admin" || v === "secretariat" ? v : "member";
 }
 
 async function loadMembers(
@@ -37,7 +37,12 @@ async function loadMembers(
       `email.ilike.${pattern},name.ilike.${pattern},notes.ilike.${pattern},org.ilike.${pattern}`
     );
   }
-  if (typeFilter === "chairman" || typeFilter === "member" || typeFilter === "admin") {
+  if (
+    typeFilter === "chairman" ||
+    typeFilter === "member" ||
+    typeFilter === "secretariat" ||
+    typeFilter === "admin"
+  ) {
     query = query.eq("member_type", typeFilter);
   }
   const { data, count, error } = await query

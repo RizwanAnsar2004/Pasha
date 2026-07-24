@@ -16,6 +16,7 @@ import { getOptionIndex } from "@/lib/options/index.server";
 import { isOptionId, matchingOptionIds, optionFilterValues, type OptionIndex , optionIdFor} from "@/lib/options/resolve";
 import type { OptionItem } from "@/lib/options/types";
 import { DUMMY_STARTUPS } from "@/lib/constants/dummy-startups";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 export const metadata: Metadata = {
   title: "Directory",
@@ -25,8 +26,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Directory · PASHA Startup Hub",
     url: "/directory",
+    images: [OG_IMAGE],
   },
   twitter: {
+    ...TWITTER_DEFAULTS,
     title: "Directory · PASHA Startup Hub",
   },
 };

@@ -22,8 +22,9 @@ import { Reveal } from "@/components/landing/shared/Reveal";
 import {
   COMMITTEE_ACTIVITY_TYPE_STYLES,
   COMMITTEE_CHAIR_TAG,
-  COMMITTEE_MEMBER_TAG,
   committeeActivityTypeLabel,
+  committeeMemberTagLabel,
+  isPublicCommitteeMember,
   type CommitteeActivityRow,
   type CommitteeMemberRow,
 } from "@/lib/committee/committee";
@@ -100,9 +101,10 @@ function MemberCard({
       className="group h-full"
     >
       <div className="flex h-full flex-col rounded-2xl border border-pasha-line/60 bg-white shadow-[0_2px_16px_rgba(14,14,16,0.06)] group-hover:shadow-[0_20px_48px_-12px_rgba(14,14,16,0.14)] group-hover:border-pasha-red/20 transition-all duration-400 p-5">
-        {/* Member chip */}
+        {/* Type chip — "Secretariat" members share this card but are a separate
+            body, so the label follows the member type rather than being fixed. */}
         <span className="self-start inline-flex items-center rounded-full bg-pasha-stone/80 border border-pasha-line/60 px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-[1.5px] text-pasha-ink/40">
-          {COMMITTEE_MEMBER_TAG}
+          {committeeMemberTagLabel(member.type)}
         </span>
 
         {/* Avatar — uploaded headshot, or initials when none is set */}
@@ -199,11 +201,17 @@ export function CommitteeContent({
 }) {
   // Prefer live committee-management data; fall back to the static roster only when no members have been added yet (e.g.
   const source = members.length > 0 ? members : STATIC_COMMITTEE;
-  // Public page shows only Chairmen and Committee Members.
-  const roster = source.filter((m) => m.type === "chairman" || m.type === "member");
+  // Public page shows Chairmen, Secretariat and Committee Members ('admin' is
+  // an access role, not a public one).
+  const roster = source.filter((m) => isPublicCommitteeMember(m.type));
   // Chair(s) are explicit (member type).
   const chairs = roster.filter((m) => m.type === "chairman");
-  const committeeMembers = roster.filter((m) => m.type !== "chairman");
+  // Public priority is Chairman, then Secretariat, then Committee Members. The
+  // latter two share one grid; their cards are distinguished by the type chip.
+  const nonChairs = [
+    ...roster.filter((m) => m.type === "secretariat"),
+    ...roster.filter((m) => m.type === "member"),
+  ];
 
   return (
     <>
@@ -333,7 +341,7 @@ export function CommitteeContent({
           </motion.div>
 
           {/* ── CHAIR + MEMBERS ── */}
-          {chairs.length > 0 || committeeMembers.length > 0 ? (
+          {chairs.length > 0 || nonChairs.length > 0 ? (
             <div
               className={cn(
                 "grid gap-8 lg:gap-10 items-start",
@@ -350,9 +358,9 @@ export function CommitteeContent({
               )}
 
               {/* Right: All other committee members */}
-              {committeeMembers.length > 0 && (
+              {nonChairs.length > 0 && (
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {committeeMembers.map((member, i) => (
+                  {nonChairs.map((member, i) => (
                     <MemberCard key={member.email} member={member} index={i} />
                   ))}
                 </div>

@@ -23,6 +23,9 @@ import {
 const TYPE_BADGE: Record<CommitteeMemberType, string> = {
   chairman: "bg-pasha-red/8 text-pasha-red border-pasha-red/20",
   member: "bg-pasha-stone text-pasha-muted border-pasha-line",
+  // Public like 'member', but a separate body — tinted so the two are
+  // distinguishable at a glance in the management list.
+  secretariat: "bg-amber-50 text-amber-700 border-amber-200",
   admin: "bg-sky-50 text-sky-700 border-sky-200",
 };
 

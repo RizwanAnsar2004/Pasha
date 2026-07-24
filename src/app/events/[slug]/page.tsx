@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { EventDetailContent } from "@/components/events/EventContent";
 import { getEventBySlug, getRelatedEvents } from "@/lib/events/events.server";
 import { eventSlug } from "@/lib/utils/slug";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
@@ -28,6 +29,12 @@ export async function generateMetadata({
       title: `${event.title} · PASHA Events`,
       description: event.summary || undefined,
       url: `/events/${eventSlug(event.title, event.id)}`,
+      images: [OG_IMAGE],
+    },
+    twitter: {
+      ...TWITTER_DEFAULTS,
+      title: `${event.title} · PASHA Events`,
+      description: event.summary || undefined,
     },
   };
 }

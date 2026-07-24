@@ -1,4 +1,4 @@
-import { Lightbulb, CircleDollarSign, Briefcase, GraduationCap, Landmark, Globe } from "lucide-react";
+import { Lightbulb, CircleDollarSign, Briefcase, GraduationCap, Landmark, Globe, HeartHandshake, Sprout, Rocket } from "lucide-react";
 import { Kicker } from "./shared/Kicker";
 import { Reveal } from "./shared/Reveal";
 
@@ -9,6 +9,9 @@ const CARDS = [
   { icon: GraduationCap, iconColor: "text-[#C97A72]", title: "Talent", body: "See which product-native startups are hiring and how they're growing.", tint: "bg-[#FFD8D3]", span: "lg:col-span-4" },
   { icon: Landmark, iconColor: "text-[#5DA0A3]", title: "Policy makers", body: "A live, verified read on the health of Pakistan's product economy.", tint: "bg-[#BFE9EA]", span: "lg:col-span-5" },
   { icon: Globe, iconColor: "text-[#5B7FBF]", title: "Global partners", body: "One trusted entry point into Pakistan's startup ecosystem.", tint: "bg-[#DCE6FA]", span: "lg:col-span-3" },
+  { icon: HeartHandshake, iconColor: "text-[#C58A4B]", title: "Mentors", body: "Find founders to guide and connect with startups seeking your experience.", tint: "bg-[#FFE1C4]", span: "lg:col-span-4" },
+  { icon: Sprout, iconColor: "text-[#7A9E52]", title: "Incubators", body: "Discover early-stage startups to nurture and grow your program's pipeline.", tint: "bg-[#D9EFC7]", span: "lg:col-span-4" },
+  { icon: Rocket, iconColor: "text-[#C25E7A]", title: "Accelerators", body: "Source high-potential startups ready to scale through your cohort.", tint: "bg-[#F8CBD6]", span: "lg:col-span-4" },
 ];
 
 export function Ecosystem() {

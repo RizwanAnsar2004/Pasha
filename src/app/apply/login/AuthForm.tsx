@@ -56,7 +56,7 @@ function AuthInner({
   // header's "Join the Hub" CTA links to, since someone clicking Join is
   // signing up, not signing in.
   const [mode, setMode] = useState<"login" | "register">(
-    sp.get("mode") === "register" || DEV_PREFILL ? "register" : "login"
+    sp.get("mode") === "register" ? "register" : "login"
   );
   const [regStep, setRegStep] = useState<1 | 2>(1);
   const [termsOpen, setTermsOpen] = useState(false);

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { ChatWidget } from "@/components/ChatWidget";
 import { RouteProgressProvider } from "@/components/RouteProgress";
 import { SITE_URL } from "@/lib/utils/site-url";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -25,8 +26,11 @@ const jetbrainsMono = JetBrains_Mono({
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const SITE_NAME = "PASHA Startup Hub";
+// Kept near 160 characters: past that, Google truncates the snippet and chat
+// previews clip it mid-sentence. Leads with the concrete thing on offer (the
+// directory) rather than the committee's name.
 const SITE_DESCRIPTION =
-  "Pakistan's curated network of product-native startups. Apply to join the PASHA Startup & Entrepreneurship Committee for the directory, mentorship, and ecosystem partnerships.";
+  "Pakistan's curated national directory of product-native startups. Apply to the PASHA Startup & Entrepreneurship Committee for mentorship and ecosystem partnerships.";
 export const viewport: Viewport = {
   themeColor: "#E92127",
   width: "device-width",
@@ -67,23 +71,12 @@ export const metadata: Metadata = {
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1500,
-        height: 375,
-        alt: "PASHA Startup Hub — EOI Join the PASHA Startup Hub",
-        type: "image/png",
-      },
-    ],
+    images: [OG_IMAGE],
   },
   twitter: {
-    card: "summary_large_image",
-    site: "@PASHAORG",
-    creator: "@PASHAORG",
+    ...TWITTER_DEFAULTS,
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,

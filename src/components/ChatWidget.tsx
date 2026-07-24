@@ -5,7 +5,7 @@ import { getChatSessionId } from "@/lib/ai/chat-session";
 // Floating chat widget wired to Kai, the PASHA RAG assistant (/api/chat).
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { MessageCircle, X, Send, Mic, Square } from "lucide-react";
 
 type Message = { id: number; role: "user" | "bot"; text: string };
 
@@ -14,7 +14,7 @@ const STORAGE_KEY = "pasha-chat-history";
 const GREETING: Message = {
   id: 0,
   role: "bot",
-  text: "Hi! 👋 I'm Kai, the PASHA assistant. Ask me anything about the community, the application, or the directory.",
+  text: "Hi! 👋 I’m Kai! Welcome to the P@SHA Startup Hub. I can help you discover startups, connect with the ecosystem, and find the information you need.",
 };
 
 export function ChatWidget() {
@@ -22,11 +22,13 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
   // Epoch ms until which the rate limit blocks sending; 0 = not limited.
   const [limitedUntil, setLimitedUntil] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
+  const recorderRef = useRef<MediaRecorder | null>(null);
 
   // Load saved conversation from localStorage on first mount.
   useEffect(() => {
@@ -111,18 +113,105 @@ export function ChatWidget() {
       const botText = data.answer ?? "Sorry, something went wrong. Please try again.";
       setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
     } catch (e) {
-      // A 429 is a quota message, not a failure — lock the composer.
-      if (e instanceof ApiError && e.status === 429) {
-        const retryAfter = typeof e.data.retryAfter === "number" ? e.data.retryAfter : 3600;
-        setNow(Date.now());
-        setLimitedUntil(Date.now() + retryAfter * 1000);
-      }
-      const botText = e instanceof ApiError ? e.message : "Kai is offline at the moment. Please try again in a few minutes.";
-      setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
+      failWith(e);
     } finally {
       setLoading(false);
     }
   };
+
+  // Shared failure path for typed and voice questions.
+  const failWith = (e: unknown) => {
+    // A 429 is a quota message, not a failure — lock the composer.
+    if (e instanceof ApiError && e.status === 429) {
+      const retryAfter = typeof e.data.retryAfter === "number" ? e.data.retryAfter : 3600;
+      setNow(Date.now());
+      setLimitedUntil(Date.now() + retryAfter * 1000);
+    }
+    const botText = e instanceof ApiError ? e.message : "Kai is offline at the moment. Please try again in a few minutes.";
+    setMessages((m) => [...m, { id: nextId.current++, role: "bot", text: botText }]);
+  };
+
+  const sendVoice = async (clip: Blob, mimeType: string) => {
+    setLoading(true);
+    try {
+      const form = new FormData();
+      const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "mp4" : "webm";
+      form.append("audio", new File([clip], `question.${ext}`, { type: mimeType }));
+      form.append("sessionId", getChatSessionId());
+      const data = await api.upload<{ answer?: string; transcription?: string }>(
+        "/api/chat/voice",
+        form,
+      );
+      // Echo the transcript back as the user's bubble so they see what was heard.
+      const heard = (data.transcription ?? "").trim();
+      setMessages((m) => [
+        ...m,
+        { id: nextId.current++, role: "user", text: heard || "🎤 Voice message" },
+        {
+          id: nextId.current++,
+          role: "bot",
+          text: data.answer ?? "Sorry, something went wrong. Please try again.",
+        },
+      ]);
+    } catch (e) {
+      failWith(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopRecording = () => {
+    recorderRef.current?.stop();
+    setRecording(false);
+  };
+
+  const startRecording = async () => {
+    if (loading || rateLimited || recording) return;
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setMessages((m) => [
+        ...m,
+        {
+          id: nextId.current++,
+          role: "bot",
+          text: "I couldn't access your microphone. Please allow microphone access and try again.",
+        },
+      ]);
+      return;
+    }
+
+    // Pick the first container this browser can actually produce — Safari
+    // records mp4, everyone else webm/ogg; the RAG service accepts all three.
+    const mimeType =
+      ["audio/webm", "audio/ogg", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks: BlobPart[] = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    recorder.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      recorderRef.current = null;
+      const type = recorder.mimeType || mimeType || "audio/webm";
+      const clip = new Blob(chunks, { type });
+      if (clip.size > 0) sendVoice(clip, type);
+    };
+    recorderRef.current = recorder;
+    recorder.start();
+    setRecording(true);
+  };
+
+  // Don't leave the mic live if the widget unmounts mid-recording. The onstop
+  // handler releases the stream's tracks.
+  useEffect(() => () => recorderRef.current?.stop(), []);
+
+  // Closing the panel mid-recording stops the mic; the clip still sends, so
+  // the answer is waiting in the history when the panel reopens.
+  useEffect(() => {
+    if (!open && recorderRef.current) stopRecording();
+  }, [open]);
 
   return (
     <>
@@ -203,10 +292,29 @@ export function ChatWidget() {
                   send();
                 }
               }}
-              placeholder={rateLimited ? `Question limit reached — try again in ${cooldownLabel}` : "Type a message…"}
-              disabled={loading || rateLimited}
+              placeholder={
+                rateLimited
+                  ? `Question limit reached — try again in ${cooldownLabel}`
+                  : recording
+                    ? "Listening… tap the mic to send"
+                    : "Type a message…"
+              }
+              disabled={loading || rateLimited || recording}
               className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-pasha-red focus:outline-none focus:ring-2 focus:ring-pasha-red/10 disabled:opacity-60"
             />
+            <button
+              type="button"
+              onClick={recording ? stopRecording : startRecording}
+              disabled={loading || rateLimited}
+              className={
+                recording
+                  ? "grid h-9 w-9 shrink-0 animate-pulse place-items-center rounded-full bg-pasha-red text-white"
+                  : "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 hover:border-pasha-red hover:text-pasha-red disabled:opacity-40"
+              }
+              aria-label={recording ? "Stop recording and send" : "Ask by voice"}
+            >
+              {recording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
+            </button>
             <button
               type="button"
               onClick={send}
@@ -220,12 +328,18 @@ export function ChatWidget() {
         </div>
       )}
 
-      {/* Floating button */}
+      {/* Floating button — toggles the panel. On desktop the panel is a card that
+          sits above this FAB, so it stays visible and works as the open/close
+          toggle. On mobile the panel goes full-screen with the input pinned to
+          the bottom, right where this FAB floats, so it would cover the mic/send
+          buttons — hide it there when open (the header's X closes the panel). */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close Kai" : "Open Kai"}
-        className="fixed bottom-5 right-5 z-[60] grid h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95"
+        className={`fixed bottom-5 right-5 z-[60] h-14 w-14 place-items-center rounded-full bg-pasha-red text-white shadow-lg shadow-pasha-red/30 transition-transform hover:scale-105 active:scale-95 ${
+          open ? "hidden sm:grid" : "grid"
+        }`}
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>

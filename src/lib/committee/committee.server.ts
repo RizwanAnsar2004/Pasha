@@ -21,7 +21,9 @@ function normalizeMember(row: Record<string, unknown>): CommitteeMemberRow {
   const email = String(row.email ?? "");
   const rawType = String(row.member_type ?? "member");
   const type: CommitteeMemberType =
-    rawType === "chairman" || rawType === "admin" ? rawType : "member";
+    rawType === "chairman" || rawType === "admin" || rawType === "secretariat"
+      ? rawType
+      : "member";
   const storedName = String(row.name ?? "").trim();
   return {
     email,

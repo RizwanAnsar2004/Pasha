@@ -15,9 +15,16 @@ type Step = "idle" | "email" | "code" | "done";
 export function ClaimProfile({
   databankId,
   alreadyClaimed,
+  hideClaimedNotice = false,
 }: {
   databankId: string;
   alreadyClaimed: boolean;
+  // Suppresses the "already claimed" notice on curated showcase profiles
+  // (featured / women-led). Those pages are linked from the homepage, so the
+  // notice greets ordinary visitors with a dead end — an instruction to email
+  // for access they have no reason to want. The claim form itself is
+  // unaffected: an unclaimed showcase startup can still claim its profile.
+  hideClaimedNotice?: boolean;
 }) {
   const [step, setStep] = useState<Step>(alreadyClaimed ? "done" : "idle");
   const [claimedElsewhere, setClaimedElsewhere] = useState(alreadyClaimed);
@@ -55,6 +62,12 @@ export function ClaimProfile({
   const verify = () => claim({ action: "verify", databankId, email, code }, () => setStep("done"));
 
   if (claimedElsewhere || step === "done") {
+    // "You're now the owner" is feedback for something the visitor just did, so
+    // it shows even when the notice is suppressed — only the standing
+    // "already claimed by someone else" message is hidden.
+    const justClaimed = step === "done" && !claimedElsewhere;
+    if (hideClaimedNotice && !justClaimed) return null;
+
     return (
       <div className="mb-8 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 sm:px-5 sm:py-4 text-sm text-white/85">
         <p className="inline-flex items-center gap-2">

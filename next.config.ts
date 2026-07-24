@@ -9,6 +9,12 @@ const SUPABASE_HOST = "ftekdhipoqvbftfybvwz.supabase.co";
 // browser reporting only a generic script/frame block.
 const TURNSTILE_HOST = "https://challenges.cloudflare.com";
 
+// The unlisted /launch event page plays the launch film in a YouTube iframe.
+// Privacy-enhanced mode serves the player from youtube-nocookie.com, but the
+// player itself can hand off to www.youtube.com, so frame-src needs both or the
+// overlay comes up blank with only a generic frame-block in the console.
+const YOUTUBE_HOSTS = "https://www.youtube-nocookie.com https://www.youtube.com";
+
 // Content-Security-Policy designed for: Next.js (inline scripts for hydration),
 // Supabase REST/Storage/Realtime, and self-hosted assets.
 const csp = [
@@ -32,7 +38,7 @@ const csp = [
   `frame-ancestors 'none'`,
   // The contact page embeds the Secretariat location as a Google Maps iframe;
   // without this, default-src 'self' blocks it.
-  `frame-src https://www.google.com https://maps.google.com ${TURNSTILE_HOST}`,
+  `frame-src https://www.google.com https://maps.google.com ${TURNSTILE_HOST} ${YOUTUBE_HOSTS}`,
   `object-src 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
@@ -46,11 +52,25 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
   },
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
+  },
+];
+
+// Paths that serve the unlisted launch page. /launch is the public-facing URL;
+// /launch.html is the file it rewrites to, and is reachable directly, so both
+// need the header.
+const LAUNCH_PATHS = ["/launch", "/launch.html"];
+
+// Belt-and-suspenders against indexing. The HTML carries a robots meta tag too,
+// but a crawler that only reads headers (or fetches with HEAD) never sees it.
+const noindexHeaders = [
+  {
+    key: "X-Robots-Tag",
+    value: "noindex, nofollow, noarchive, nosnippet, noimageindex",
   },
 ];
 
@@ -67,7 +87,19 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // Kept as its own rule with a distinct header key: adding X-Robots-Tag to
+      // securityHeaders instead would apply it site-wide, and merging a second
+      // Content-Security-Policy here would have the browser enforce the
+      // intersection of the two, silently re-blocking the YouTube frame.
+      ...LAUNCH_PATHS.map((source) => ({ source, headers: noindexHeaders })),
     ];
+  },
+  // Serves public/launch.html at the clean /launch URL the event invites point
+  // at. It stays a static file rather than an app route because it is a
+  // self-contained fullscreen event screen with its own styles and no shared
+  // header, footer, or layout.
+  async rewrites() {
+    return [{ source: "/launch", destination: "/launch.html" }];
   },
   // Allow next/image to optimize our own Supabase Storage URLs.
   // Everything else is served from /public on this origin.

@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AboutContent } from "@/components/about/AboutContent";
 import { getCommitteeMembers } from "@/lib/committee/committee.server";
+import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 
 export const metadata: Metadata = {
   title: "About PSEC",
@@ -12,8 +13,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About PSEC · PASHA Startup Hub",
     url: "/about",
+    images: [OG_IMAGE],
   },
   twitter: {
+    ...TWITTER_DEFAULTS,
     title: "About PSEC · PASHA Startup Hub",
   },
 };

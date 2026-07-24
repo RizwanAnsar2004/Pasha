@@ -7,7 +7,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: ["/", "/apply", "/about", "/directory"],
-        disallow: ["/admin", "/api", "/apply/success"],
+        // /launch is the unlisted event landing page — reachable by direct link
+        // only. Both its clean URL and the underlying static file are listed;
+        // the page also sends X-Robots-Tag: noindex (next.config.ts) and carries
+        // a robots meta tag, since Disallow alone only stops crawling, not
+        // indexing of a URL discovered elsewhere.
+        disallow: ["/admin", "/api", "/apply/success", "/launch", "/launch.html"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
