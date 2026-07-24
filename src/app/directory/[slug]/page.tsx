@@ -24,6 +24,7 @@ import { getFormConfig } from "@/lib/forms/form-config.server";
 import { getAwardEntriesForDatabank, type AwardEntry } from "@/lib/startups/awards/awards.server";
 import { parseAwardsText } from "@/lib/startups/awards/awards-sync.server";
 import { fieldLabelMap } from "@/lib/forms/profile-completion";
+import { getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured-startups.server";
 import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
@@ -580,6 +581,13 @@ export default async function StartupDetailPage({
     business_types: resolveMulti(r.business_types).join("|") || null,
   }));
 
+  // Curated showcase profiles suppress the "already claimed" notice — see the
+  // hideClaimedNotice prop on ClaimProfile. Presence in featured_startups is
+  // what counts, not whether the window is currently live: the row means PASHA
+  // curated this startup, and the notice is no more useful once it expires.
+  const featuredStatus = await getFeaturedStatusByDatabankId(row.id);
+  const isShowcased = Boolean(featuredStatus) || Boolean(row.women_led);
+
   const hasProblem = problemText.length > 0;
   const hasSolution = solutionText.length > 0;
   const hasMarket = !!tamDisplay || !!samDisplay || !!somDisplay;
@@ -622,6 +630,7 @@ export default async function StartupDetailPage({
             <ClaimProfile
               databankId={row.id}
               alreadyClaimed={Boolean((row as { verified_claimed?: boolean }).verified_claimed)}
+              hideClaimedNotice={isShowcased}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 lg:gap-16 items-end">
