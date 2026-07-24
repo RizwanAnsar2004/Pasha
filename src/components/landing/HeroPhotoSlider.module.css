@@ -102,11 +102,12 @@
   letter-spacing: -0.02em;
 }
 .hero-photo-brand-logo {
-  height: 40px !important;
+  height: 52px !important;
+  width: auto !important;
   display: block;
   background: #fdfdfd;
-  border-radius: 8px;
-  padding: 7px 9px;
+  border-radius: 9px;
+  padding: 8px 11px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
 }
 .hero-photo-brand strong {
