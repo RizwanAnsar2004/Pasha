@@ -31,9 +31,9 @@ export function Ecosystem() {
             return (
               <div
                 key={c.title}
-                className={`group relative overflow-hidden rounded-[24px] p-7 min-h-[340px] flex flex-col ${c.span} ${c.tint}`}
+                className={`group relative overflow-hidden rounded-[24px] p-7 min-h-[220px] flex flex-col ${c.span} ${c.tint}`}
               >
-                <Icon aria-hidden className={`absolute right-8 bottom-8 h-16 w-16 ${c.iconColor}`} strokeWidth={1.5} />
+                <Icon aria-hidden className={`absolute right-8 bottom-8 h-12 w-12 ${c.iconColor}`} strokeWidth={1.5} />
                 <div className="relative">
                   <h3 className="font-serif text-3xl font-bold text-pasha-ink">{c.title}</h3>
                   <p className="mt-2 text-[14px] leading-relaxed text-pasha-ink/99">
