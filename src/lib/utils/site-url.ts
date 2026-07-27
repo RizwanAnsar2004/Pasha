@@ -6,7 +6,7 @@
 // pointing at theirs. `request.url` is no better — `next start` builds it from the
 // bind address, which behind nginx is the internal 0.0.0.0:PORT, not the domain.
 
-const CANONICAL_SITE_URL = "https://startups.pasha.org.pk";
+const CANONICAL_SITE_URL = "https://pashastartuphub.com";
 const DEV_SITE_URL = "http://localhost:3000";
 
 // Bind/loopback addresses that can never be a valid public origin.
