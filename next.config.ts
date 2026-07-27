@@ -75,7 +75,7 @@ const securityHeaders = [
 //
 // Also add the slug to the disallow list in src/app/robots.ts, which cannot
 // import from this file (it is outside the src alias).
-const STATIC_EVENT_PAGES = ["launch", "hub-launch"];
+const STATIC_EVENT_PAGES: string[] = [];   // in the future if you wanna static pages simply add their slugs here, e.g. ["launch", "hub-launch", "hub-launch.html"]
 
 // Both the clean URL and the underlying .html need the header: the file stays
 // directly reachable at /<slug>.html regardless of the rewrite.
