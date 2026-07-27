@@ -69,7 +69,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
   const overlayBar = (
     <div className={`${styles["hero-photo-container"]} flex items-center justify-between`}>
       <Link aria-label="PASHA Startup Hub home" className={styles["hero-photo-brand"]} href="/">
-        <PashaLogo href={null} width={112} alt="PASHA" className={styles["hero-photo-brand-logo"]} />
+        <PashaLogo href={null} width={135} alt="PASHA" className={styles["hero-photo-brand-logo"]} />
         {/* <strong>PASHA Startup Hub</strong> */}
       </Link>
       <div className={styles["hero-photo-top-actions"]}>
@@ -155,7 +155,7 @@ export function SiteHeader({ variant = "solid" }: { variant?: "solid" | "overlay
       {variant === "overlay" ? (
         <div className="absolute inset-x-0 top-0 z-20 pt-7">{overlayBar}</div>
       ) : (
-        <header className="sticky top-0 z-40 w-full bg-white py-4 shadow-[0_2px_16px_rgba(23,23,23,0.08)]">
+        <header className="sticky top-0 z-40 w-full bg-white py-3 shadow-[0_2px_16px_rgba(23,23,23,0.08)]">
           {solidBar}
         </header>
       )}
