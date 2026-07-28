@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getDatabankEditableFields } from "@/lib/forms/form-config.server";
+import { getEditRequestOutline } from "@/lib/startups/edit-requests/edit-requests.server";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { EditDatabankClient, type DatabankRow } from "./EditDatabankClient";
+import { RequestEditButton } from "./RequestEditButton";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +25,11 @@ export default async function EditDatabankPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [row, editableFields, optionLists] = await Promise.all([
+  const [row, editableFields, optionLists, outline] = await Promise.all([
     load(id),
     getDatabankEditableFields(),
     getFormOptionRegistry(),
+    getEditRequestOutline(),
   ]);
   if (!row) notFound();
   // The hand-written column fields below the config-driven section. They cover
@@ -41,11 +44,20 @@ export default async function EditDatabankPage({
     editableFields.map((f) => f.column_map).filter((c): c is string => Boolean(c))
   );
   return (
-    <EditDatabankClient
-      initial={row}
-      dynamicFields={editableFields}
-      configColumns={[...configColumns]}
-      optionLists={optionLists}
-    />
+    <div>
+      <div className="mb-4 flex justify-end">
+        <RequestEditButton
+          databankId={row.id}
+          startupName={row.startup_name ?? null}
+          outline={outline}
+        />
+      </div>
+      <EditDatabankClient
+        initial={row}
+        dynamicFields={editableFields}
+        configColumns={[...configColumns]}
+        optionLists={optionLists}
+      />
+    </div>
   );
 }

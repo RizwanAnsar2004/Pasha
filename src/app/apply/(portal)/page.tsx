@@ -22,6 +22,8 @@ import {
   getApplicantSubmissionStatus,
 } from "@/lib/auth/applicant/applicant-auth";
 import { getFormConfig } from "@/lib/forms/form-config.server";
+import { getActiveEditRequest } from "@/lib/startups/edit-requests/edit-requests.server";
+import { filterConfigToKeys } from "@/lib/startups/edit-requests/edit-requests";
 import { ensureClaimedProfileSeeded } from "@/lib/startups/claim/seed-application.server";
 import { buildDevPrefill, buildFieldLabelMap, buildZodSchema } from "@/lib/forms/form-config";
 import { submissionSchema } from "@/lib/forms/schema";
@@ -106,10 +108,11 @@ export default async function ApplicantOverviewPage({
   // hasn't been materialised yet, seed it now so the portal shows that startup
   // (filled + submitted) instead of a blank draft.
   await ensureClaimedProfileSeeded(user.id, user.email ?? null);
-  const [draft, config, optionLists] = await Promise.all([
+  const [draft, config, optionLists, activeEditRequest] = await Promise.all([
     getApplicantDraft(user.id),
     getFormConfig(),
     getFormOptionRegistry(),
+    getActiveEditRequest(user.id),
   ]);
 
   // Workflow status of the (latest) submission, if any.
@@ -134,6 +137,17 @@ export default async function ApplicantOverviewPage({
 
   // The form is editable while the applicant owns it: never submitted, or the committee reopened it for changes (Needs Update resets submitted_at).
   const editable = !draft.submitted;
+
+  // Admin-requested partial re-open: even though the application is submitted
+  // (locked), the applicant may edit ONLY the fields/sections the admin unlocked.
+  const partialConfig =
+    config && config.length > 0 && draft.submitted && activeEditRequest
+      ? activeEditRequest.whole_form
+        ? config
+        : filterConfigToKeys(config, activeEditRequest.field_keys)
+      : null;
+  const partialMode = Boolean(partialConfig && partialConfig.length > 0);
+  const formAvailable = editable || partialMode;
 
   // §12 completion ladder, from the saved draft values. Used for the milestone
   // chips + next-level hint.
@@ -249,10 +263,39 @@ export default async function ApplicantOverviewPage({
     ) : (
       <ApplyForm optionLists={optionLists} />
     )
+  ) : partialMode && partialConfig && activeEditRequest ? (
+    <DynamicForm
+      config={partialConfig}
+      initialValues={draft.data}
+      initialStep={0}
+      optionLists={optionLists}
+      editRequest={{ id: activeEditRequest.id, note: activeEditRequest.note }}
+    />
   ) : null;
 
   const overview = (
     <div className="space-y-6">
+      {/* Admin-requested update — the applicant can edit the unlocked fields in the form tab. */}
+      {partialMode && (
+        <div className="rounded-2xl border border-pasha-red/30 bg-pasha-red/[0.04] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-pasha-red/10 grid place-items-center shrink-0">
+              <AlertCircle className="w-5 h-5 text-pasha-red" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-medium text-pasha-ink">The committee asked you to update your profile</h2>
+              {activeEditRequest?.note ? (
+                <p className="mt-1 text-sm text-pasha-muted">{activeEditRequest.note}</p>
+              ) : null}
+              <p className="mt-2 text-sm text-pasha-muted">
+                Open the <span className="font-medium text-pasha-ink">My application</span> tab above to fill in
+                the requested fields — only those are open for editing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-pasha-ink">
           {greetingName ? `Welcome, ${greetingName}` : "Welcome"} 👋
@@ -362,7 +405,7 @@ export default async function ApplicantOverviewPage({
           </p>
         )}
 
-        {!editable && stage !== "rejected" && (
+        {!editable && !partialMode && stage !== "rejected" && (
           <p className="mt-4 rounded-lg border border-pasha-line bg-pasha-stone/30 px-3 py-2 text-sm text-pasha-muted leading-relaxed">
             <span className="font-medium text-pasha-ink">No action needed right now.</span>{" "}
             {stage === "submitted"
@@ -487,8 +530,8 @@ export default async function ApplicantOverviewPage({
     <PortalTabs
       overview={overview}
       form={formNode}
-      formAvailable={editable}
-      initialTab={tab === "form" ? "form" : "overview"}
+      formAvailable={formAvailable}
+      initialTab={tab === "form" || (partialMode && tab !== "overview") ? "form" : "overview"}
     />
   );
 }

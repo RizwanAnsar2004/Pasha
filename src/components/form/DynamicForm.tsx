@@ -82,6 +82,7 @@ export function DynamicForm({
   initialStep = 0,
   serverPersist = false,
   optionLists,
+  editRequest = null,
 }: {
   config: FormConfig;
   // Server-saved draft values to resume from (applicant flow).
@@ -92,8 +93,13 @@ export function DynamicForm({
   serverPersist?: boolean;
   // Resolved option-list registry (code + admin-managed DB lists).
   optionLists?: OptionRegistry;
+  // When set, this is an admin-requested PARTIAL edit: `config` already holds
+  // only the unlocked fields; Submit posts to the edit-request endpoint (not
+  // /api/submit) and the form re-locks afterwards. No autosave.
+  editRequest?: { id: string; note: string | null } | null;
 }) {
   const router = useRouter();
+  const partial = Boolean(editRequest);
 
   const steps = useMemo(() => stepsOf(config), [config]);
   const titles = useMemo(() => stepTitlesOf(config), [config]);
@@ -216,6 +222,7 @@ export function DynamicForm({
     if (draftRestoredOnce.current) return;
     draftRestoredOnce.current = true;
     if (typeof window === "undefined") return;
+    if (partial) return; // partial edits start from the submitted values, no restore
     try {
       // Server-persist flow: the server draft came in via initialValues (already
       // merged into the form defaults). Restore the localStorage backup only if
@@ -259,6 +266,7 @@ export function DynamicForm({
   // Debounced autosave.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (partial) return; // partial edits are submitted explicitly, never autosaved
 
     if (serverPersist) {
       const draft = { data: values, current_step: stepIdx };
@@ -308,7 +316,7 @@ export function DynamicForm({
       }
     }, DRAFT_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
-  }, [values, stepIdx, serverPersist]);
+  }, [values, stepIdx, serverPersist, partial]);
 
   const clearDraft = () => {
     try {
@@ -402,6 +410,17 @@ export function DynamicForm({
     setErrorFields([]);
     setSubmitting(true);
     try {
+      // Partial edit: post only the unlocked fields to the edit-request endpoint,
+      // which re-locks the form and resyncs the databank. Then return to the portal.
+      if (editRequest) {
+        await api.post(ENDPOINTS.applicant.editRequestSubmit, {
+          editRequestId: editRequest.id,
+          data,
+        });
+        router.push("/apply?tab=overview");
+        router.refresh();
+        return;
+      }
       const result = await api.post<{ tier?: string; score?: number; id: string }>(ENDPOINTS.submit, data);
       try {
         window.localStorage.removeItem(DRAFT_KEY);
@@ -470,6 +489,19 @@ export function DynamicForm({
     <FormProvider {...form}>
       <OptionListsProvider value={optionLists ?? {}}>
       <AutoOptionalLabels>
+      {partial && (
+        <div className="mb-6 rounded-xl border border-pasha-red/25 bg-pasha-red/[0.04] px-4 py-3">
+          <p className="text-sm font-medium text-pasha-ink">
+            The committee asked you to update the fields below.
+          </p>
+          {editRequest?.note ? (
+            <p className="mt-1 text-sm text-pasha-muted">{editRequest.note}</p>
+          ) : null}
+          <p className="mt-1 text-xs text-pasha-muted">
+            Only these fields are open for editing — the rest of your profile stays as-is.
+          </p>
+        </div>
+      )}
       <AnimatePresence>
         {draftRestored && (
           <motion.div
@@ -663,7 +695,9 @@ export function DynamicForm({
           ) : (
             <div className="flex items-center gap-2">
               {/* Save keeps the applicant on the form and never validates, so an
-                  incomplete application can still be parked and resumed. */}
+                  incomplete application can still be parked and resumed. Hidden
+                  for partial edits, which are submitted in one explicit step. */}
+              {!partial && (
               <button
                 type="button"
                 onClick={saveNow}
@@ -682,6 +716,7 @@ export function DynamicForm({
                   </>
                 )}
               </button>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
@@ -700,7 +735,7 @@ export function DynamicForm({
                   </>
                 ) : (
                   <>
-                    <span className="relative">Submit for approval</span>
+                    <span className="relative">{editRequest ? "Submit updates" : "Submit for approval"}</span>
                     <Check className="relative w-4 h-4" />
                   </>
                 )}

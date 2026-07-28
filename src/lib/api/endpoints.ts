@@ -10,6 +10,7 @@ export const ENDPOINTS = {
     auth: "/api/applicant/auth",
     draft: "/api/applicant/draft",
     draftReopen: "/api/applicant/draft/reopen",
+    editRequestSubmit: "/api/applicant/edit-request/submit",
   },
 
   admin: {
@@ -18,6 +19,7 @@ export const ENDPOINTS = {
     committeeActivity: "/api/admin/committee-activity",
     committeeMembers: "/api/admin/committee-members",
     databank: "/api/admin/databank",
+    databankRequestEdit: "/api/admin/databank/request-edit",
     emailBroadcast: "/api/admin/email-broadcast",
     emailTemplates: "/api/admin/email-templates",
     events: "/api/admin/events",

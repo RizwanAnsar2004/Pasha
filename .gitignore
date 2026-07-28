@@ -163,3 +163,7 @@ release.bat
 
 # Local perf/load-testing scripts (run against a deployed target, not part of the app)
 scripts/perf/
+
+# Supabase clone dumps — contain auth password hashes + member/applicant PII. NEVER commit.
+.dump/
+/scripts

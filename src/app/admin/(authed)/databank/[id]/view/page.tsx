@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, CheckCircle2, FileText, Paperclip } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getDatabankDynamicFields } from "@/lib/forms/form-config.server";
+import { getEditRequestOutline } from "@/lib/startups/edit-requests/edit-requests.server";
+import { RequestEditButton } from "../RequestEditButton";
 import { getAwardTitlesForDatabank } from "@/lib/startups/awards/awards.server";
 import { InputType } from "@/lib/forms/form-enums";
 import { sanitizeHtml } from "@/lib/validators/sanitize-html";
@@ -281,7 +283,11 @@ const STATIC_GROUPS: { title: string; fields: [string, string, ("text" | "number
 
 export default async function ViewDatabankPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [row, dynamicFields] = await Promise.all([load(id), getDatabankDynamicFields()]);
+  const [row, dynamicFields, outline] = await Promise.all([
+    load(id),
+    getDatabankDynamicFields(),
+    getEditRequestOutline(),
+  ]);
   if (!row) notFound();
 
   // Awards are curated in Admin → Award Winners (startup_awards).
@@ -324,12 +330,19 @@ export default async function ViewDatabankPage({ params }: { params: Promise<{ i
         <Link href="/admin/databank" className="inline-flex items-center gap-1.5 text-sm text-pasha-muted hover:text-pasha-ink transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </Link>
-        <Link
-          href={`/admin/databank/${id}`}
-          className="inline-flex items-center gap-1.5 rounded-md bg-pasha-red px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors"
-        >
-          <Pencil className="w-3.5 h-3.5" /> Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          <RequestEditButton
+            databankId={str(row.id)}
+            startupName={str(row.startup_name) || null}
+            outline={outline}
+          />
+          <Link
+            href={`/admin/databank/${id}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-pasha-red px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-pasha-red-dark transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </Link>
+        </div>
       </div>
 
       {/* Header card */}
