@@ -15,6 +15,7 @@ export const ENDPOINTS = {
 
   admin: {
     auth: "/api/admin/auth",
+    auditLog: "/api/admin/audit-log",
     awards: "/api/admin/awards",
     committeeActivity: "/api/admin/committee-activity",
     committeeMembers: "/api/admin/committee-members",
@@ -26,6 +27,8 @@ export const ENDPOINTS = {
     featuredStartups: "/api/admin/featured-startups",
     forms: "/api/admin/forms",
     optionLists: "/api/admin/option-lists",
+    reportsActivity: "/api/admin/reports/activity",
+    reportsOverview: "/api/admin/reports/overview",
     siteContent: "/api/admin/site-content",
     submission: "/api/admin/submission",
     verifyStartup: "/api/admin/verify-startup",

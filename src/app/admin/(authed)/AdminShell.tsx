@@ -15,10 +15,11 @@ import {
   Activity,
   Users,
   FileCode2,
+  FileSpreadsheet,
   List,
   Mail,
   Send,
-  // History, // used only by the commented-out "Email Log" nav item below
+  History,
   ShieldCheck,
   ChevronLeft,
   Menu,
@@ -29,6 +30,8 @@ const NAV_ITEMS = [
   { href: "/admin",                      label: "Overview",            icon: LayoutDashboard },
   { href: "/admin/submissions",          label: "Submissions",         icon: Inbox },
   { href: "/admin/databank",             label: "Data Bank",           icon: Database },
+  { href: "/admin/reports",              label: "Reports",             icon: FileSpreadsheet },
+  { href: "/admin/audit-log",            label: "Activity Log",        icon: History },
   { href: "/admin/featured-startups",    label: "Featured Startups",   icon: Star },
   // Hidden from the sidebar for now. The /admin/awards route still exists and
   // works if visited directly — this only removes the nav entry.

@@ -9,7 +9,7 @@ import { getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured
 import { getFieldLabelMap } from "@/lib/forms/form-config.server";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { notifyRagDatabank } from "@/lib/ai/rag-sync";
-import { publishSubmissionToDatabank } from "@/lib/startups/databank/publish.server";
+import { publishSubmissionToDatabank, touchDatabank } from "@/lib/startups/databank/publish.server";
 import { CACHE_NS, withCache, withInvalidate } from "@/lib/cache/index.server";
 
 const updateSchema = z.object({
@@ -136,14 +136,11 @@ async function patchHandler(req: Request) {
     if (!databankId) {
       return NextResponse.json({ error: "No published directory row found to verify." }, { status: 404 });
     }
-    const { error: vErr } = await supabase
-      .from("databank")
-      .update({
-        pasha_verified: v.data.verified,
-        pasha_verified_at: v.data.verified ? new Date().toISOString() : null,
-        pasha_verified_by: v.data.verified ? user.email ?? user.id : null,
-      })
-      .eq("id", databankId);
+    const { error: vErr } = await touchDatabank(supabase, databankId, {
+      pasha_verified: v.data.verified,
+      pasha_verified_at: v.data.verified ? new Date().toISOString() : null,
+      pasha_verified_by: v.data.verified ? user.email ?? user.id : null,
+    });
     if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
 
     await supabase.from("audit_log").insert({

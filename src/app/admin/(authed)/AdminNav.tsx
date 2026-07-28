@@ -12,6 +12,7 @@ import {
   Activity,
   Users,
   FileCode2,
+  FileSpreadsheet,
   List,
   Mail,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin",                    label: "Overview",             icon: LayoutDashboard },
   { href: "/admin/submissions",        label: "Submissions",          icon: Inbox },
   { href: "/admin/databank",           label: "Data Bank",            icon: Database },
+  { href: "/admin/reports",            label: "Reports",              icon: FileSpreadsheet },
   { href: "/admin/featured-startups",  label: "Featured Startups",    icon: Star },
   { href: "/admin/events",             label: "Events",               icon: CalendarDays },
   { href: "/admin/committee-activity", label: "Committee Activity",   icon: Activity },

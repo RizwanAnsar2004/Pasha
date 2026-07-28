@@ -9,6 +9,27 @@ import { syncAwardsFromStructured, syncAwardsFromText } from "@/lib/startups/awa
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
 
+// Update a databank row and stamp updated_at, so the "last updated" column and
+// the report's date filter reflect every write (edits, verify, status changes).
+// Self-heals if updated_at (or any other) column isn't present on this DB yet.
+export async function touchDatabank(
+  supabase: ServiceClient,
+  id: string,
+  patch: Record<string, unknown>
+): Promise<{ error: { message: string } | null }> {
+  const rec: Record<string, unknown> = { ...patch, updated_at: new Date().toISOString() };
+  let { error } = await supabase.from("databank").update(rec).eq("id", id);
+  let safety = Object.keys(rec).length + 2;
+  while (error && safety-- > 0) {
+    const m = error.message.match(/column "([^"]+)"/) ?? error.message.match(/the '([^']+)' column/);
+    const col = m?.[1];
+    if (!col || !(col in rec)) break;
+    delete rec[col];
+    ({ error } = await supabase.from("databank").update(rec).eq("id", id));
+  }
+  return { error };
+}
+
 // Coerce an answers-bag value to a finite number, else null.
 function toNum(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;

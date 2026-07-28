@@ -5,6 +5,7 @@ import { createClient as createSessionClient, createServiceClient } from "@/lib/
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { notifyRagDatabank } from "@/lib/ai/rag-sync";
+import { touchDatabank } from "@/lib/startups/databank/publish.server";
 import { CACHE_NS, withInvalidate } from "@/lib/cache/index.server";
 
 const patchSchema = z.object({
@@ -48,14 +49,11 @@ async function patchHandler(req: Request) {
     return NextResponse.json({ error: "Startup not found" }, { status: 404 });
   }
 
-  const { error: updErr } = await supabase
-    .from("databank")
-    .update({
-      pasha_verified: verified,
-      pasha_verified_at: verified ? new Date().toISOString() : null,
-      pasha_verified_by: verified ? user.email : null,
-    })
-    .eq("id", id);
+  const { error: updErr } = await touchDatabank(supabase, id, {
+    pasha_verified: verified,
+    pasha_verified_at: verified ? new Date().toISOString() : null,
+    pasha_verified_by: verified ? user.email : null,
+  });
 
   if (updErr) {
     return NextResponse.json({ error: updErr.message }, { status: 500 });

@@ -6,6 +6,7 @@ import { scoreVetting } from "@/lib/startups/vetting/vetting";
 import { getFormConfig } from "@/lib/forms/form-config.server";
 import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/forms/form-config";
 import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
+import { writeAudit } from "@/lib/audit/audit.server";
 import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
@@ -298,6 +299,20 @@ async function postHandler(req: Request) {
         submitted_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);
+
+    // Lifecycle audit: the startup submitted (or resubmitted) its application.
+    await writeAudit(supabase, {
+      actorId: user.id,
+      actorEmail: user.email ?? null,
+      action: "submission.submitted",
+      resourceType: "submission",
+      resourceId: row.id,
+      payload: {
+        startup_name: record.startup_name ?? null,
+        resubmit: Boolean(existingSubmissionId),
+        tier: row.vetting_tier ?? null,
+      },
+    });
 
     // Best-effort confirmation email, sent after the response.
     const recipientEmail = (user.email ?? primary?.email ?? "").toString();

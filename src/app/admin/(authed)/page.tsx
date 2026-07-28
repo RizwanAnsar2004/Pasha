@@ -1,4 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { getOptionIndex } from "@/lib/options/index.server";
+import { resolveOptionLabel } from "@/lib/options/resolve";
 import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +34,15 @@ async function loadStats() {
       .limit(8),
   ]);
 
+  // primary_sector holds an option id (UUID) for newer rows and a plain value
+  // for legacy ones — resolve both to their label so the chart shows sector
+  // names (and id/value duplicates of the same sector merge into one bar).
+  const optionIndex = await getOptionIndex();
   const sectorCounts: Record<string, number> = {};
   (bySector ?? []).forEach((r) => {
-    if (r.primary_sector) sectorCounts[r.primary_sector] = (sectorCounts[r.primary_sector] ?? 0) + 1;
+    if (!r.primary_sector) return;
+    const name = resolveOptionLabel(optionIndex, "SECTORS", r.primary_sector as string) ?? "Unknown";
+    sectorCounts[name] = (sectorCounts[name] ?? 0) + 1;
   });
   const sectorData = Object.entries(sectorCounts)
     .map(([name, value]) => ({ name, value }))

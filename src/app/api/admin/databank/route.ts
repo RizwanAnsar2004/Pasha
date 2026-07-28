@@ -10,6 +10,7 @@ import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { parsePagination } from "@/lib/utils/pagination";
 import { fetchAllRowsBatched } from "@/lib/utils/csv";
 import { notifyRagDatabank } from "@/lib/ai/rag-sync";
+import { touchDatabank } from "@/lib/startups/databank/publish.server";
 import { getOptionIndex } from "@/lib/options/index.server";
 import {
   matchingOptionIds,
@@ -238,10 +239,7 @@ async function patchHandler(req: Request) {
     sanitised.pasha_verified_by = v === true ? user.email : null;
   }
 
-  const { error: updErr } = await supabase
-    .from("databank")
-    .update(sanitised)
-    .eq("id", id);
+  const { error: updErr } = await touchDatabank(supabase, id, sanitised);
 
   if (updErr) {
     return NextResponse.json({ error: updErr.message }, { status: 500 });

@@ -5,6 +5,7 @@ import { resolveOptionLabel } from "@/lib/options/resolve";
 import { createClient as createSessionClient, createServiceClient } from "@/lib/supabase/server";
 import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { writeAudit } from "@/lib/audit/audit.server";
 import { getFeaturedSettings, getFeaturedForAdmin, getFeaturedStatusByDatabankId } from "@/lib/startups/directory/featured-startups.server";
 import { parsePagination } from "@/lib/utils/pagination";
 import { EXPORT_MAX_ROWS } from "@/lib/utils/csv";
@@ -172,6 +173,15 @@ async function postHandler(req: Request) {
     );
   }
 
+  await writeAudit(supabase, {
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "featured.added",
+    resourceType: "databank",
+    resourceId: databank_id,
+    payload: { startup_name: startup.startup_name, featured_from, featured_until },
+  });
+
   // Best-effort "you're featured" email to the startup's contact.
   if (startup.contact_email) {
     after(() =>
@@ -254,6 +264,13 @@ async function deleteHandler(req: Request) {
   }
 
   const supabase = createServiceClient();
+  // Capture the startup before delete so the audit entry can reference it.
+  const { data: entry } = await supabase
+    .from("featured_startups")
+    .select("databank_id, databank:databank_id (startup_name)")
+    .eq("id", parsed.data.id)
+    .maybeSingle<{ databank_id: string | null; databank: { startup_name: string | null } | null }>();
+
   const { error: delErr } = await supabase
     .from("featured_startups")
     .delete()
@@ -262,6 +279,16 @@ async function deleteHandler(req: Request) {
   if (delErr) {
     return NextResponse.json({ error: delErr.message }, { status: 500 });
   }
+
+  await writeAudit(supabase, {
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "featured.removed",
+    resourceType: "databank",
+    resourceId: entry?.databank_id ?? null,
+    payload: { featured_id: parsed.data.id, startup_name: entry?.databank?.startup_name ?? null },
+  });
+
   return NextResponse.json({ ok: true });
 }
 

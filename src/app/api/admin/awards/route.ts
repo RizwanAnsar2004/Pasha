@@ -5,6 +5,7 @@ import {
   createServiceClient,
 } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
+import { writeAudit } from "@/lib/audit/audit.server";
 import { getAwardsForAdmin } from "@/lib/startups/awards/awards.server";
 import { parsePagination } from "@/lib/utils/pagination";
 import { getOptionIndex } from "@/lib/options/index.server";
@@ -140,6 +141,16 @@ async function postHandler(req: Request) {
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
+
+  await writeAudit(supabase, {
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "award.added",
+    resourceType: "databank",
+    resourceId: databank_id,
+    payload: { award_id: data?.id, title, year },
+  });
+
   return NextResponse.json({ id: data?.id });
 }
 
@@ -171,6 +182,16 @@ async function patchHandler(req: Request) {
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
+
+  await writeAudit(supabase, {
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "award.updated",
+    resourceType: "databank",
+    resourceId: databank_id,
+    payload: { award_id: id, title, year },
+  });
+
   return NextResponse.json({ ok: true });
 }
 
@@ -185,6 +206,13 @@ async function deleteHandler(req: Request) {
   }
 
   const supabase = createServiceClient();
+  // Capture which startup/award before delete, for the audit entry.
+  const { data: award } = await supabase
+    .from("startup_awards")
+    .select("databank_id, title")
+    .eq("id", parsed.data.id)
+    .maybeSingle<{ databank_id: string | null; title: string | null }>();
+
   const { error: dbErr } = await supabase
     .from("startup_awards")
     .delete()
@@ -193,6 +221,16 @@ async function deleteHandler(req: Request) {
   if (dbErr) {
     return NextResponse.json({ error: dbErr.message }, { status: 500 });
   }
+
+  await writeAudit(supabase, {
+    actorId: user.id,
+    actorEmail: user.email,
+    action: "award.removed",
+    resourceType: "databank",
+    resourceId: award?.databank_id ?? null,
+    payload: { award_id: parsed.data.id, title: award?.title ?? null },
+  });
+
   return NextResponse.json({ ok: true });
 }
 
