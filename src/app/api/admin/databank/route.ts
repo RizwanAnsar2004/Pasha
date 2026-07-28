@@ -97,7 +97,7 @@ const deleteSchema = z.object({
 });
 
 const LIST_COLS =
-  "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,current_revenue,investment_raised,total_employees,website,pasha_verified,created_at,source";
+  "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,data_status,current_revenue,investment_raised,total_employees,website,pasha_verified,created_at,source";
 
 async function requireAdmin() {
   const sessionClient = await createSessionClient();
@@ -119,6 +119,7 @@ async function getHandler(req: Request) {
   const sector = url.searchParams.get("sector")?.trim() ?? "";
   const outreach = url.searchParams.get("outreach")?.trim() ?? "";
   const verified = url.searchParams.get("verified")?.trim() ?? "";
+  const dstatus = url.searchParams.get("dstatus")?.trim() ?? "";
   const all = url.searchParams.get("all") === "1";
   const { page, pageSize, from, to } = parsePagination(url);
   const supabase = createServiceClient();
@@ -153,6 +154,7 @@ async function getHandler(req: Request) {
       }
     }
     if (outreach && outreach !== "all") query = query.eq("outreach_status", outreach);
+    if (dstatus && dstatus !== "all") query = query.eq("data_status", dstatus);
     if (verified === "yes") query = query.eq("pasha_verified", true);
     if (verified === "no") query = query.or("pasha_verified.is.null,pasha_verified.eq.false");
     return query

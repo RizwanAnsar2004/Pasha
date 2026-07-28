@@ -17,7 +17,7 @@ import {
 import { InputType } from "@/lib/forms/form-enums";
 import { allFieldKeys, filterConfigToKeys } from "@/lib/startups/edit-requests/edit-requests";
 import { markEditRequestSubmitted } from "@/lib/startups/edit-requests/edit-requests.server";
-import { publishSubmissionToDatabank } from "@/lib/startups/databank/publish.server";
+import { publishSubmissionToDatabank, touchDatabank } from "@/lib/startups/databank/publish.server";
 
 const bodySchema = z.object({
   editRequestId: z.string().uuid(),
@@ -157,9 +157,11 @@ export async function POST(req: Request) {
     .update({ data: mergedData, updated_at: new Date().toISOString() })
     .eq("user_id", user.id);
 
-  // 3. Resync the public databank row from the updated submission.
+  // 3. Resync the public databank row from the updated submission, and flag it
+  //    as updated so admins notice the startup responded.
   if (reqRow.submission_id) {
-    await publishSubmissionToDatabank(supabase, reqRow.submission_id);
+    const { databankId } = await publishSubmissionToDatabank(supabase, reqRow.submission_id);
+    if (databankId) await touchDatabank(supabase, databankId, { data_status: "updated" });
   }
 
   // 4. Close the request and audit.

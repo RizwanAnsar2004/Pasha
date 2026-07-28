@@ -39,9 +39,17 @@ type Row = {
   total_employees?: number | null;
   website?: string | null;
   pasha_verified?: boolean | null;
+  data_status?: string | null;
 };
 
-type Filters = { q: string; sector: string; outreach: string; verified: string };
+type Filters = { q: string; sector: string; outreach: string; verified: string; dataStatus: string };
+
+// Tone per data_status; `none` is a plain "—" so a full list isn't mislabelled.
+const DATA_STATUS_TONE: Record<string, string> = {
+  none: "text-pasha-muted bg-white",
+  info_requested: "bg-amber-50 text-amber-800 border-amber-200",
+  updated: "bg-green-600/10 text-green-700 border-green-200",
+};
 
 export function DatabankClient({
   initial,
@@ -81,6 +89,7 @@ export function DatabankClient({
   const sector = initial.filters.sector;
   const outreach = initial.filters.outreach;
   const verifiedFilter = initial.filters.verified as "all" | "yes" | "no";
+  const dataStatus = initial.filters.dataStatus;
 
   // Confirmation is handled by the ConfirmDeleteModal; this runs the delete.
   async function deleteRow(id: string) {
@@ -126,6 +135,7 @@ export function DatabankClient({
   function setSectorAndReset(v: string) { setParams({ sector: v === "all" ? null : v, page: 1 }); }
   function setOutreachAndReset(v: string) { setParams({ outreach: v === "all" ? null : v, page: 1 }); }
   function setVerifiedAndReset(v: "all" | "yes" | "no") { setParams({ verified: v === "all" ? null : v, page: 1 }); }
+  function setDataStatusAndReset(v: string) { setParams({ dstatus: v === "all" ? null : v, page: 1 }); }
 
   const filtered = rowsState;
   const paginated = filtered;
@@ -210,6 +220,18 @@ export function DatabankClient({
             { value: "no", label: "Not verified" },
           ]}
         />
+        <SelectMenu
+          value={dataStatus}
+          onValueChange={setDataStatusAndReset}
+          aria-label="Filter by data status"
+          className="w-full sm:w-44"
+          options={[
+            { value: "all", label: "Any status" },
+            { value: "info_requested", label: "Info requested" },
+            { value: "updated", label: "Updated" },
+            { value: "none", label: "No flag" },
+          ]}
+        />
         <button
           type="button"
           onClick={exportCSV}
@@ -248,6 +270,7 @@ export function DatabankClient({
                 <Th>Revenue (PKR)</Th>
                 <Th>Investment</Th>
                 <Th>Outreach</Th>
+                <Th>Status</Th>
                 <Th />
               </tr>
             </thead>
@@ -312,6 +335,20 @@ export function DatabankClient({
                   </Td>
                   <Td>
                     <OutreachBadge status={r.outreach_status ?? "not_contacted"} />
+                  </Td>
+                  <Td>
+                    {r.data_status === "info_requested" || r.data_status === "updated" ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium",
+                          DATA_STATUS_TONE[r.data_status]
+                        )}
+                      >
+                        {r.data_status === "info_requested" ? "Info requested" : "Updated"}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-pasha-muted">—</span>
+                    )}
                   </Td>
                   <Td>
                     <div className="flex items-center gap-3">

@@ -17,6 +17,7 @@ type Filters = {
   sector: string;
   outreach: string;
   verified: string;
+  dataStatus: string;
 };
 
 async function load(
@@ -26,8 +27,7 @@ async function load(
   const supabase = createServiceClient();
   const optionIndex = await getOptionIndex();
   const FULL =
-    "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,current_revenue,investment_raised,total_employees,website,pasha_verified";
-  const LEGACY = FULL.replace(",pasha_verified", "");
+    "id,startup_name,tagline,primary_industry,nic_name,city,contact_person,contact_email,outreach_status,data_status,current_revenue,investment_raised,total_employees,website,pasha_verified";
 
   const runQuery = async (cols: string) => {
     let q = supabase.from("databank").select(cols, { count: "exact" });
@@ -57,6 +57,7 @@ async function load(
       }
     }
     if (filters.outreach && filters.outreach !== "all") q = q.eq("outreach_status", filters.outreach);
+    if (filters.dataStatus && filters.dataStatus !== "all") q = q.eq("data_status", filters.dataStatus);
     if (filters.verified === "yes") q = q.eq("pasha_verified", true);
     if (filters.verified === "no") q = q.or("pasha_verified.is.null,pasha_verified.eq.false");
     return q
@@ -65,19 +66,25 @@ async function load(
       .range(range.from, range.to);
   };
 
+  // Run the query, and if a column doesn't exist yet on this DB (migration not
+  // applied), drop it and retry — so the list survives before data_status /
+  // pasha_verified are added.
   type DataRow = Record<string, unknown>;
   let data: DataRow[] | null = null;
   let count: number | null = null;
-  {
-    const res = await runQuery(FULL);
-    if (res.error && /pasha_verified/.test(res.error.message ?? "")) {
-      const fallback = await runQuery(LEGACY);
-      data = (fallback.data as unknown as DataRow[] | null) ?? null;
-      count = fallback.count ?? null;
-    } else {
+  let cols = FULL;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await runQuery(cols);
+    if (!res.error) {
       data = (res.data as unknown as DataRow[] | null) ?? null;
       count = res.count ?? null;
+      break;
     }
+    const msg = res.error.message ?? "";
+    const m = msg.match(/([a-z_]+) does not exist/i) ?? msg.match(/'([^']+)' column/);
+    const bad = m?.[1];
+    if (!bad || !cols.split(",").includes(bad)) break;
+    cols = cols.split(",").filter((c) => c !== bad).join(",");
   }
   // Dropdown values are option ids, so picking a sector filters the *_id column.
   const registry = await getFormOptionRegistry();
@@ -115,6 +122,7 @@ export default async function DatabankPage({
     sector: pickOne(sp, "sector") || "all",
     outreach: pickOne(sp, "outreach") || "all",
     verified: pickOne(sp, "verified") || "all",
+    dataStatus: pickOne(sp, "dstatus") || "all",
   };
   const data = await load(pagination, filters);
   return (

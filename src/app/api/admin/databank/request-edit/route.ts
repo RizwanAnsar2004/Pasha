@@ -9,6 +9,7 @@ import { isAdminEmail } from "@/lib/auth/admin/admin-allowlist";
 import { getFormConfig } from "@/lib/forms/form-config.server";
 import { resolveFieldKeys, summarizeScope, type EditRequestScope } from "@/lib/startups/edit-requests/edit-requests";
 import { upsertEditRequest } from "@/lib/startups/edit-requests/edit-requests.server";
+import { touchDatabank } from "@/lib/startups/databank/publish.server";
 import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
 import { emailOrigin } from "@/lib/utils/site-url";
 
@@ -128,6 +129,9 @@ export async function POST(req: Request) {
   if (!created) {
     return NextResponse.json({ error: "Could not save the edit request" }, { status: 500 });
   }
+
+  // Flag the databank row so admins can see info was requested.
+  await touchDatabank(supabase, databankId, { data_status: "info_requested" });
 
   // Audit trail.
   const { error: auditErr } = await supabase.from("audit_log").insert({
