@@ -19,11 +19,19 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-2 md:pr-10">
             <PashaLogo width={130} href="/" src="/pasha-logo-dark.svg" />
-            <p className="mt-5 text-sm leading-relaxed text-white/50 max-w-md">
+            {/* <p className="mt-5 text-sm leading-relaxed text-white/50 max-w-md">
               The Pakistan Software Houses Association (PASHA) maintains the PASHA Startup
               Hub — a curated network of founders, mentors, and investors shaping
               Pakistan&apos;s product economy.
-            </p>
+            </p> */}
+            <a
+              href="https://www.pasha.org.pk/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-block text-sm text-white/50 hover:text-white transition-colors"
+            >
+              An Initiative of P@SHA
+            </a>
             <FollowRow />
           </div>
           <div>
@@ -48,8 +56,8 @@ export function SiteFooter() {
           <div>
             <h4 className="font-mono text-[11px] uppercase tracking-[2px] text-white/40 mb-4">Connect</h4>
             <ul className="space-y-3 text-sm text-white/65">
-              <li><Link href="/apply" className="hover:text-white transition-colors">List a company</Link></li>
-              <li><Link href="/about" className="hover:text-white transition-colors">Partner with us</Link></li>
+              <li><Link href="/apply" className="hover:text-white transition-colors">List your startup</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Partner with us</Link></li>
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
             </ul>
           </div>
