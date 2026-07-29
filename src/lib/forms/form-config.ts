@@ -11,7 +11,6 @@ import {
   foundersArray,
   applyCityCountryRefine,
   SAFE_URL_RE,
-  yearFoundedFutureMessage,
 } from "@/lib/forms/schema";
 import { InputType, type ValidationSpec } from "@/lib/forms/form-enums";
 import { isOtherPicked, normalizeOptions, OPTION_LISTS } from "@/lib/options";
@@ -130,10 +129,23 @@ function buildStringBase(
     });
   }
   if (spec.pattern) {
-    const re = new RegExp(spec.pattern);
-    out = out.refine((v: unknown) => typeof v === "string" && re.test(v), {
-      message: "Invalid format",
-    });
+    // Enforce the admin-configured regex, but compile + test it at VALIDATION
+    // runtime (inside the refine), never at schema-build time: a malformed
+    // pattern must surface as a field error / be ignored, not throw and break
+    // form acceptance in /api/submit. Only enforced on a non-empty value — an
+    // empty optional field never has to match.
+    const src = spec.pattern;
+    out = out.refine(
+      (v: unknown) => {
+        if (typeof v !== "string" || v === "") return true;
+        try {
+          return new RegExp(src).test(v);
+        } catch {
+          return true; // an invalid admin pattern must not block the submission
+        }
+      },
+      { message: "Invalid format" }
+    );
   }
   return out;
 }
@@ -234,9 +246,16 @@ function makeArray(required: boolean): z.ZodTypeAny {
 
 function withYearFoundedMax(field: FormFieldConfig, schema: z.ZodTypeAny): z.ZodTypeAny {
   if (field.field_key !== "year_founded") return schema;
+  const thisYear = new Date().getFullYear();
+  // A real 4-digit year in 1900–present. Rejects 9999, 0001, 1500, "12", etc.
   return schema.refine(
-    (v) => v === "" || v === undefined || (typeof v === "string" && Number(v) <= new Date().getFullYear()),
-    { message: yearFoundedFutureMessage() }
+    (v) => {
+      if (v === "" || v === undefined || v === null) return true;
+      const s = typeof v === "string" ? v.trim() : String(v);
+      if (!/^(19|20)\d{2}$/.test(s)) return false;
+      return Number(s) <= thisYear;
+    },
+    { message: `Enter a valid year between 1900 and ${thisYear}` }
   );
 }
 
@@ -381,7 +400,56 @@ export function buildZodSchema(config: FormConfig): z.ZodTypeAny {
         ctx.addIssue({ code: "custom", message: "Please specify", path: [key] });
       }
     }
+    // Employee counts must be consistent — female cannot exceed total. (The
+    // static submissionSchema enforces this too; mirror it for the DB form.)
+    const total = data.total_employees;
+    const female = data.female_employees;
+    if (typeof total === "number" && typeof female === "number" && female > total) {
+      ctx.addIssue({ code: "custom", message: "Cannot exceed total employees", path: ["female_employees"] });
+    }
   });
+}
+
+// Drop single-field-invalid values from a draft payload so invalid data is never
+// PERSISTED by autosave (not just blocked at submit). Only NON-EMPTY values that
+// fail their own field's format (pattern / email / URL / year / length / number
+// range) are removed; empty values and cross-field constraints are left alone —
+// a draft is allowed to be incomplete.
+export function stripInvalidDraftValues(
+  config: FormConfig,
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...data };
+  for (const section of config) {
+    for (const field of section.fields) {
+      const t = field.input_type;
+      if (t === InputType.HEADING || t === InputType.CITY_COMPOSITE) continue;
+      if (t === InputType.GROUP) {
+        const val = out[field.field_key];
+        if (Array.isArray(val)) out[field.field_key] = val.map((it) => stripGroupItem(field, it));
+        else if (val && typeof val === "object") out[field.field_key] = stripGroupItem(field, val as Record<string, unknown>);
+        continue;
+      }
+      const v = out[field.field_key];
+      if (isEmptyValue(v)) continue;
+      if (!scalarZod(field).safeParse(v).success) delete out[field.field_key];
+    }
+  }
+  return out;
+}
+
+// Same, for a single item of a GROUP (e.g. one founder) — strips invalid child
+// values (bad founder email / URL) while keeping the valid ones.
+function stripGroupItem(field: FormFieldConfig, item: unknown): unknown {
+  if (!item || typeof item !== "object") return item;
+  const obj: Record<string, unknown> = { ...(item as Record<string, unknown>) };
+  for (const child of field.children ?? []) {
+    if (child.input_type === InputType.GROUP || child.input_type === InputType.HEADING) continue;
+    const v = obj[child.field_key];
+    if (isEmptyValue(v)) continue;
+    if (!scalarZod(child).safeParse(v).success) delete obj[child.field_key];
+  }
+  return obj;
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ INSERT INTO form_sections (key, title, subtitle, step, sort_order, is_active, fo
   ('identity',   'Startup',                  'Your public identity — name, brand, sector and links shown on your directory card.',                 1, 0, true, 'application'),
   ('founders',   'Founders & team',          'The people behind the startup. Contact details stay private unless you choose to show them.',         2, 1, true, 'application'),
   ('business',   'Business profile',         'What you do, how you solve it and what makes you different.',                                          3, 2, true, 'application'),
-  ('market',     'Market & competition',     'Competitors and market sizing. Kept private / investor-only by default.',                             4, 3, true, 'application'),
+  ('market',     'Market & competition',     'Competitors and market sizing. Your market sizing (TAM / SAM / SOM) is shown publicly on your profile; competitor details are kept private.',                             4, 3, true, 'application'),
   ('traction',   'Traction & funding',       'Traction and funding signals. Use ranges — exact figures are never required.',                        5, 4, true, 'application'),
   ('operations', 'Operations & collaboration','Hiring, partnerships, programs and women-led tagging.',                                              6, 5, true, 'application'),
   ('documents',  'Documents & verification', 'Supporting documents for committee review. Stored privately — never shown on public pages.',           7, 6, true, 'application');
@@ -135,7 +135,7 @@ CROSS JOIN (VALUES
 WHERE s.key = 'business' AND s.form_key = 'application';
 
 -- =============================================================================
--- Step 4 — Market & competition (§7) — investor-only / private by default
+-- Step 4 — Market & competition (§7) — competitors private, market sizing public
 -- =============================================================================
 INSERT INTO form_fields
   (section_id, parent_field_id, field_key, label, hint, placeholder, input_type, required, validation, options, options_source, repeatable, min_items, max_items, item_label, column_map, visible, sort_order, conditional)
@@ -147,7 +147,7 @@ CROSS JOIN (VALUES
   (NULL,'competitors_pk','Pakistan competitors','One per line, with a link if you have it.',NULL,5,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,2,NULL),
   (NULL,'competitor_notes','How you compare','What makes you different from the competitors above.',NULL,5,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,3,NULL),
 
-  (NULL,'h_market','Market sizing',NULL,'Exact numbers are optional for early-stage startups.',30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,4,NULL),
+  (NULL,'h_market','Market sizing',NULL,'Shown publicly on your profile. Exact numbers are optional for early-stage startups.',30,false,'{}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,4,NULL),
   (NULL,'tam_amount','TAM — total addressable market (USD)','Total market opportunity globally or regionally.','e.g. 5000000000',4,false,'{"integer":false}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,5,NULL),
   (NULL,'sam_amount','SAM — serviceable available market (USD)','The market you can realistically serve.','e.g. 800000000',4,false,'{"integer":false}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,6,NULL),
   (NULL,'som_amount','SOM — serviceable obtainable market (USD)','Expected share over the next 3–5 years.','e.g. 50000000',4,false,'{"integer":false}'::jsonb,NULL,NULL,false,NULL,NULL,NULL,NULL,true,7,NULL),

@@ -724,6 +724,20 @@ function FieldNode({
       },
     });
 
+  // Live-validate the admin-entered regex so a broken pattern is caught while
+  // authoring. At runtime an invalid pattern is safely ignored, so this is a
+  // warning, not a hard block.
+  const patternError = draft.pattern
+    ? (() => {
+        try {
+          RegExp(draft.pattern);
+          return null;
+        } catch (e) {
+          return e instanceof Error ? e.message : "Invalid regular expression";
+        }
+      })()
+    : null;
+
   return (
     <div className="rounded-lg border border-pasha-line/80 bg-pasha-stone/20 p-3 space-y-2">
       <div className="flex flex-wrap items-end gap-2">
@@ -805,12 +819,20 @@ function FieldNode({
           />
         </label>
         <label className="text-[11px] text-pasha-muted">
-          Pattern
+          Pattern (regex)
           <input
-            className={inputCls + " min-w-[120px] font-mono"}
+            className={inputCls + " min-w-[120px] font-mono" + (patternError ? " border-pasha-red" : "")}
             value={draft.pattern}
+            placeholder="^[A-Z]{2}\d{4}$"
             onChange={(e) => setDraft({ ...draft, pattern: e.target.value })}
           />
+          {patternError ? (
+            <span className="mt-1 block max-w-[220px] text-[10px] leading-snug text-pasha-red">
+              Invalid regex (will be ignored): {patternError}
+            </span>
+          ) : draft.pattern ? (
+            <span className="mt-1 block text-[10px] text-green-600">Valid pattern</span>
+          ) : null}
         </label>
       </div>
 

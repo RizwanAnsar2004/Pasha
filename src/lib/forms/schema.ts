@@ -13,8 +13,12 @@ export const optionalString = z.preprocess(
   z.string().min(1).optional()
 );
 
-// Strict URL: only http/https schemes. Rejects javascript:, data:, vbscript:,
-export const SAFE_URL_RE = /^https?:\/\/[^\s<>"]+$/i;
+// Strict URL: http/https only (rejects javascript:, data:, vbscript:) AND a
+// real dotted host with a TLD — so garbage like "https://not-a-valid-url-at-all"
+// (a host with no dot) is rejected, not just saved. Allows optional port and
+// path/query/fragment.
+export const SAFE_URL_RE =
+  /^https?:\/\/(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s<>"]*)?$/i;
 
 export const optionalPhone = z.preprocess(
   (v) => {

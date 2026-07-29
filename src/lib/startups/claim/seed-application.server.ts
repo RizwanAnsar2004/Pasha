@@ -153,6 +153,20 @@ export async function ensureClaimedProfileSeeded(userId: string, email: string |
       .maybeSingle<{ id: string; claimed_email: string | null }>();
     if (!claimed?.id) return false;
 
+    // Hardening: only auto-seed when the claimed profile's email matches this
+    // account's email. A mis-linked `claimed_by` (e.g. seeded/imported data that
+    // pointed the wrong account, or a stale link) must NOT inject another
+    // identity's application into this portal. If they differ, skip — a real
+    // claim always sets claimed_email to the account that verified the OTP.
+    const acctEmail = (email ?? "").trim().toLowerCase();
+    const claimEmail = (claimed.claimed_email ?? "").trim().toLowerCase();
+    if (acctEmail && claimEmail && acctEmail !== claimEmail) {
+      console.warn(
+        `[claim] skip auto-seed: claimed_email (${claimEmail}) != account email (${acctEmail}) for databank ${claimed.id}`
+      );
+      return false;
+    }
+
     await seedClaimedApplication({
       ownerId: userId,
       email: email ?? claimed.claimed_email ?? "",

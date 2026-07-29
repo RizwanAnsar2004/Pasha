@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
-const SUPABASE_HOST = "ftekdhipoqvbftfybvwz.supabase.co";
+// Derived from the same env var the app connects with, never hardcoded: the CSP
+// and next/image allowlists below have to name whichever Supabase project this
+// build actually talks to. Pinning one ref here meant that pointing a deployment
+// at the other project (prod vs. the dev clone) left the server rendering fine
+// while the browser silently blocked every client-side query, realtime socket,
+// and Storage image. Next loads .env* before evaluating this file, so the var is
+// available here; the fallback only covers a build with no env at all.
+const SUPABASE_HOST = new URL(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://ftekdhipoqvbftfybvwz.supabase.co"
+).host;
 
 // Cloudflare Turnstile (bot challenge on the auth forms). Needs three
 // directives, not one: it loads api.js (script-src), renders the challenge in
