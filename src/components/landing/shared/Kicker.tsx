@@ -2,14 +2,16 @@ export function Kicker({
   children,
   tone = "dark",
   className = "",
+  size = "text-sm",
 }: {
   children: React.ReactNode;
   tone?: "dark" | "light";
   className?: string;
+  size?: string;
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-2.5 font-mono text-sm font-bold uppercase tracking-[2.5px] ${
+      className={`inline-flex items-center gap-2.5 font-mono ${size} font-bold uppercase tracking-[2.5px] ${
         tone === "light" ? "text-white/60" : "text-pasha-ink/55"
       } ${className}`}
     >

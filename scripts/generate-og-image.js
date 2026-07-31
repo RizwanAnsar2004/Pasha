@@ -150,7 +150,7 @@ const foregroundLayer = `
 
   <text x="${MID}" y="486" text-anchor="middle" font-family="Arial, Helvetica, sans-serif"
         font-size="21" font-weight="bold" letter-spacing="1.2"
-        fill="#ffffff" fill-opacity=".82">startups.pasha.org.pk</text>
+        fill="#ffffff" fill-opacity=".82">pashastartuphub.com</text>
 </svg>`;
 
 async function main() {

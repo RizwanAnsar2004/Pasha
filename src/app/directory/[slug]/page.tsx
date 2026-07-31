@@ -1266,10 +1266,9 @@ function ProblemSolutionCard({
   iconColor: string;
 }) {
   return (
-    <article className={`relative overflow-hidden rounded-[26px] p-7 min-h-[365px] flex flex-col ${tint}`}>
-      <span aria-hidden className="pointer-events-none absolute -right-[100px] -bottom-[115px] h-[230px] w-[230px] rounded-full border border-pasha-ink/[0.13]" />
+    <article className={`relative overflow-hidden rounded-[26px] p-7 min-h-[240px] flex flex-col ${tint}`}>
       <div className="relative flex items-center justify-between mb-8">
-        <Kicker>{label}</Kicker>
+        <Kicker size="text-lg">{label}</Kicker>
         <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-white ${iconColor}`}>{icon}</span>
       </div>
       {/* The founder's real problem / solution statement — the card's hero copy */}
