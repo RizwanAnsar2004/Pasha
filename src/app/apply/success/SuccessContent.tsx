@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Sparkles, Mail, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { funnel } from "@/lib/utils/analytics";
+import { takeSubmissionResult } from "@/lib/forms/submission-result";
 
 export function SuccessContent() {
-  const searchParams = useSearchParams();
-
-  // Landing here means the submission succeeded — fire the funnel end event once, with the server-assigned tier/score carried in the URL.
+  // Landing here means the submission succeeded — fire the funnel end event
+  // once, with the server-assigned tier/score handed over out-of-band by the
+  // apply form. Both are undefined for anyone who opens this URL directly; the
+  // event still fires, just without the vetting dimensions.
   useEffect(() => {
-    const tier = searchParams.get("tier") ?? undefined;
-    const scoreRaw = searchParams.get("score");
-    const score = scoreRaw != null ? Number(scoreRaw) : undefined;
-    funnel.submitted({ tier, score: Number.isFinite(score) ? score : undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const { tier, score } = takeSubmissionResult();
+    funnel.submitted({ tier, score });
   }, []);
 
   useEffect(() => {
@@ -66,7 +64,7 @@ export function SuccessContent() {
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-8 py-20 sm:py-28 text-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
@@ -85,9 +83,9 @@ export function SuccessContent() {
               applications weekly — you&apos;ll hear back by email once
               your profile has been approved for the public directory.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -130,9 +128,9 @@ export function SuccessContent() {
                 </li>
               </ul>
             </div>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
@@ -145,7 +143,7 @@ export function SuccessContent() {
               <Mail className="w-4 h-4" />
               startups@pasha.org.pk
             </PillButton>
-          </motion.div>
+          </m.div>
         </div>
       </main>
       <SiteFooter />

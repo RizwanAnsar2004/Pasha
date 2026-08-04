@@ -1,18 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, ArrowUpRight, Building2 } from "lucide-react";
+import { m } from "framer-motion";
+import { Phone, Mail, ArrowUpRight, Building2 } from "lucide-react";
 import { Kicker } from "@/components/landing/shared/Kicker";
 import { PillButton } from "@/components/landing/shared/PillButton";
 import { Reveal } from "@/components/landing/shared/Reveal";
 import { FacebookGlyph } from "@/components/community/FacebookGlyph";
 import { TwitterGlyph, InstagramGlyph, YouTubeGlyph, LinkedInGlyph } from "@/components/community/SocialGlyphs";
 import { PASHA_SOCIALS } from "@/lib/content/community";
+import { SecretariatMap } from "@/components/contact/SecretariatMap";
 import {
   CONTACT_PHONE_DISPLAY,
   CONTACT_PHONE_HREF,
   SECRETARIAT_ADDRESS,
-  SECRETARIAT_MAP_EMBED_URL,
   SECRETARIAT_MAP_URL,
   STARTUPS_EMAIL,
 } from "@/lib/content/contact";
@@ -46,7 +46,7 @@ function ChannelCard({
   delay: number;
 }) {
   return (
-    <motion.a
+    <m.a
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
       initial={{ opacity: 0, y: 20 }}
@@ -69,7 +69,7 @@ function ChannelCard({
         className="absolute right-6 top-6 h-4 w-4 text-pasha-muted/40 transition-all group-hover:text-pasha-red group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
         aria-hidden
       />
-    </motion.a>
+    </m.a>
   );
 }
 
@@ -153,24 +153,7 @@ export function ContactContent() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[24px] border border-pasha-line">
-                <iframe
-                  src={SECRETARIAT_MAP_EMBED_URL}
-                  title="Map showing the P@SHA Secretariat at Daftarkhwan Alpha, Rawalpindi"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="block h-[260px] w-full border-0 lg:h-[300px]"
-                />
-                <a
-                  href={SECRETARIAT_MAP_URL}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3.5 py-2 text-xs font-semibold text-pasha-ink shadow-md backdrop-blur transition-colors hover:bg-pasha-red hover:text-white"
-                >
-                  <MapPin className="h-3.5 w-3.5" aria-hidden />
-                  Get directions
-                </a>
-              </div>
+              <SecretariatMap />
             </div>
           </Reveal>
 

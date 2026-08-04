@@ -8,7 +8,7 @@ import {
   type Resolver,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Loader2, Save, X } from "lucide-react";
 
@@ -19,6 +19,7 @@ import {
   stepFields,
 } from "@/lib/forms/schema";
 import { resolveFieldLabel } from "@/lib/forms/form-config";
+import { stashSubmissionResult } from "@/lib/forms/submission-result";
 import { isOtherChoice } from "@/lib/options";
 
 // v2 draft key — bumping forces old v1 drafts to be ignored cleanly so users with stale 7-step drafts don't get hydrated into the new 3-step form.
@@ -322,11 +323,11 @@ const form = useForm<SubmissionInput>({
       try {
         window.localStorage.removeItem(DRAFT_KEY);
       } catch {}
-      const params = new URLSearchParams({
-        tier: result.tier ?? "listed",
-        score: String(result.score ?? 0),
-        id: result.id,
-      });
+      // tier/score go through sessionStorage, not the URL — see
+      // submission-result.ts. `id` stays in the query string: it identifies the
+      // applicant's own submission and is useful in a support conversation.
+      stashSubmissionResult({ tier: result.tier, score: result.score });
+      const params = new URLSearchParams({ id: result.id });
       router.push(`/apply/success?${params.toString()}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Submission failed";
@@ -399,7 +400,7 @@ const form = useForm<SubmissionInput>({
       {/* ═══════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {draftRestored && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -422,7 +423,7 @@ const form = useForm<SubmissionInput>({
             >
               <X className="w-4 h-4" />
             </button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -453,7 +454,7 @@ const form = useForm<SubmissionInput>({
           className="px-6 sm:px-8 py-8"
         >
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={step}
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
@@ -464,18 +465,18 @@ const form = useForm<SubmissionInput>({
               {step === 1 && <Step1Startup form={form} />}
               {step === 2 && <Step2Founders form={form} />}
               {step === 3 && <Step3Recognition form={form} />}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
 
           {error && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3 text-sm text-pasha-red"
             >
               {error}
               <ErrorFieldLinks fields={errorFields} />
-            </motion.div>
+            </m.div>
           )}
         </form>
 

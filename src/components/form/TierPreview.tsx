@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import type { VettingResult } from "@/lib/startups/vetting/vetting";
 import { tierLabel } from "@/lib/startups/vetting/vetting";
@@ -19,7 +19,7 @@ export function TierPreview({ result }: { result: VettingResult | null }) {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div
+      <m.div
         key={tier}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -52,7 +52,7 @@ export function TierPreview({ result }: { result: VettingResult | null }) {
             </span>
           </div>
         )}
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }

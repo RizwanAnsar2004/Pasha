@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { m, useReducedMotion, type Variants } from "framer-motion";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -24,7 +24,7 @@ export function Reveal({
   };
 
   return (
-    <motion.div
+    <m.div
       initial="hidden"
       whileInView="show"
       viewport={{ once, margin: "-80px" }}
@@ -32,6 +32,6 @@ export function Reveal({
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

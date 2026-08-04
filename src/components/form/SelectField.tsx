@@ -50,6 +50,10 @@ export function SelectField({
       searchable={searchable}
       disabled={disabled}
       className={cn("w-full", className)}
+      // The trigger is a <button>, so the surrounding Field cannot label it
+      // with htmlFor — it points aria-labelledby back at the label instead.
+      // See the `customControl` note in Field.tsx.
+      aria-labelledby={ctx?.labelId}
       aria-invalid={ctx?.hasError || undefined}
       aria-describedby={ctx?.hasError ? ctx.errorId : ctx?.hintId}
     />

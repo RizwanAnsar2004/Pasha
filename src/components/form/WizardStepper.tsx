@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Check, Building2, Users, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ export function WizardStepper({
           className="absolute top-6 sm:top-7 left-[16.67%] right-[16.67%] h-[2px] bg-pasha-line rounded-full"
         />
         {/* Active progress line */}
-        <motion.div
+        <m.div
           aria-hidden
           className="absolute top-6 sm:top-7 left-[16.67%] h-[2px] bg-gradient-to-r from-pasha-red to-pasha-red-light rounded-full"
           initial={false}
@@ -50,7 +50,7 @@ export function WizardStepper({
               className="group relative flex flex-col items-center text-center disabled:cursor-not-allowed"
             >
               {/* Circle */}
-              <motion.div
+              <m.div
                 animate={{
                   scale: isActive ? 1.05 : 1,
                 }}
@@ -72,20 +72,20 @@ export function WizardStepper({
                 )}
 
                 {isComplete ? (
-                  <motion.div
+                  <m.div
                     initial={{ scale: 0, rotate: -45 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 18 }}
                   >
                     <Check className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-                  </motion.div>
+                  </m.div>
                 ) : (
                   <step.icon
                     className="w-5 h-5 sm:w-6 sm:h-6"
                     strokeWidth={1.75}
                   />
                 )}
-              </motion.div>
+              </m.div>
 
               {/* Step number above circle (only on active/complete) */}
               <span

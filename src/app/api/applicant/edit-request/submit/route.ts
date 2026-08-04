@@ -18,6 +18,7 @@ import { InputType } from "@/lib/forms/form-enums";
 import { allFieldKeys, filterConfigToKeys } from "@/lib/startups/edit-requests/edit-requests";
 import { markEditRequestSubmitted } from "@/lib/startups/edit-requests/edit-requests.server";
 import { publishSubmissionToDatabank, touchDatabank } from "@/lib/startups/databank/publish.server";
+import { marketSizeIssue, marketSizeMessage } from "@/lib/forms/market-size";
 
 const bodySchema = z.object({
   editRequestId: z.string().uuid(),
@@ -136,6 +137,17 @@ export async function POST(req: Request) {
       .eq("id", reqRow.submission_id)
       .maybeSingle<{ answers: Record<string, unknown> | null }>();
     const mergedAnswers = { ...(cur?.answers ?? {}), ...answers };
+    // Checked against the merge, not the submitted values: an edit request can
+    // unlock a single market field, so the inversion is only visible alongside
+    // the two figures already stored. Blocks before the write so a valid
+    // listing can't be edited into an impossible one.
+    const marketIssue = marketSizeIssue(mergedAnswers);
+    if (marketIssue) {
+      return NextResponse.json(
+        { error: marketSizeMessage(marketIssue) },
+        { status: 400 }
+      );
+    }
     const { error: subErr } = await updateWithHeal(
       supabase,
       "submissions",

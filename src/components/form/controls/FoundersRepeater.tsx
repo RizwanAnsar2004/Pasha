@@ -9,7 +9,7 @@ import { FileUpload } from "@/components/form/FileUpload";
 import { FOUNDER_GENDERS } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
 import type { SubmissionInput } from "@/lib/forms/schema";
-import { phoneRegisterProps } from "@/lib/validators/phone";
+import { PhoneField } from "@/components/form/controls/PhoneField";
 import { urlRegister } from "@/lib/forms/normalize-url";
 import { cn } from "@/lib/utils";
 
@@ -95,17 +95,14 @@ export function FoundersRepeater() {
                   {...form.register(`founders.${idx}.email`)}
                 />
               </Field>
-              <Field
+              <PhoneField
                 label="Mobile"
                 required={isPrimary}
                 error={founderErr?.mobile?.message}
-              >
-                <Input
-                  placeholder="+92 300 1234567"
-                  {...phoneRegisterProps(form.register(`founders.${idx}.mobile`))}
-                />
-              </Field>
-              <Field label="Gender" error={founderErr?.gender?.message}>
+                placeholder="+92 300 1234567"
+                register={form.register(`founders.${idx}.mobile`)}
+              />
+              <Field label="Gender" error={founderErr?.gender?.message} customControl>
                 <SelectField
                   name={`founders.${idx}.gender`}
                   placeholder="Select gender"

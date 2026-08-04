@@ -10,6 +10,12 @@
   --color-pasha-red: #E92127;
   --color-pasha-red-dark: #C01319;
   --color-pasha-red-light: #FF4B51;
+  /* White text on --color-pasha-red measures 4.45:1, just under the 4.5:1 WCAG
+     AA threshold, which failed the CTA audit. This is the same hue darkened
+     enough to reach 5.3:1 — used only where white text sits ON red (solid
+     buttons, badges). The brand red itself is unchanged, so borders, icons,
+     rules and red-on-white text all keep the original colour. */
+  --color-pasha-red-aa: #D4162A;
   --color-pasha-ink: #171717;
   --color-pasha-stone: #F8F7F4;
   --color-pasha-line: rgba(23, 23, 23, 0.13);
@@ -377,5 +383,78 @@
     animation: none;
     width: 100%;
     opacity: 0.7;
+  }
+}
+
+/* Phone inputs filter out characters that cannot appear in a number. That used
+   to happen silently, so a rejected keystroke was indistinguishable from a dead
+   field. phoneRegisterProps() sets data-phone-rejected for half a second; this
+   is the visible half of that feedback (the audible half is a live region). */
+@keyframes phone-reject-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(212, 22, 42, 0.45); border-color: var(--color-pasha-red-aa); }
+  70%  { box-shadow: 0 0 0 4px rgba(212, 22, 42, 0); border-color: var(--color-pasha-red-aa); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 22, 42, 0); }
+}
+input[data-phone-rejected] {
+  animation: phone-reject-pulse 0.5s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  input[data-phone-rejected] {
+    animation: none;
+    border-color: var(--color-pasha-red-aa);
+  }
+}
+
+/* Per-navigation enter animation, applied by app/template.tsx.
+ *
+ * Deliberately CSS and not framer-motion. The previous version was an
+ * `m.div` with `initial={{ opacity: 0, y: 12 }}`, and framer-motion
+ * serialises that initial state into the server HTML — so every page,
+ * including the homepage hero image, shipped inside a
+ * `style="opacity:0"` wrapper. An element at zero opacity is not a
+ * Largest Contentful Paint candidate, which meant LCP could not fire
+ * until ~674KB of JavaScript had downloaded, parsed and hydrated far
+ * enough to animate the opacity back up: a measured 4-8s LCP on a hero
+ * image that finished downloading in about 200ms.
+ *
+ * Stylesheets are render-blocking, so this runs on the first painted
+ * frame with no JavaScript involved. Keyframes, duration and easing are
+ * the same values the framer-motion version used, so the motion is
+ * unchanged.
+ *
+ * Template remounts on every navigation, so the animation replays on
+ * route change exactly as before.
+ *
+ * IMPORTANT: never move this back to a JS-driven initial state, and
+ * don't add an animation-delay — a delay holds the frame at opacity 0
+ * and re-gates LCP by however long it lasts.
+ */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  /* `backwards`, never `forwards`/`both`.
+   *
+   * A fill mode of `forwards` holds the final keyframe after the animation
+   * ends, which leaves `transform: translateY(0)` permanently applied. That is
+   * not the same as no transform: any transform other than `none` makes the
+   * element a containing block for `position: fixed` descendants. Every modal
+   * inside the page then sizes and positions itself against this full-height
+   * wrapper instead of the viewport — the backdrop still covers the screen, but
+   * the centred dialog lands halfway down the whole document, off-screen. That
+   * is what broke the image cropper: dark overlay, no visible dialog.
+   *
+   * The framer-motion version this replaced did not have the problem because it
+   * writes `transform: none` once the values are back at their defaults.
+   *
+   * With `backwards` the element reverts to its ordinary style when the
+   * animation finishes — opacity 1, no transform — which is visually identical
+   * to the final keyframe and leaves no containing block behind. */
+  animation: page-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
   }
 }

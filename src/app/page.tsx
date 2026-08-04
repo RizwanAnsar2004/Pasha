@@ -17,14 +17,24 @@ import { getHomepageAwardWinners } from "@/lib/startups/awards/awards.server";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getOptionIndex } from "@/lib/options/index.server";
+import { getOptionIndex, getOptionIndexFor } from "@/lib/options/index.server";
 import { resolveOptionLabel } from "@/lib/options/resolve";
 import { JoinCommunity } from "@/components/community/JoinCommunity";
 import type { WatchlistStartup } from "@/components/landing/DirectoryBento";
 import type { AwardWinningStartup } from "@/components/landing/AwardWinningStartups";
 import type { WomenLedStartup } from "@/lib/startups/directory/women-led";
 
-export const dynamic = "force-dynamic";
+// Was `force-dynamic`, which made every homepage visit re-run four Supabase
+// queries before a single byte went out — the measured 1,270ms TTFB that
+// delayed FCP, LCP and TTI by the same amount for every visitor. Nothing here
+// is per-user (no cookies, no searchParams, no headers): it is admin-curated
+// content that changes a few times a week, so it renders once and is reused.
+//
+// The 60s window is the staleness ceiling after an admin publishes. To make a
+// publish appear immediately instead of waiting it out, call
+// revalidatePath("/") from the admin action that changes featured startups,
+// award winners, women-led picks or events.
+export const revalidate = 60;
 
 // Homepage carousels pull a small, capped slice of the databank (≤20 each) rather than the full list — keeps the home query light.
 const HOME_CAROUSEL_LIMIT = 20;
@@ -82,7 +92,9 @@ export default async function Home() {
   const [{ watchlist, awardWinners, womenLed }, upcomingEvents, optionIndex] = await Promise.all([
     loadHomeData(),
     getUpcomingPublishedEvents(4),
-    getOptionIndex(),
+    // Only the two types DirectoryBento resolves. Passing the full index would
+    // serialise every option list plus ~200 countries into the hydration payload.
+    getOptionIndexFor(["SECTORS", "STAGES"]),
   ]);
 
   return (

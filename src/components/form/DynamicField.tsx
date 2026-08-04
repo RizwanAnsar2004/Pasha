@@ -12,7 +12,8 @@ import { FileUpload } from "@/components/form/FileUpload";
 import { CityField } from "@/components/form/controls/CityField";
 import { FoundersRepeater } from "@/components/form/controls/FoundersRepeater";
 import { InputType, htmlInputType } from "@/lib/forms/form-enums";
-import { phoneRegisterProps } from "@/lib/validators/phone";
+import { PhoneField } from "@/components/form/controls/PhoneField";
+import { StartupNameField } from "@/components/form/controls/StartupNameField";
 import { urlRegister } from "@/lib/forms/normalize-url";
 import {
   resolveOptions,
@@ -161,7 +162,7 @@ export function DynamicField({
 
     case InputType.SELECT:
       return withOther(
-        <Field label={label} hint={hint} required={required} error={error}>
+        <Field label={label} hint={hint} required={required} error={error} customControl>
           <SelectField
             name={path}
             placeholder={field.placeholder ?? "Select…"}
@@ -242,16 +243,49 @@ export function DynamicField({
           />
         );
       }
+      // Phone gets its own component rather than another arm of the ternary
+      // below: it needs state to show why a keystroke was filtered out, and a
+      // hook cannot be called from inside a conditional expression.
+      if (field.input_type === InputType.PHONE) {
+        return (
+          <PhoneField
+            register={reg}
+            label={label}
+            hint={hintWithCounter(hint)}
+            required={required}
+            error={error}
+            placeholder={field.placeholder ?? undefined}
+            maxLength={field.validation?.maxLength}
+          />
+        );
+      }
+      // Keyed on the field, not the input type: only the company name is
+      // subject to the one-listing-per-company rule, and it needs to report an
+      // existing listing while the applicant types rather than at submit, six
+      // steps later. `namePrefix` guards against a repeater item that happens
+      // to reuse the key.
+      if (field.field_key === "startup_name" && !namePrefix) {
+        return (
+          <StartupNameField
+            register={reg}
+            label={label}
+            hint={hintWithCounter(hint)}
+            required={required}
+            error={error}
+            placeholder={field.placeholder ?? undefined}
+            maxLength={field.validation?.maxLength}
+            initialValue={typeof value === "string" ? value : ""}
+          />
+        );
+      }
       return (
         <Field label={label} hint={hintWithCounter(hint)} required={required} error={error}>
           <Input
             placeholder={field.placeholder ?? undefined}
             maxLength={field.validation?.maxLength}
-            {...(field.input_type === InputType.PHONE
-              ? phoneRegisterProps(reg)
-              : field.input_type === InputType.URL
-                ? { type: "url", ...urlRegister(form, path) }
-                : { type: htmlInputType(field.input_type), ...reg })}
+            {...(field.input_type === InputType.URL
+              ? { type: "url", ...urlRegister(form, path) }
+              : { type: htmlInputType(field.input_type), ...reg })}
           />
         </Field>
       );

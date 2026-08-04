@@ -8,6 +8,11 @@ import styles from "./HeroPhotoSlider.module.css";
 const AUTOPLAY_MS = 7000;
 
 type Slide = {
+  // Basename of the pre-encoded responsive set in /public, without a width or
+  // extension: `<image>-{960,1600}.{avif,webp,jpg}`. Generated from the
+  // originals — the three slides shipped as PNGs totalling 5.4MB for
+  // photographic content with no transparency, and the first of them was the
+  // LCP element at 13.6s. The AVIF set is ~139KB for all three.
   image: string;
   alt: string;
   shadeClass?: keyof typeof styles;
@@ -30,8 +35,8 @@ type Slide = {
 // AwardWinningStartups.tsx and DirectoryBento.tsx.
 const SLIDES: Slide[] = [
   {
-    image: "/hero-hub.png",
-    alt: "Startup team collaborating around ideas and plans",
+    image: "hero-hub",
+    alt: "Illustrated map of Pakistan as a glowing network, linked to a globe, with icons for startups, funding, agriculture and partnerships",
     kicker: "Pakistan's national startup ecosystem platform",
     heading: "PASHA Startup Hub",
     headingTag: "h1",
@@ -44,7 +49,7 @@ const SLIDES: Slide[] = [
     tabTitle: "Startup Hub",
   },
   {
-    image: "/awards-hub.png",
+    image: "awards-hub",
     alt: "Technology leaders presenting to an audience at a major event",
     shadeClass: "hero-photo-shade-awards",
     kicker: "Celebrating Pakistan's technology excellence",
@@ -61,7 +66,7 @@ const SLIDES: Slide[] = [
     tabTitle: "ICT Awards",
   },
   {
-    image: "/directory-hub.png",
+    image: "directory-hub",
     alt: "Startup team reviewing a digital product together",
     shadeClass: "hero-photo-shade-directory",
     kicker: "Discover the builders shaping Pakistan's future",
@@ -171,8 +176,52 @@ export function Hero() {
               aria-hidden={!isActive}
               className={`${styles["hero-photo-slide"]} ${isActive ? styles["is-active"] : ""}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- absolutely-positioned, ken-burns-animated background; next/image's wrapper would break the transform animation */}
-              <img alt={slide.alt} className={styles["hero-photo-bg"]} src={slide.image} />
+              {/* <picture> rather than next/image: the slide is an
+                  absolutely-positioned, ken-burns-animated background, and
+                  next/image's wrapper div breaks the transform animation.
+                  Sources are ordered best-first — a browser takes the first
+                  type it understands, so AVIF wins everywhere modern and the
+                  JPEG only serves browsers supporting neither. */}
+              <picture>
+                <source
+                  type="image/avif"
+                  srcSet={`/${slide.image}-960.avif 960w, /${slide.image}-1600.avif 1600w`}
+                  sizes="100vw"
+                />
+                <source
+                  type="image/webp"
+                  srcSet={`/${slide.image}-960.webp 960w, /${slide.image}-1600.webp 1600w`}
+                  sizes="100vw"
+                />
+                <img
+                  alt={slide.alt}
+                  className={styles["hero-photo-bg"]}
+                  src={`/${slide.image}-1600.jpg`}
+                  srcSet={`/${slide.image}-960.jpg 960w, /${slide.image}-1600.jpg 1600w`}
+                  sizes="100vw"
+                  width={1600}
+                  height={900}
+                  // All three load eagerly, not just the visible one. The
+                  // carousel advances on a timer, and each slide that fades in
+                  // paints a full-viewport image — which the browser scores as
+                  // a new Largest Contentful Paint candidate. Lazy-loading the
+                  // later slides therefore did not defer cost, it moved LCP to
+                  // an image that had not started downloading yet. At ~45KB per
+                  // AVIF there is nothing worth deferring anyway.
+                  //
+                  // Priority still differs: slide one is the paint that matters
+                  // for the initial view and must not queue behind the others.
+                  loading="eager"
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                  // Always async, including the LCP slide. "sync" forces the
+                  // decode onto the main thread before paint, and AVIF costs
+                  // considerably more to decode than JPEG — on a 1600px image
+                  // that showed up directly as Total Blocking Time. The image
+                  // still paints as soon as it is ready; it just no longer
+                  // blocks everything else while decoding.
+                  decoding="async"
+                />
+              </picture>
               <div
                 className={`${styles["hero-photo-shade"]} ${slide.shadeClass ? styles[slide.shadeClass] : ""}`}
               />

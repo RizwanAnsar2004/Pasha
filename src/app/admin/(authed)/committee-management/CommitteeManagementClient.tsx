@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { AlertCircle, Loader2, Pencil, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { SelectMenu } from "@/components/ui/SelectMenu";
@@ -484,7 +484,7 @@ export function CommitteeManagementClient({
       <AnimatePresence>
         {editingRow && (
           <>
-            <motion.button
+            <m.button
               key="edit-member-backdrop"
               type="button"
               aria-label="Close dialog"
@@ -495,7 +495,7 @@ export function CommitteeManagementClient({
               onClick={() => !savingEmail && cancelEdit()}
               className="fixed inset-0 z-50 h-[100vh] bg-pasha-ink/40 backdrop-blur-sm"
             />
-            <motion.div
+            <m.div
               key="edit-member-dialog"
               role="dialog"
               aria-modal="true"
@@ -506,7 +506,7 @@ export function CommitteeManagementClient({
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
             >
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -649,8 +649,8 @@ export function CommitteeManagementClient({
                     </button>
                   </div>
                 </form>
-              </motion.div>
-            </motion.div>
+              </m.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

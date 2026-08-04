@@ -8,6 +8,8 @@ import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } fr
 import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 import { writeAudit } from "@/lib/audit/audit.server";
 import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
+import { marketSizeIssue } from "@/lib/forms/market-size";
+import { findDuplicateStartupName } from "@/lib/startups/duplicate-name.server";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { getOptionIndex } from "@/lib/options/index.server";
@@ -88,6 +90,37 @@ async function postHandler(req: Request) {
         const text = cols[otherKey];
         if (typeof text === "string" && text.trim()) answers[otherKey] = text.trim();
         delete cols[otherKey];
+      }
+    }
+
+    // TAM ≥ SAM ≥ SOM — see market-size.ts for why this is a cross-field check
+    // rather than a per-field schema rule. Runs against formData so it covers
+    // both parse branches above.
+    const marketIssue = marketSizeIssue(formData);
+    if (marketIssue) return validationError([marketIssue], labelMap);
+
+    // One listing per company. The directory carried the same startup twice
+    // under two different sectors, which both misleads anyone browsing and
+    // inflates the "verified startups" count the site markets itself on.
+    // Compared on a normalised name so "BizB", "biz b" and "BizB." collide.
+    // Scoped to OTHER users' submissions: an applicant editing or resubmitting
+    // their own application must not be blocked by their own row.
+    const submittedName = typeof cols.startup_name === "string" ? cols.startup_name : "";
+    if (submittedName.trim()) {
+      const duplicate = await findDuplicateStartupName(
+        supabase,
+        submittedName,
+        user.id
+      );
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            error:
+              `"${duplicate}" is already listed in the directory. If this is your company and you need access to the existing listing, contact us instead of submitting a second application.`,
+            fieldErrors: { startup_name: `"${duplicate}" is already listed.` },
+          },
+          { status: 409 }
+        );
       }
     }
 

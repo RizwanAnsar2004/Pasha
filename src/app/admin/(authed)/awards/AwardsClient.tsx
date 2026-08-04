@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api as http } from "@/lib/api/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { BadgeCheck, Loader2, Pencil, Plus, Search, Trash2, Trophy, X } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/useConfirm";
@@ -408,7 +408,7 @@ export function AwardsClient({
           <AnimatePresence>
             {showModal && (
               <>
-                <motion.button
+                <m.button
                   key="award-backdrop"
                   type="button"
                   aria-label="Close dialog"
@@ -419,7 +419,7 @@ export function AwardsClient({
                   onClick={closeModal}
                   className="fixed inset-0 z-[100] bg-pasha-ink/40 backdrop-blur-sm"
                 />
-                <motion.div
+                <m.div
                   key="award-dialog"
                   role="dialog"
                   aria-modal="true"
@@ -429,7 +429,7 @@ export function AwardsClient({
                   transition={{ duration: 0.2 }}
                   className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none"
                 >
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, scale: 0.96, y: 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -559,8 +559,8 @@ export function AwardsClient({
                         Cancel
                       </button>
                     </div>
-                  </motion.div>
-                </motion.div>
+                  </m.div>
+                </m.div>
               </>
             )}
           </AnimatePresence>,

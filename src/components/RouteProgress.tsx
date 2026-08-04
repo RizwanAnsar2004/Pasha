@@ -2,11 +2,11 @@
 
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -43,33 +43,44 @@ export function useRouteProgress(): RouteProgressApi {
   return useContext(RouteProgressContext);
 }
 
-export function RouteProgressProvider({ children }: { children: React.ReactNode }) {
+// Watches the active route and reports every change. Split out of the provider
+// for one reason: `useSearchParams()` opts its whole Suspense boundary out of
+// static rendering, and React then throws that subtree away and re-renders it
+// on the client after hydration.
+//
+// While this hook lived in the provider, the nearest boundary was the one in
+// app/layout.tsx wrapping the entire page — so every route's DOM was built
+// twice, and the second build restarted the `.page-enter` animation. That was
+// visible as the hero fading in twice (only sometimes: it depended on whether
+// hydration landed before or after the first 0.35s animation had finished).
+//
+// Here the bailout is contained to a component that renders null, so nothing
+// user-visible is inside the re-rendered boundary. Keep it that way: this must
+// stay a leaf with its own <Suspense>, and `useSearchParams` must not move back
+// up into the provider.
+function RouteChangeWatcher({ onRouteChange }: { onRouteChange: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Bumped on every start(); cleared when the route changes or done() is called.
-  const [pending, setPending] = useState(false);
-
   const currentKey = `${pathname}?${searchParams?.toString() ?? ""}`;
 
-  // Complete as soon as the route actually changes. Adjusting state during
-  // render (React's documented "reset when a value changes" pattern) rather
-  // than in an effect — an effect left the flag set, so a browser Back to the
-  // same route re-matched it and the bar span forever.
-  const [lastKey, setLastKey] = useState(currentKey);
-  if (lastKey !== currentKey) {
-    setLastKey(currentKey);
-    if (pending) setPending(false);
-  }
+  // Fires on mount and on every subsequent route change, and always clears
+  // unconditionally. The earlier version compared against a stored key and
+  // cleared only on a mismatch, which is how a browser Back to an already-seen
+  // route could fail to match and leave the bar spinning forever.
+  useEffect(() => {
+    onRouteChange();
+  }, [currentKey, onRouteChange]);
+
+  return null;
+}
+
+export function RouteProgressProvider({ children }: { children: React.ReactNode }) {
+  // Bumped on every start(); cleared when the route changes or done() is called.
+  const [pending, setPending] = useState(false);
 
   const start = useCallback(() => setPending(true), []);
   const done = useCallback(() => setPending(false), []);
   const api = useMemo(() => ({ start, done }), [start, done]);
-
-  // The click listener is bound once and reads the live route from a ref.
-  const currentKeyRef = useRef(currentKey);
-  useEffect(() => {
-    currentKeyRef.current = currentKey;
-  }, [currentKey]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -131,6 +142,11 @@ export function RouteProgressProvider({ children }: { children: React.ReactNode 
 
   return (
     <RouteProgressContext.Provider value={api}>
+      {/* Renders null — see RouteChangeWatcher for why it is isolated behind
+          its own boundary rather than reading the route in this component. */}
+      <Suspense fallback={null}>
+        <RouteChangeWatcher onRouteChange={done} />
+      </Suspense>
       {pending && (
         <div
           role="progressbar"

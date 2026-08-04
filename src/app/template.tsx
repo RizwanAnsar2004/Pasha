@@ -1,17 +1,10 @@
-"use client";
-
-import { motion } from "framer-motion";
-
 // Per-navigation enter animation.
+//
+// A server component on purpose. The animation is CSS (`.page-enter` in
+// globals.css) rather than framer-motion, because framer-motion's `initial`
+// prop is serialised into the server HTML — which put every page behind
+// `style="opacity:0"` and made LCP wait for hydration. See the comment on the
+// `page-enter` keyframes for the full story.
 export default function Template({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-1 flex-col"
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className="page-enter flex flex-1 flex-col">{children}</div>;
 }

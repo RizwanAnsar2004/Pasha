@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Search, X, CheckCircle2, XCircle, Eye, Loader2, Pencil, Star, FileText, BadgeCheck } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -365,7 +365,7 @@ export function SubmissionsClient({
       {/* Action toast */}
       <AnimatePresence>
         {toast && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
@@ -382,7 +382,7 @@ export function SubmissionsClient({
               {toast.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
               {toast.text}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -594,7 +594,7 @@ function SubmissionDrawer({
 
   const drawer = (
     <>
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -603,7 +603,7 @@ function SubmissionDrawer({
       />
       {/* Centering layer: pointer-events-none so clicks on the backdrop around */}
       <div className="fixed inset-0 z-[110] grid place-items-center p-4 pointer-events-none">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -1011,7 +1011,7 @@ function SubmissionDrawer({
             ) : null}
           </div>
         </div>
-      </motion.div>
+      </m.div>
       </div>
     </>
   );

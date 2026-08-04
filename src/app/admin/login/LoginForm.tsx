@@ -4,7 +4,7 @@ import { useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ShieldCheck, Loader2, AlertCircle, MailCheck } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -104,7 +104,7 @@ function LoginInner() {
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
         <div className="mx-auto max-w-md px-4 sm:px-8 py-20">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -250,7 +250,7 @@ function LoginInner() {
             )}
               </>
             )}
-          </motion.div>
+          </m.div>
         </div>
       </main>
       <SiteFooter />

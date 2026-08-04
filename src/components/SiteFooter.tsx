@@ -35,8 +35,8 @@ export function SiteFooter() {
             <FollowRow />
           </div>
           <div>
-            <h4 className="font-mono text-[11px] uppercase tracking-[2px] text-white/40 mb-4">Explore</h4>
-            <ul className="space-y-3 text-sm text-white/65">
+            <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-white/60 mb-4">Explore</h2>
+            <ul className="space-y-3 text-sm text-white/80">
               <li><Link href="/directory" className="hover:text-white transition-colors">Directory</Link></li>
               <li>
                 <a
@@ -54,8 +54,8 @@ export function SiteFooter() {
             </ul>
           </div>
           <div>
-            <h4 className="font-mono text-[11px] uppercase tracking-[2px] text-white/40 mb-4">Connect</h4>
-            <ul className="space-y-3 text-sm text-white/65">
+            <h2 className="font-mono text-[11px] uppercase tracking-[2px] text-white/60 mb-4">Connect</h2>
+            <ul className="space-y-3 text-sm text-white/80">
               <li><Link href="/apply" className="hover:text-white transition-colors">List your startup</Link></li>
               <li><Link href="/contact" className="hover:text-white transition-colors">Partner with us</Link></li>
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
@@ -63,8 +63,8 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-14 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} PASHA. All rights reserved.</p>
-          <p className="text-xs text-white/40">Pakistan&apos;s vetted home for product-native startups.</p>
+          <p className="text-xs text-white/60">© {new Date().getFullYear()} PASHA. All rights reserved.</p>
+          <p className="text-xs text-white/60">Pakistan&apos;s vetted home for product-native startups.</p>
         </div>
       </div>
     </footer>

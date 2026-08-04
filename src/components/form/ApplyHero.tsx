@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Sparkles, Clock, Save } from "lucide-react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -31,12 +31,12 @@ export function ApplyHero() {
       }}
     >
       {/* Warm orbs */}
-      <motion.div
+      <m.div
         style={{ x: blob1X, y: blob1Y }}
         aria-hidden
         className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slow bg-gradient-to-br from-orange-200/50 via-rose-200/40 to-amber-100/30"
       />
-      <motion.div
+      <m.div
         style={{ x: blob2X, y: blob2Y }}
         aria-hidden
         className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-float-slower bg-gradient-to-br from-pasha-red/15 via-rose-200/40 to-orange-200/30"
@@ -53,7 +53,7 @@ export function ApplyHero() {
 
       <div className="relative mx-auto max-w-5xl px-4 sm:px-8 pt-6 sm:pt-8 lg:pt-10 pb-14">
         {/* Eyebrow */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
@@ -63,19 +63,19 @@ export function ApplyHero() {
           <span className="font-mono text-[10px] uppercase tracking-[2px] text-pasha-ink/80">
             Apply to be indexed
           </span>
-        </motion.div>
+        </m.div>
 
         {/* Editorial headline */}
         <h1 className="mt-6 font-serif text-[30px] sm:text-[56px] lg:text-[68px] leading-[0.96] tracking-tight text-pasha-ink text-balance">
-          <motion.span
+          <m.span
             initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
             className="block"
           >
             Tell us about
-          </motion.span>
-          <motion.span
+          </m.span>
+          <m.span
             initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
@@ -86,7 +86,7 @@ export function ApplyHero() {
               <span className="bg-gradient-to-r from-pasha-red via-pasha-red-light to-orange-500 bg-clip-text text-transparent animate-gradient-shift">
                 startup
               </span>
-              <motion.svg
+              <m.svg
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
                 transition={{ duration: 1.1, delay: 0.9, ease: EASE }}
@@ -95,7 +95,7 @@ export function ApplyHero() {
                 fill="none"
                 preserveAspectRatio="none"
               >
-                <motion.path
+                <m.path
                   d="M2 8 Q 60 2, 120 6 T 240 5 T 298 7"
                   stroke="url(#applyUnderline)"
                   strokeWidth="3"
@@ -108,14 +108,14 @@ export function ApplyHero() {
                     <stop offset="100%" stopColor="#FF8A30" />
                   </linearGradient>
                 </defs>
-              </motion.svg>
+              </m.svg>
             </span>
             .
-          </motion.span>
+          </m.span>
         </h1>
 
         {/* Lede + signals */}
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.65 }}
@@ -123,10 +123,10 @@ export function ApplyHero() {
         >
           Three quick steps. Auto-saves as you go. No fee, no equity — just a
           clean form that gets your startup onto Pakistan&apos;s product index.
-        </motion.p>
+        </m.p>
 
         {/* Trust strip */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.85 }}
@@ -137,7 +137,7 @@ export function ApplyHero() {
           <TrustBadge icon={Save} text="Auto-saved as you type" />
           <Dot />
           <TrustBadge icon={Sparkles} text="Reviewed in 2 weeks" />
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

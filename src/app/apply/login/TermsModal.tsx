@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { RichText } from "@/components/ui/RichText";
 import { DEFAULT_SITE_CONTENT } from "@/lib/content/site-content";
@@ -50,7 +50,7 @@ export function TermsModal({
           aria-labelledby="terms-modal-title"
           className="fixed inset-0 z-[200] flex items-center justify-center p-4"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -59,7 +59,7 @@ export function TermsModal({
             className="absolute inset-0 bg-pasha-ink/40 backdrop-blur-sm"
             aria-hidden
           />
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -102,7 +102,7 @@ export function TermsModal({
             Close
           </button>
         </div>
-          </motion.div>
+          </m.div>
         </div>
       )}
     </AnimatePresence>,

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -221,7 +221,7 @@ function StatTile({
   accent: "red" | "orange" | "green" | "blue";
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -247,7 +247,7 @@ function StatTile({
         {value.toLocaleString()}
       </p>
       <p className="mt-1 text-xs text-pasha-muted">{subline}</p>
-    </motion.div>
+    </m.div>
   );
 }
 

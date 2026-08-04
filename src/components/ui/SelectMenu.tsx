@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as RSelect from "@radix-ui/react-select";
 import * as RPopover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
@@ -21,6 +21,10 @@ interface SelectMenuProps {
   id?: string;
   onBlur?: () => void;
   "aria-label"?: string;
+  // Set by Field for custom controls: the trigger is a <button>, which a
+  // <label for> may not legally target, so the label is referenced from the
+  // control instead. See the `customControl` note in Field.tsx.
+  "aria-labelledby"?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 }
@@ -82,6 +86,7 @@ function PlainSelect({
   id,
   onBlur,
   "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
 }: InnerProps) {
@@ -97,6 +102,7 @@ function PlainSelect({
       <RSelect.Trigger
         id={id}
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
         className={triggerClass(className)}
@@ -150,10 +156,15 @@ function SearchableSelect({
   id,
   onBlur,
   "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
 }: InnerProps) {
   const [open, setOpen] = useState(false);
+  // Ties the trigger to the list it opens (aria-controls). Falls back to a
+  // generated id so the pairing holds even when Field supplies no id.
+  const autoId = useId();
+  const listboxId = `${id ?? autoId}-listbox`;
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -203,7 +214,17 @@ function SearchableSelect({
           type="button"
           id={id}
           disabled={disabled}
+          // Announces as a select rather than a generic button, and makes
+          // aria-invalid meaningful here — the attribute is not supported on a
+          // plain button role, so an invalid field was silently not announced
+          // as invalid. Radix's own Select.Trigger sets these; the Popover one
+          // does not, so they are set explicitly.
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listboxId}
           aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           aria-describedby={ariaDescribedBy}
           aria-invalid={ariaInvalid}
           data-placeholder={selected ? undefined : ""}
@@ -216,6 +237,7 @@ function SearchableSelect({
 
       <RPopover.Portal>
         <RPopover.Content
+          id={listboxId}
           role="listbox"
           sideOffset={4}
           align="start"
@@ -236,6 +258,16 @@ function SearchableSelect({
             <Search className="h-3.5 w-3.5 shrink-0 text-pasha-muted" />
             <input
               ref={inputRef}
+              // A form control with neither id nor name is reported by Chrome
+              // ("A form field element should have an id or name attribute")
+              // and is skipped by autofill heuristics. This box filters the
+              // list rather than holding a value, so it is deliberately
+              // excluded from autofill and from form submission — but it still
+              // needs an identity and an accessible name of its own, since the
+              // field's label belongs to the trigger, not to this.
+              id={id ? `${id}-filter` : undefined}
+              name={id ? `${id}-filter` : "select-filter"}
+              autoComplete="off"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);

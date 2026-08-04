@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FormStepJumpContext, type FormStepJump } from "@/components/form/FormStepJump";
@@ -39,6 +39,7 @@ export function PortalTabs({
   const nonceRef = useRef(0);
 
   const select = (next: Tab, step?: number) => {
+    const changingScreen = next !== tab;
     setTab(next);
     if (next === "form" && typeof step === "number") {
       setStepJump({ step, nonce: ++nonceRef.current });
@@ -49,9 +50,32 @@ export function PortalTabs({
       if (next === "form") url.searchParams.set("tab", "form");
       else url.searchParams.delete("tab");
       url.searchParams.delete("step");
-      window.history.replaceState(null, "", url);
+      // Moving between Overview and the form is a screen change the user
+      // expects Back to undo, so it gets its own history entry. replaceState
+      // for everything else: re-selecting the current tab (or a step jump
+      // within the form) would otherwise stack a duplicate entry per click and
+      // force several Back presses to escape. Using replaceState here
+      // unconditionally is what destroyed the Overview entry created at login,
+      // sending Back to whatever page preceded the session instead.
+      if (changingScreen) window.history.pushState(null, "", url);
+      else window.history.replaceState(null, "", url);
     }
   };
+
+  // pushState alone changes the URL without telling React, so Back would move
+  // through history entries while the UI stayed on the same tab. Mirror the
+  // popped URL back into state.
+  useEffect(() => {
+    const onPopState = () => {
+      const next: Tab =
+        new URL(window.location.href).searchParams.get("tab") === "form"
+          ? "form"
+          : "overview";
+      setTab(formAvailable ? next : "overview");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [formAvailable]);
 
   const tabs: { key: Tab; label: string }[] = formAvailable
     ? [

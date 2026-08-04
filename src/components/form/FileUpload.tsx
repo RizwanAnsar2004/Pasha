@@ -4,7 +4,7 @@ import { ApiError, api, apiErrorMessage } from "@/lib/api/client";
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Upload, FileText, ImageIcon, X, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageCropper, type CropShape } from "./ImageCropper";
@@ -174,7 +174,7 @@ export function FileUpload({
 
       <AnimatePresence mode="wait">
         {value ? (
-          <motion.div
+          <m.div
             key="filled"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -217,9 +217,9 @@ export function FileUpload({
             >
               <X className="w-4 h-4 text-pasha-muted" />
             </button>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -254,7 +254,7 @@ export function FileUpload({
                 {hint ?? `Max ${maxSizeMB}MB`}
               </p>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       {error && (

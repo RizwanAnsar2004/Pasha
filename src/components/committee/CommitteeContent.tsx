@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Mail,
   Handshake,
@@ -93,7 +93,7 @@ function MemberCard({
   index: number;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -131,13 +131,13 @@ function MemberCard({
           )}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
 function ChairCard({ chair, index }: { chair: CommitteeMemberRow; index: number }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -189,7 +189,7 @@ function ChairCard({ chair, index }: { chair: CommitteeMemberRow; index: number 
           </p>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -263,7 +263,7 @@ export function CommitteeContent({
         <div className="site-container">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-12 lg:gap-16">
             {/* Left: heading + body */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
@@ -285,12 +285,12 @@ export function CommitteeContent({
                 startups, and host programmes that directly serve founders
                 and ecosystem stakeholders.
               </p>
-            </motion.div>
+            </m.div>
 
             {/* Right: objectives grid */}
             <div className="grid sm:grid-cols-2 gap-5 items-stretch">
               {OBJECTIVES.map((obj, i) => (
-                <motion.div
+                <m.div
                   key={obj.title}
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -307,7 +307,7 @@ export function CommitteeContent({
                   <p className="mt-2 text-sm text-pasha-muted leading-relaxed">
                     {obj.body}
                   </p>
-                </motion.div>
+                </m.div>
               ))}
             </div>
           </div>
@@ -322,7 +322,7 @@ export function CommitteeContent({
         <div className="relative site-container">
 
           {/* Section header */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -339,7 +339,7 @@ export function CommitteeContent({
               The founders and operators steering PASHA&apos;s startup
               programmes, verification standards, and ecosystem partnerships.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* ── CHAIR + MEMBERS ── */}
           {chairs.length > 0 || nonChairs.length > 0 ? (
@@ -378,7 +378,7 @@ export function CommitteeContent({
       {activities.length > 0 ? (
         <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
           <div className="site-container">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
@@ -393,13 +393,13 @@ export function CommitteeContent({
                 Verification milestones, programmes, and ecosystem initiatives
                 from the committee.
               </p>
-            </motion.div>
+            </m.div>
 
             <ul className="rounded-2xl border border-pasha-line bg-white divide-y divide-pasha-line overflow-hidden">
               {activities.map((row, i) => {
                 const styles = COMMITTEE_ACTIVITY_TYPE_STYLES[row.type];
                 return (
-                  <motion.li
+                  <m.li
                     key={row.id}
                     initial={{ opacity: 0, y: 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -430,7 +430,7 @@ export function CommitteeContent({
                     <p className="mt-2 text-xs text-pasha-muted/80">
                       by {activityAuthorDisplay(row.author_email)}
                     </p>
-                  </motion.li>
+                  </m.li>
                 );
               })}
             </ul>

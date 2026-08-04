@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, JetBrains_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
-import { Suspense } from "react";
-import { ChatWidget } from "@/components/ChatWidget";
+import { ChatWidgetLazy } from "@/components/ChatWidgetLazy";
+import { MotionProvider } from "@/components/MotionProvider";
 import { RouteProgressProvider } from "@/components/RouteProgress";
 import { SITE_URL } from "@/lib/utils/site-url";
 import { OG_IMAGE, TWITTER_DEFAULTS } from "@/lib/utils/og";
@@ -101,16 +101,26 @@ export default function RootLayout({
     <html lang="en" className={`h-full antialiased ${poppins.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans">
         {/* Top bar shown while a navigation is in flight, plus the context that
-            lets programmatic flows (sign-in, submit) trigger it. Suspense
-            because it reads useSearchParams, which would otherwise opt every
-            page out of static rendering. */}
-        <Suspense fallback={children}>
+            lets programmatic flows (sign-in, submit) trigger it.
+
+            No Suspense boundary here on purpose. There used to be one, because
+            RouteProgressProvider read useSearchParams and would otherwise opt
+            every page out of static rendering — but a boundary at this depth
+            wraps the whole page, so the searchParams bailout made React discard
+            and re-render every route's DOM on the client. That replayed the
+            template's enter animation, which showed up as the homepage hero
+            fading in twice. The searchParams read now lives behind its own
+            boundary inside RouteProgress, around a component that renders
+            null. */}
+        {/* Supplies the animation features for every `m` component in the tree
+            — see MotionProvider for why the full `motion` bundle was dropped. */}
+        <MotionProvider>
           <RouteProgressProvider>
             {/* Per-navigation enter animation lives in app/template.tsx */}
             {children}
           </RouteProgressProvider>
-        </Suspense>
-        <ChatWidget />
+        </MotionProvider>
+        <ChatWidgetLazy />
       </body>
       {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>

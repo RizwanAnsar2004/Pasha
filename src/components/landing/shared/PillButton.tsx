@@ -9,7 +9,10 @@ type Variant = "outline" | "solid" | "light" | "outline-light";
 const VARIANT_CLS: Record<Variant, string> = {
   outline:
     "border border-pasha-ink/15 bg-white text-pasha-ink hover:bg-pasha-ink hover:text-white hover:border-pasha-ink",
-  solid: "bg-pasha-red text-white border border-pasha-red hover:bg-pasha-red-dark hover:border-pasha-red-dark",
+  // pasha-red-aa, not pasha-red: white-on-red needs 4.5:1 and the brand red
+  // lands at 4.45:1. See the token definition in globals.css.
+  solid:
+    "bg-pasha-red-aa text-white border border-pasha-red-aa hover:bg-pasha-red-dark hover:border-pasha-red-dark",
   light: "bg-white text-pasha-ink border border-white hover:bg-pasha-stone",
   "outline-light": "border border-white/25 bg-white/[0.06] text-white hover:bg-white hover:text-pasha-ink",
 };

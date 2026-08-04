@@ -11,6 +11,7 @@ export const ENDPOINTS = {
     draft: "/api/applicant/draft",
     draftReopen: "/api/applicant/draft/reopen",
     editRequestSubmit: "/api/applicant/edit-request/submit",
+    startupName: "/api/applicant/startup-name",
   },
 
   admin: {

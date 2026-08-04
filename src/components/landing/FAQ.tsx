@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Kicker } from "./shared/Kicker";
@@ -85,7 +85,7 @@ export function FAQ() {
                       <span className={`text-lg sm:text-xl font-bold ${isOpen ? "text-pasha-ink" : "text-pasha-ink/75"}`}>
                         {faq.q}
                       </span>
-                      <motion.span
+                      <m.span
                         animate={{ rotate: isOpen ? 45 : 0 }}
                         transition={{ duration: 0.3, ease: EASE }}
                         className={`shrink-0 grid h-8 w-8 place-items-center rounded-full ${
@@ -93,12 +93,12 @@ export function FAQ() {
                         }`}
                       >
                         <Plus className="h-4 w-4" strokeWidth={2} />
-                      </motion.span>
+                      </m.span>
                     </button>
 
                     <AnimatePresence initial={false}>
                       {isOpen && (
-                        <motion.div
+                        <m.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
@@ -106,7 +106,7 @@ export function FAQ() {
                           className="overflow-hidden"
                         >
                           <p className="pb-6 text-pasha-muted leading-relaxed text-pretty max-w-2xl">{faq.a}</p>
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
                   </div>

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Search, Globe, Users, ArrowUpRight, MapPin, Building2, X, LayoutGrid, Rows3, Coins, Calendar, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { startupSlug } from "@/lib/utils/slug";
@@ -182,7 +182,7 @@ type SectorTheme = {
 
 const DEFAULT_THEME: SectorTheme = {
   stripe: "bg-gradient-to-r from-pasha-red to-pasha-red-light",
-  badge: "bg-pasha-red/[0.07] text-pasha-red border-pasha-red/10",
+  badge: "bg-pasha-red/[0.07] text-pasha-red-aa border-pasha-red/10",
   logoBg: "bg-gradient-to-br from-pasha-stone to-pasha-line/40",
   logoText: "text-pasha-ink",
   gradient: "from-pasha-stone/30",
@@ -284,7 +284,7 @@ function Pagination({
   const ready = usePageReady();
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 12 }}
       animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       transition={{ duration: 0.4 }}
@@ -361,7 +361,7 @@ function Pagination({
           <span className="font-mono text-[11px] uppercase tracking-[1.5px]">of {totalPages}</span>
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -504,7 +504,7 @@ function ListCard({
 }: ListCardProps) {
   const ready = usePageReady();
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 10 }}
       animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
       transition={{
@@ -524,8 +524,14 @@ function ListCard({
         )}
       />
 
+      {/* prefetch={false}: with Next's default prefetch, every card in the grid
+          pulls its RSC payload as it scrolls into view — a paginated directory
+          page was issuing 300+ requests and ~46MB for what is a list of links.
+          The detail page is cheap enough to fetch on click; the bandwidth,
+          especially on mobile connections, is not. */}
       <Link
         href={detailHref}
+        prefetch={false}
         aria-label={`View ${r.startup_name} details`}
         className="absolute inset-0 z-10 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
       />
@@ -639,7 +645,7 @@ function ListCard({
           </span>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -659,7 +665,7 @@ function ListStat({
       <span className="font-serif text-sm font-bold text-pasha-ink tabular-nums">
         {value}
       </span>
-      <span className="font-mono text-[9px] uppercase tracking-[1.2px] text-pasha-muted/70">
+      <span className="font-mono text-[9px] uppercase tracking-[1.2px] text-pasha-muted">
         {label}
       </span>
     </div>
@@ -1101,7 +1107,7 @@ export function DirectoryClient({
 
           // ─────────── GRID VIEW ───────────
           return (
-            <motion.article
+            <m.article
               key={r.id}
               initial={{ opacity: 0, y: 20 }}
               animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -1117,6 +1123,7 @@ export function DirectoryClient({
 
               <Link
                 href={detailHref}
+                prefetch={false}
                 aria-label={`View ${r.startup_name} details`}
                 className="absolute inset-0 z-10 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pasha-red/30"
               />
@@ -1243,6 +1250,7 @@ export function DirectoryClient({
                 </div>
                 <Link
                   href={detailHref}
+                  prefetch={false}
                   aria-label={`Open ${r.startup_name} profile`}
                   title="Open profile"
                   className="relative z-30 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-pasha-ink text-white transition-colors hover:bg-pasha-red"
@@ -1250,7 +1258,7 @@ export function DirectoryClient({
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
-            </motion.article>
+            </m.article>
           );
         })}
       </div>
@@ -1268,7 +1276,7 @@ export function DirectoryClient({
 
       {/* Empty state */}
       {total === 0 && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.4 }}
@@ -1300,7 +1308,7 @@ export function DirectoryClient({
               Reset filters
             </button>
           )}
-        </motion.div>
+        </m.div>
       )}
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   BadgeCheck,
   Sparkles,
@@ -66,7 +66,7 @@ export function VerifiedContent() {
         <SiteHeader />
         <main className="flex-1 bg-pasha-stone/30">
           <div className="mx-auto max-w-2xl px-4 sm:px-8 py-20 sm:py-28 text-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
@@ -87,7 +87,7 @@ export function VerifiedContent() {
                   Back to sign in
                 </PillButton>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         </main>
         <SiteFooter />
@@ -100,36 +100,36 @@ export function VerifiedContent() {
       <SiteHeader />
       <main className="flex-1 bg-pasha-stone/30">
         <div className="mx-auto max-w-3xl px-4 sm:px-8 py-20 sm:py-28 text-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
             {/* Big, unmistakable success mark — concentric green rings with an */}
             <div className="relative mx-auto mb-8 w-28 h-28 sm:w-32 sm:h-32">
-              <motion.span
+              <m.span
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="absolute inset-0 rounded-full bg-green-600/10"
               />
-              <motion.span
+              <m.span
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="absolute inset-3 rounded-full bg-green-600/15"
               />
-              <motion.div
+              <m.div
                 initial={{ scale: 0.4, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.3, type: "spring", bounce: 0.5 }}
                 className="absolute inset-6 rounded-full bg-green-600 grid place-items-center shadow-lg shadow-green-600/30"
               >
                 <BadgeCheck className="w-9 h-9 sm:w-11 sm:h-11 text-white" strokeWidth={2.5} />
-              </motion.div>
+              </m.div>
             </div>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.35 }}
@@ -139,7 +139,7 @@ export function VerifiedContent() {
               <span className="font-mono text-[11px] uppercase tracking-[2px] text-green-800">
                 Verification complete
               </span>
-            </motion.div>
+            </m.div>
 
             <h1 className="font-serif font-extrabold text-4xl sm:text-7xl tracking-tight text-pasha-ink text-balance">
               Email verified.
@@ -148,9 +148,9 @@ export function VerifiedContent() {
               Your account is now active. Pick up right where you left off and
               complete your application whenever you&apos;re ready.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.55 }}
@@ -162,7 +162,7 @@ export function VerifiedContent() {
             <PillButton href="/directory" variant="outline" dot={false} arrow={false}>
               Browse the directory
             </PillButton>
-          </motion.div>
+          </m.div>
         </div>
       </main>
       <SiteFooter />

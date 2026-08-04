@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Loader2, Save, X } from "lucide-react";
 
@@ -21,8 +21,9 @@ import { AutoOptionalLabels } from "./Field";
 import { ErrorFieldLinks } from "./ErrorFieldLinks";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
-import { api, apiErrorMessage } from "@/lib/api/client";
+import { ApiError, api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
+import { marketSizeIssue, marketSizeMessage } from "@/lib/forms/market-size";
 import { useFormStepJump } from "./FormStepJump";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
@@ -195,9 +196,61 @@ export function DynamicForm({
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
 
+  // TAM ≥ SAM ≥ SOM. A cross-field rule, so it cannot live in the per-field
+  // schema — see market-size.ts. It was previously enforced only by the submit
+  // API, which meant an applicant filled all six steps, pressed Submit, and got
+  // a banner about a figure entered several steps earlier with nothing marked
+  // on the field itself. Checked here as well so the Continue button on the
+  // step that owns the offending figure catches it in place.
+  //
+  // The server check stays: it is the actual guarantee, and this one is only a
+  // courtesy to the person typing.
+  const marketIssue = useMemo(
+    () => marketSizeIssue(values as Record<string, unknown>),
+    [values]
+  );
+  const marketIssueKey = marketIssue ? String(marketIssue.path[0]) : null;
+
+  // Surface it on the field as the numbers change, rather than waiting for
+  // Continue or Submit — an applicant should not carry a bad figure through six
+  // steps before being told.
+  //
+  // Held back until both compared fields have been blurred. Without that, a
+  // filled SAM plus the first digit of a larger TAM reads as an inversion and
+  // the error fires at someone who is mid-way through typing the number that
+  // fixes it.
+  const touchedFields = form.formState.touchedFields as Record<string, unknown>;
+  const marketIssueReady = Boolean(
+    marketIssue &&
+      marketIssueKey &&
+      touchedFields[marketIssueKey] &&
+      touchedFields[marketIssue.comparedTo]
+  );
+  // Tracks the key we set so it can be cleared once the figures agree; without
+  // it a corrected value would leave the message on screen.
+  const marketErrorKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = marketErrorKeyRef.current;
+    if (marketIssueReady && marketIssue && marketIssueKey) {
+      if (previous && previous !== marketIssueKey) form.clearErrors(previous as never);
+      marketErrorKeyRef.current = marketIssueKey;
+      form.setError(marketIssueKey as never, {
+        type: "manual",
+        message: `${marketIssue.label} ${marketIssue.message}`,
+      });
+      return;
+    }
+    if (previous) {
+      form.clearErrors(previous as never);
+      marketErrorKeyRef.current = null;
+    }
+    // form is stable; message is derived from the two values above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketIssueReady, marketIssueKey, marketIssue?.message]);
+
   // Submission is gated on the form's own schema — the same rules (and the same admin `required` flags) that power per-step Continue validation.
   const submitCheck = useMemo(() => schema.safeParse(values), [schema, values]);
-  const canSubmit = submitCheck.success;
+  const canSubmit = submitCheck.success && !marketIssue;
   const missingRequired = useMemo(() => {
     if (submitCheck.success) return [] as { key: string; label: string }[];
     const seen = new Set<string>();
@@ -376,6 +429,21 @@ export function DynamicForm({
       setErrorFields(bad.map((k) => ({ name: k, label: labelMap[k] ?? k })));
       return;
     }
+    // Cross-field market check, after trigger() so the resolver cannot wipe the
+    // manual error we are about to set. Only blocks when the offending figure
+    // is on the step being left — an issue whose field lives further ahead is
+    // caught when that step is passed, and by the submit gate regardless.
+    if (marketIssue && marketIssueKey && keys.includes(marketIssueKey)) {
+      form.setError(marketIssueKey as never, {
+        type: "manual",
+        message: `${marketIssue.label} ${marketIssue.message}`,
+      });
+      setError(marketSizeMessage(marketIssue));
+      setErrorFields([
+        { name: marketIssueKey, label: labelMap[marketIssueKey] ?? marketIssueKey },
+      ]);
+      return;
+    }
     setError(null);
     setErrorFields([]);
     // Wipe any errors carried over from the previous step so the next step starts clean — the user should only see errors after touching a field or.
@@ -433,8 +501,46 @@ export function DynamicForm({
       });
       router.push(`/apply/success?${params.toString()}`);
     } catch (e) {
+      // The submit API answers a failed cross-field rule with per-field
+      // messages (see validationError in api/submit/route.ts). Nothing read
+      // them, so a server-side rejection surfaced as a banner on the last step
+      // with the offending input left unmarked several steps back. Push them
+      // onto the fields and move to the step that owns the first one.
+      applyServerFieldErrors(e);
       setError(e instanceof Error ? e.message : "Submission failed");
       setSubmitting(false);
+    }
+  };
+
+  // Maps { fieldErrors: { field_key: message } } from an ApiError onto the form
+  // and jumps to the owning step. No-op for errors that carry no field map.
+  const applyServerFieldErrors = (e: unknown) => {
+    if (!(e instanceof ApiError)) return;
+    const raw = e.data?.fieldErrors;
+    if (!raw || typeof raw !== "object") return;
+
+    const entries = Object.entries(raw as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    );
+    if (entries.length === 0) return;
+
+    for (const [key, message] of entries) {
+      // "_root" is the API's bucket for issues with no field path.
+      if (key === "_root") continue;
+      form.setError(key as never, { type: "server", message });
+    }
+
+    const named = entries.map(([k]) => k).filter((k) => k !== "_root");
+    setErrorFields(named.map((k) => ({ name: k, label: labelMap[k] ?? k })));
+
+    for (let i = 0; i < totalSteps; i++) {
+      if (stepFieldKeys(config, steps[i]).some((k) => named.includes(k))) {
+        if (stepIdx !== i) {
+          setStepIdx(i);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
     }
   };
 
@@ -504,7 +610,7 @@ export function DynamicForm({
       )}
       <AnimatePresence>
         {draftRestored && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -524,7 +630,7 @@ export function DynamicForm({
             >
               <X className="w-4 h-4" />
             </button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -565,7 +671,7 @@ export function DynamicForm({
           ))}
         </div>
         <div ref={trackRef} className="relative h-1.5 rounded-full bg-pasha-line/60 overflow-hidden">
-          <motion.div
+          <m.div
             className="absolute top-0 left-0 h-full bg-pasha-red rounded-full"
             initial={false}
             animate={{
@@ -610,7 +716,7 @@ export function DynamicForm({
 
         <form onSubmit={(e) => e.preventDefault()} noValidate className="px-6 sm:px-8 py-8">
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={currentStep}
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
@@ -639,26 +745,38 @@ export function DynamicForm({
                   ))}
                 </div>
               ))}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
 
           {error && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-6 rounded-xl border border-pasha-red/30 bg-pasha-red/[0.04] px-4 py-3 text-sm text-pasha-red"
             >
               {error}
               <ErrorFieldLinks fields={errorFields} />
-            </motion.div>
+            </m.div>
           )}
 
           {isLast && !canSubmit && (
             <div className="mt-6 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-medium">Complete the required fields to submit</p>
-              <p className="mt-1 text-amber-800/90">
-                Still needed: {missingRequired.map((m) => m.label).join(", ")}.
+              <p className="font-medium">
+                {missingRequired.length > 0
+                  ? "Complete the required fields to submit"
+                  : "Fix the following to submit"}
               </p>
+              {missingRequired.length > 0 && (
+                <p className="mt-1 text-amber-800/90">
+                  Still needed: {missingRequired.map((m) => m.label).join(", ")}.
+                </p>
+              )}
+              {/* Listed separately: it is not a missing answer but a
+                  contradiction between answers, and rendering it in the
+                  "Still needed" list read as though the field were empty. */}
+              {marketIssue && (
+                <p className="mt-1 text-amber-800/90">{marketSizeMessage(marketIssue)}</p>
+              )}
             </div>
           )}
         </form>

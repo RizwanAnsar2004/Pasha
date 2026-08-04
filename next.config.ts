@@ -73,6 +73,18 @@ const securityHeaders = [
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
+  // Severs the window.opener relationship with cross-origin openers, so a page
+  // that opens this one can't reach into it. same-origin-allow-popups rather
+  // than same-origin because the auth flows open Supabase/Turnstile popups and
+  // need to keep talking to them.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+];
+
+// Every filename under /_next/static carries a content hash, so a changed file
+// is a changed URL and the cached copy can never be stale. Without this the
+// whole JS/CSS/font bundle (~933KB) is re-downloaded on every repeat visit.
+const staticAssetHeaders = [
+  { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
 ];
 
 // Unlisted static event pages, served straight from /public.
@@ -111,6 +123,10 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: staticAssetHeaders,
       },
       // Kept as its own rule with a distinct header key: adding X-Robots-Tag to
       // securityHeaders instead would apply it site-wide, and merging a second

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight, Globe, MapPin, Search } from "lucide-react";
 import { initials } from "@/lib/utils";
 import { safeImageSrc, safeHref } from "@/lib/validators/safe-url";
@@ -344,7 +344,7 @@ export function DirectoryBento({
             <p className="mt-3 text-pasha-muted">No startups match those filters yet. Try a different sector or stage.</p>
           </div>
         ) : (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -359,7 +359,7 @@ export function DirectoryBento({
             {minis.map((startup, i) => (
               <MiniCard key={startup.id} startup={startup} tint={MINI_TINTS[i % MINI_TINTS.length]} optionIndex={optionIndex} />
             ))}
-          </motion.div>
+          </m.div>
         )}
       </div>
     </section>

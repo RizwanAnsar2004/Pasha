@@ -138,10 +138,22 @@ function buildStringBase(
     out = out.refine(
       (v: unknown) => {
         if (typeof v !== "string" || v === "") return true;
+        // Compiled with the unicode flag first so admins can write
+        // Unicode property escapes — \p{L} is the only practical way to say
+        // "must contain a letter" without excluding Urdu, Arabic or Chinese
+        // names, and without the flag `\p{L}` silently degrades to the literal
+        // characters "p{L}", matching almost nothing. Falls back to a
+        // flagless compile because `u` mode rejects some escapes that are
+        // legal in legacy patterns, and an existing admin regex must not
+        // start throwing here.
         try {
-          return new RegExp(src).test(v);
+          return new RegExp(src, "u").test(v);
         } catch {
-          return true; // an invalid admin pattern must not block the submission
+          try {
+            return new RegExp(src).test(v);
+          } catch {
+            return true; // an invalid admin pattern must not block the submission
+          }
         }
       },
       { message: "Invalid format" }
@@ -259,6 +271,52 @@ function withYearFoundedMax(field: FormFieldConfig, schema: z.ZodTypeAny): z.Zod
   );
 }
 
+// URL fields that must point at a video, not merely at a valid URL. Applicants
+// pasted their App Store listing into "Demo Video URL", so the public profile
+// offered a demo video that opened the App Store — a generic URL check cannot
+// catch that, because the link is perfectly valid, just not a video.
+const VIDEO_URL_FIELD_KEYS = new Set(["demo_video_url"]);
+
+// Hosts accepted for a video URL. Deliberately a small allowlist of the
+// services founders actually use: an open-ended "must look like a video" rule
+// has no reliable signal to test, and a blocklist would let the next wrong
+// paste straight through.
+const VIDEO_HOSTS = [
+  "youtube.com",
+  "youtu.be",
+  "vimeo.com",
+  "loom.com",
+  "wistia.com",
+  "wistia.net",
+  "drive.google.com",
+  "dailymotion.com",
+  "streamable.com",
+  "facebook.com",
+  "linkedin.com",
+];
+
+function isVideoHost(value: string): boolean {
+  try {
+    const { hostname } = new URL(value.startsWith("http") ? value : `https://${value}`);
+    const host = hostname.replace(/^www\./, "").toLowerCase();
+    return VIDEO_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+  } catch {
+    return false;
+  }
+}
+
+// Layered on top of the normal URL rule, and only on a non-empty value, so an
+// optional field left blank is still valid.
+function withVideoHost(schema: z.ZodTypeAny): z.ZodTypeAny {
+  return schema.refine(
+    (v: unknown) => typeof v !== "string" || v === "" || isVideoHost(v),
+    {
+      message:
+        "Must link to a video (YouTube, Vimeo, Loom, Google Drive, etc.), not an app or website page",
+    }
+  );
+}
+
 // Build the Zod type for a single scalar field.
 function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
   const spec = field.validation ?? {};
@@ -285,6 +343,7 @@ function scalarZod(field: FormFieldConfig): z.ZodTypeAny {
       break;
     case InputType.URL:
       schema = req ? requiredSafeUrl : optionalSafeUrl;
+      if (VIDEO_URL_FIELD_KEYS.has(field.field_key)) schema = withVideoHost(schema);
       break;
     case InputType.PHONE:
       schema = req ? requiredPhone : optionalPhone;

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight, MessagesSquare } from "lucide-react";
 import { PASHA_FACEBOOK } from "@/lib/content/community";
 import { FacebookGlyph } from "./FacebookGlyph";
@@ -21,7 +21,7 @@ export function JoinCommunity() {
       />
 
       <div className="relative site-container">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -60,7 +60,7 @@ export function JoinCommunity() {
               <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5" />
             </a>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

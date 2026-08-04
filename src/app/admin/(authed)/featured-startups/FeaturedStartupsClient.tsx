@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api as http } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { format } from "date-fns";
 import {
   BadgeCheck,
@@ -485,7 +485,7 @@ export function FeaturedStartupsClient({
       <AnimatePresence>
         {showModal && (
           <>
-            <motion.button
+            <m.button
               key="featured-backdrop"
               type="button"
               aria-label="Close dialog"
@@ -496,7 +496,7 @@ export function FeaturedStartupsClient({
               onClick={closeModal}
               className="fixed inset-0 z-50 bg-pasha-ink/40 h-[100vh] backdrop-blur-sm"
             />
-            <motion.div
+            <m.div
               key="featured-dialog"
               role="dialog"
               aria-modal="true"
@@ -506,7 +506,7 @@ export function FeaturedStartupsClient({
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
             >
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -617,8 +617,8 @@ export function FeaturedStartupsClient({
                 Cancel
               </button>
             </div>
-              </motion.div>
-            </motion.div>
+              </m.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

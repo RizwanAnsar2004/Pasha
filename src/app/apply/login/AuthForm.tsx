@@ -11,7 +11,7 @@ import { api, ApiError, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Rocket, Loader2, AlertCircle, MailCheck, ArrowLeft, ArrowRight, FileText } from "lucide-react";
 import { TermsModal } from "./TermsModal";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -779,7 +779,7 @@ function AuthInner({
             isRegistrationStep ? "max-w-3xl" : "max-w-md"
           )}
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -792,7 +792,7 @@ function AuthInner({
                 each screen, directly above that screen's submit button. See
                 captchaBlock above. */}
             {bodyContent}
-          </motion.div>
+          </m.div>
         </div>
       </main>
       <SiteFooter />

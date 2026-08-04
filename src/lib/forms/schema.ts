@@ -116,9 +116,25 @@ const founderCustomLink = z.object({
   ),
 });
 
+// Length-only validation let purely numeric strings ("223232323223") through on
+// every field that used it — a name and a role both passed `min(2)` trivially,
+// so the founder database filled with garbage that downstream outreach and the
+// public profiles then rendered verbatim. Requiring at least one letter is the
+// cheapest rule that rejects it without excluding legitimate names: `\p{L}`
+// matches any script, so Urdu, Arabic and Chinese names all pass, as do names
+// containing digits or punctuation ("R2-D2", "O'Neill", "Anne-Marie") provided
+// a letter appears somewhere. The max length caps the 35-digit-string case.
+const humanText = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .min(2, message)
+    .max(max, `Must be ${max} characters or fewer`)
+    .regex(/\p{L}/u, "Must contain at least one letter");
+
 export const founderSchema = z.object({
-  name: z.string().trim().min(2, "Founder name required"),
-  role: z.string().trim().min(2, "Role required (e.g. CEO, CTO)"),
+  name: humanText(150, "Founder name required"),
+  role: humanText(100, "Role required (e.g. CEO, CTO)"),
   email: z.preprocess(
     (v) => (v === "" || v == null ? undefined : String(v).trim()),
     z.string().email("Valid email required").optional()

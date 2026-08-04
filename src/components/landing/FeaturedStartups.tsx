@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight, BadgeCheck, Users, Globe } from "lucide-react";
 import { initials, formatNumber } from "@/lib/utils";
 import { RichText } from "@/components/ui/RichText";
@@ -39,7 +39,7 @@ export function FeaturedStartups({ startups }: { startups: FeaturedStartup[] }) 
     <section className="relative bg-white border-b border-pasha-line py-20 sm:py-28 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         {/* Section header */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -64,7 +64,7 @@ export function FeaturedStartups({ startups }: { startups: FeaturedStartup[] }) 
             View all startups
             <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Link>
-        </motion.div>
+        </m.div>
 
         {/* Bento grid */}
         {cards.length > 0 && (
@@ -99,7 +99,7 @@ function BentoCard({
     : null;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -177,6 +177,6 @@ function BentoCard({
         aria-hidden
         className="absolute top-4 right-4 w-4 h-4 text-pasha-muted opacity-0 group-hover:opacity-100 transition-opacity z-20"
       />
-    </motion.div>
+    </m.div>
   );
 }

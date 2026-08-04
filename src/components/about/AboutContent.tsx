@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -169,7 +169,7 @@ export function AboutContent({
           plain-language "what is this", the handbook is the detail. */}
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-8">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -180,11 +180,11 @@ export function AboutContent({
             <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
               The Hub
             </span>
-          </motion.div>
+          </m.div>
 
           <div className="space-y-6 text-base sm:text-[17px] text-pasha-ink/75 leading-relaxed text-pretty">
             {INTRO_PARAGRAPHS.map((para, i) => (
-              <motion.p
+              <m.p
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -192,7 +192,7 @@ export function AboutContent({
                 transition={{ duration: 0.55, delay: i * 0.06, ease: EASE }}
               >
                 {para}
-              </motion.p>
+              </m.p>
             ))}
           </div>
 
@@ -215,7 +215,7 @@ export function AboutContent({
       {/*
       <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-8">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -226,7 +226,7 @@ export function AboutContent({
             <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
               §1–6
             </span>
-          </motion.div>
+          </m.div>
 
           <div className="space-y-10 sm:space-y-12">
             {SECTIONS.map((section, i) => (
@@ -234,7 +234,7 @@ export function AboutContent({
             ))}
           </div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -247,7 +247,7 @@ export function AboutContent({
             <PillButton href="/directory" variant="outline" dot={false}>
               Browse the directory
             </PillButton>
-          </motion.div>
+          </m.div>
         </div>
       </section>
       */}
@@ -273,7 +273,7 @@ function VisionMission() {
           with its own large heading made this read as a different page's
           design dropped into the middle of About. */}
       <div className="mx-auto max-w-4xl px-4 sm:px-8">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -284,11 +284,11 @@ function VisionMission() {
           <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
             Vision &amp; Mission
           </span>
-        </motion.div>
+        </m.div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           {VISION_MISSION.map((item, i) => (
-            <motion.blockquote
+            <m.blockquote
               key={item.label}
               initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -315,7 +315,7 @@ function VisionMission() {
               <p className="mt-2.5 text-base sm:text-[17px] leading-relaxed text-pasha-ink text-pretty">
                 {item.text}
               </p>
-            </motion.blockquote>
+            </m.blockquote>
           ))}
         </div>
       </div>
@@ -329,7 +329,7 @@ function WhatYouFind() {
   return (
     <section className="relative bg-pasha-stone border-t border-pasha-line py-20 sm:py-28">
       <div className="mx-auto max-w-4xl px-4 sm:px-8">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -340,11 +340,11 @@ function WhatYouFind() {
           <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
             {String(WHAT_YOU_FIND.length).padStart(2, "0")} things
           </span>
-        </motion.div>
+        </m.div>
 
         <ul className="grid gap-4 sm:grid-cols-2">
           {WHAT_YOU_FIND.map((item, i) => (
-            <motion.li
+            <m.li
               key={item.text}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -368,14 +368,14 @@ function WhatYouFind() {
               <p className="pt-1.5 text-base text-pasha-ink/75 leading-relaxed text-pretty">
                 {item.text}
               </p>
-            </motion.li>
+            </m.li>
           ))}
         </ul>
 
         {/* CTAs HIDDEN — these came from the handbook section. They belong with
             it, so restore them there (not here) when the handbook comes back. */}
         {/*
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -388,7 +388,7 @@ function WhatYouFind() {
           <PillButton href="/directory" variant="outline" dot={false}>
             Browse the directory
           </PillButton>
-        </motion.div>
+        </m.div>
         */}
       </div>
     </section>
@@ -415,7 +415,7 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
     <section className="relative bg-white border-t border-pasha-line py-20 sm:py-28">
       <div className="mx-auto max-w-4xl px-4 sm:px-8">
         {/* Header matches the handbook section above it */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
@@ -426,11 +426,11 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
           <span className="font-mono text-[10px] uppercase tracking-[2.5px] text-pasha-ink/40">
             {ordered.length} members
           </span>
-        </motion.div>
+        </m.div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {core.map((member, i) => (
-            <motion.div
+            <m.div
               key={member.email}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -474,12 +474,12 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
         {/* Link out to the full roster + committee mission on /committee. */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
@@ -489,7 +489,7 @@ function CommitteeRoster({ members }: { members: CommitteeMemberRow[] }) {
           <PillButton href="/committee" variant="outline" dot={false}>
             {hasMore ? "View all committee members" : "Meet the full committee"}
           </PillButton>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );
@@ -504,7 +504,7 @@ function ArticleSection({
   index: number;
 }) {
   return (
-    <motion.article
+    <m.article
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
@@ -547,7 +547,7 @@ function ArticleSection({
           )}
         </div>
       </div>
-    </motion.article>
+    </m.article>
   );
 }
 
