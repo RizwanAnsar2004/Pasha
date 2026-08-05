@@ -7,23 +7,23 @@ import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Loader2, Save, X } from "lucide-react";
 
+import type { FormConfig } from "@/lib/forms/form-config";
 import {
-  buildZodSchema,
-  buildDefaultValues,
+  getDefaults,
+  getSchema,
+  stepKeys,
   stepsOf,
-  stepTitlesOf,
-  sectionsForStep,
-  stepFieldKeys,
-  type FormConfig,
-} from "@/lib/forms/form-config";
-import { DynamicField } from "./DynamicField";
+  stepTitles,
+  toDesign,
+} from "@/lib/forms/form-design";
+import { FormField } from "./inputs";
 import { AutoOptionalLabels } from "./Field";
 import { ErrorFieldLinks } from "./ErrorFieldLinks";
 import { OptionListsProvider, type OptionRegistry } from "./OptionListsContext";
 import { funnel } from "@/lib/utils/analytics";
 import { ApiError, api, apiErrorMessage } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
-import { marketSizeIssue, marketSizeMessage } from "@/lib/forms/market-size";
+import { RuleErrorsProvider, ruleIssuesFor, visibleRuleErrors } from "./inputs";
 import { useFormStepJump } from "./FormStepJump";
 
 const DRAFT_KEY = "pasha-apply-draft-dyn-v1";
@@ -102,20 +102,23 @@ export function DynamicForm({
   const router = useRouter();
   const partial = Boolean(editRequest);
 
-  const steps = useMemo(() => stepsOf(config), [config]);
-  const titles = useMemo(() => stepTitlesOf(config), [config]);
-  const schema = useMemo(() => buildZodSchema(config), [config]);
+  // The design array: the API's config as a flat list of fields, each carrying
+  // its own schema. Everything below reads from this rather than from the raw
+  // config — the schema, the defaults, the step gates and the rendering.
+  const design = useMemo(() => toDesign(config), [config]);
+  const steps = useMemo(() => stepsOf(design), [design]);
+  const titles = useMemo(() => stepTitles(design), [design]);
+  const schema = useMemo(() => getSchema(design), [design]);
   const defaults = useMemo(
-    () => ({ ...buildDefaultValues(config), ...(initialValues ?? {}) }),
-    [config, initialValues]
+    () => ({ ...getDefaults(design), ...(initialValues ?? {}) }),
+    [design, initialValues]
   );
 
-  // Map every field_key → its label, for friendly validation messages.
-  const labelMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (const s of config) for (const f of s.fields) m[f.field_key] = f.label ?? f.field_key;
-    return m;
-  }, [config]);
+  // Map every field name → its label, for friendly validation messages.
+  const labelMap = useMemo(
+    () => Object.fromEntries(design.map((i) => [i.fieldName, i.label ?? i.fieldName])),
+    [design]
+  );
 
   const [stepIdx, setStepIdx] = useState(() => {
     const max = Math.max(0, steps.length - 1);
@@ -135,7 +138,7 @@ export function DynamicForm({
         : v !== undefined && v !== null && v !== "";
     let furthest = 0;
     for (let i = 0; i < steps.length; i++) {
-      const filled = stepFieldKeys(config, steps[i]).some((k) => hasValue(data[k]));
+      const filled = stepKeys(design, steps[i]).some((k) => hasValue(data[k]));
       if (filled) furthest = i;
     }
     return furthest;
@@ -167,6 +170,19 @@ export function DynamicForm({
   const totalSteps = steps.length;
   const currentStep = steps[stepIdx];
 
+  // This step's items, regrouped into their sections so the sub-headings between
+  // groups of fields survive the flattening.
+  const stepSections = useMemo(() => {
+    const out: { id: string; title: string; items: typeof design }[] = [];
+    for (const item of design) {
+      if (item.step !== currentStep) continue;
+      const last = out[out.length - 1];
+      if (last?.id === item.sectionId) last.items.push(item);
+      else out.push({ id: item.sectionId, title: item.sectionTitle, items: [item] });
+    }
+    return out;
+  }, [design, currentStep]);
+
   // Remember the furthest step reached so it stays clickable after going back.
   useEffect(() => {
     setMaxStepReached((m) => Math.max(m, stepIdx));
@@ -196,73 +212,42 @@ export function DynamicForm({
   // eslint-disable-next-line react-hooks/incompatible-library -- watch() is intentionally non-memoizable
   const values = form.watch();
 
-  // TAM ≥ SAM ≥ SOM. A cross-field rule, so it cannot live in the per-field
-  // schema — see market-size.ts. It was previously enforced only by the submit
-  // API, which meant an applicant filled all six steps, pressed Submit, and got
-  // a banner about a figure entered several steps earlier with nothing marked
-  // on the field itself. Checked here as well so the Continue button on the
-  // step that owns the offending figure catches it in place.
+  // Cross-field rules (TAM ≥ SAM ≥ SOM, female ≤ total employees, year founded
+  // not in the future). The schema enforces the same list at submit, on both
+  // client and server; these are the as-you-type copies, so an applicant is not
+  // carried through six steps before being told a figure is wrong.
   //
-  // The server check stays: it is the actual guarantee, and this one is only a
-  // courtesy to the person typing.
-  const marketIssue = useMemo(
-    () => marketSizeIssue(values as Record<string, unknown>),
-    [values]
+  // Adding a rule means adding one line to FORM_RULES — nothing here changes.
+  const ruleIssues = useMemo(
+    () => ruleIssuesFor(values as Record<string, unknown>, design),
+    [values, design]
   );
-  const marketIssueKey = marketIssue ? String(marketIssue.path[0]) : null;
-
-  // Surface it on the field as the numbers change, rather than waiting for
-  // Continue or Submit — an applicant should not carry a bad figure through six
-  // steps before being told.
-  //
-  // Held back until both compared fields have been blurred. Without that, a
-  // filled SAM plus the first digit of a larger TAM reads as an inversion and
-  // the error fires at someone who is mid-way through typing the number that
-  // fixes it.
   const touchedFields = form.formState.touchedFields as Record<string, unknown>;
-  const marketIssueReady = Boolean(
-    marketIssue &&
-      marketIssueKey &&
-      touchedFields[marketIssueKey] &&
-      touchedFields[marketIssue.comparedTo]
+  // Held back until both compared fields have been touched; see visibleRuleErrors.
+  const ruleErrors = useMemo(
+    () => visibleRuleErrors(ruleIssues, touchedFields),
+    [ruleIssues, touchedFields]
   );
-  // Tracks the key we set so it can be cleared once the figures agree; without
-  // it a corrected value would leave the message on screen.
-  const marketErrorKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previous = marketErrorKeyRef.current;
-    if (marketIssueReady && marketIssue && marketIssueKey) {
-      if (previous && previous !== marketIssueKey) form.clearErrors(previous as never);
-      marketErrorKeyRef.current = marketIssueKey;
-      form.setError(marketIssueKey as never, {
-        type: "manual",
-        message: `${marketIssue.label} ${marketIssue.message}`,
-      });
-      return;
-    }
-    if (previous) {
-      form.clearErrors(previous as never);
-      marketErrorKeyRef.current = null;
-    }
-    // form is stable; message is derived from the two values above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketIssueReady, marketIssueKey, marketIssue?.message]);
 
   // Submission is gated on the form's own schema — the same rules (and the same admin `required` flags) that power per-step Continue validation.
   const submitCheck = useMemo(() => schema.safeParse(values), [schema, values]);
-  const canSubmit = submitCheck.success && !marketIssue;
+  const canSubmit = submitCheck.success;
   const missingRequired = useMemo(() => {
     if (submitCheck.success) return [] as { key: string; label: string }[];
+    // Rule violations come back from the same schema, but they are listed on
+    // their own below — a filled-in field that contradicts another one is not
+    // "still needed".
+    const ruleKeys = new Set(ruleIssues.map((i) => i.path));
     const seen = new Set<string>();
     const out: { key: string; label: string }[] = [];
     for (const issue of submitCheck.error.issues) {
       const key = String(issue.path[0] ?? "");
-      if (!key || seen.has(key)) continue;
+      if (!key || seen.has(key) || ruleKeys.has(key)) continue;
       seen.add(key);
       out.push({ key, label: labelMap[key] ?? key });
     }
     return out;
-  }, [submitCheck, labelMap]);
+  }, [submitCheck, labelMap, ruleIssues]);
 
   // Fire the funnel "started" event once when the form mounts.
   useEffect(() => {
@@ -420,7 +405,7 @@ export function DynamicForm({
   const goNext = async (e?: React.MouseEvent) => {
     e?.preventDefault();
     if (stepIdx >= totalSteps - 1) return;
-    const keys = stepFieldKeys(config, currentStep);
+    const keys = stepKeys(design, currentStep);
     const ok = await form.trigger(keys);
     if (!ok) {
       const errs = form.formState.errors as Record<string, unknown>;
@@ -429,18 +414,15 @@ export function DynamicForm({
       setErrorFields(bad.map((k) => ({ name: k, label: labelMap[k] ?? k })));
       return;
     }
-    // Cross-field market check, after trigger() so the resolver cannot wipe the
-    // manual error we are about to set. Only blocks when the offending figure
-    // is on the step being left — an issue whose field lives further ahead is
-    // caught when that step is passed, and by the submit gate regardless.
-    if (marketIssue && marketIssueKey && keys.includes(marketIssueKey)) {
-      form.setError(marketIssueKey as never, {
-        type: "manual",
-        message: `${marketIssue.label} ${marketIssue.message}`,
-      });
-      setError(marketSizeMessage(marketIssue));
+    // Cross-field rules, after trigger() so the resolver cannot wipe them. Only
+    // blocks when the offending field is on the step being left — a violation
+    // further ahead is caught when that step is passed, and by the submit gate
+    // regardless.
+    const blocking = ruleIssues.find((i) => keys.includes(i.path));
+    if (blocking) {
+      setError(blocking.message);
       setErrorFields([
-        { name: marketIssueKey, label: labelMap[marketIssueKey] ?? marketIssueKey },
+        { name: blocking.path, label: labelMap[blocking.path] ?? blocking.path },
       ]);
       return;
     }
@@ -534,7 +516,7 @@ export function DynamicForm({
     setErrorFields(named.map((k) => ({ name: k, label: labelMap[k] ?? k })));
 
     for (let i = 0; i < totalSteps; i++) {
-      if (stepFieldKeys(config, steps[i]).some((k) => named.includes(k))) {
+      if (stepKeys(design, steps[i]).some((k) => named.includes(k))) {
         if (stepIdx !== i) {
           setStepIdx(i);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -548,7 +530,7 @@ export function DynamicForm({
     const topLevel = Object.keys(errs).map((p) => (p.includes(".") ? p.slice(0, p.indexOf(".")) : p));
     // Jump to the first step that owns a failing field.
     for (let i = 0; i < totalSteps; i++) {
-      const keys = stepFieldKeys(config, steps[i]);
+      const keys = stepKeys(design, steps[i]);
       const overlap = keys.filter((k) => topLevel.includes(k));
       if (overlap.length > 0) {
         setError(`${titles[i]?.title ?? `Step ${i + 1}`} needs: ${overlap.map((k) => labelMap[k] ?? k).join(", ")}`);
@@ -594,6 +576,7 @@ export function DynamicForm({
   return (
     <FormProvider {...form}>
       <OptionListsProvider value={optionLists ?? {}}>
+      <RuleErrorsProvider errors={ruleErrors}>
       <AutoOptionalLabels>
       {partial && (
         <div className="mb-6 rounded-xl border border-pasha-red/25 bg-pasha-red/[0.04] px-4 py-3">
@@ -724,9 +707,10 @@ export function DynamicForm({
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="space-y-9"
             >
-              {sectionsForStep(config, currentStep).map((section, idx) => (
+              {stepSections.map((section, idx) => (
                 <div key={section.id} className="space-y-6">
-                  {/* The first section of a step is the step itself (its title is */}
+                  {/* The first section of a step is the step itself (its title is
+                      already in the header), so only later ones get a divider. */}
                   {idx > 0 && (
                     <div className="flex items-center gap-3">
                       <h3 className="font-mono text-[11px] uppercase tracking-[2px] text-pasha-ink/70 font-semibold whitespace-nowrap">
@@ -738,9 +722,9 @@ export function DynamicForm({
                   {/* data-field anchors the error-banner jump links. Rich text,
                       selects and uploads render no native `name` attribute, so
                       the wrapper is the only reliable target. */}
-                  {section.fields.map((field) => (
-                    <div key={field.id} data-field={field.field_key}>
-                      <DynamicField field={field} />
+                  {section.items.map((item) => (
+                    <div key={item.id} data-field={item.fieldName}>
+                      <FormField item={item} />
                     </div>
                   ))}
                 </div>
@@ -771,12 +755,14 @@ export function DynamicForm({
                   Still needed: {missingRequired.map((m) => m.label).join(", ")}.
                 </p>
               )}
-              {/* Listed separately: it is not a missing answer but a
-                  contradiction between answers, and rendering it in the
+              {/* Listed separately: a rule violation is not a missing answer but
+                  a contradiction between answers, and rendering it in the
                   "Still needed" list read as though the field were empty. */}
-              {marketIssue && (
-                <p className="mt-1 text-amber-800/90">{marketSizeMessage(marketIssue)}</p>
-              )}
+              {ruleIssues.map((issue) => (
+                <p key={issue.path} className="mt-1 text-amber-800/90">
+                  {issue.message}
+                </p>
+              ))}
             </div>
           )}
         </form>
@@ -863,6 +849,7 @@ export function DynamicForm({
         </div>
       </div>
       </AutoOptionalLabels>
+      </RuleErrorsProvider>
       </OptionListsProvider>
     </FormProvider>
   );

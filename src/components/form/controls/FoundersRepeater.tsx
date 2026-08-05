@@ -8,14 +8,24 @@ import { SelectField } from "@/components/form/SelectField";
 import { FileUpload } from "@/components/form/FileUpload";
 import { FOUNDER_GENDERS } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
-import type { SubmissionInput } from "@/lib/forms/schema";
 import { PhoneField } from "@/components/form/controls/PhoneField";
+import type { Founder } from "@/lib/forms/form-design";
 import { urlRegister } from "@/lib/forms/normalize-url";
 import { cn } from "@/lib/utils";
 
+// The slice of form state this control owns. The surrounding form is
+// config-driven and so untyped; founders is the one branch with a fixed shape.
+type FoundersValues = { founders: Founder[] };
+
 // Add/remove founder cards. The first card is the primary submitter and
+//
+// Deliberately hard-coded: the DB seeds `founders` as a GROUP with no child
+// rows, so these sub-fields are defined in code (here for the UI, in
+// @/lib/forms/field-types/founders-schema for validation) rather than by the
+// admin. Making founders config-driven is future work; the FOUNDERS entry in
+// @/lib/forms/field-types/registry is the only wiring that would change.
 export function FoundersRepeater() {
-  const form = useFormContext<SubmissionInput>();
+  const form = useFormContext<FoundersValues>();
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "founders",
@@ -185,7 +195,7 @@ export function FoundersRepeater() {
 
 // Inline editor for the founders[i].custom_links sub-array. Each row is
 function CustomLinksField({ founderIndex }: { founderIndex: number }) {
-  const form = useFormContext<SubmissionInput>();
+  const form = useFormContext<FoundersValues>();
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: `founders.${founderIndex}.custom_links` as const,
@@ -261,7 +271,7 @@ function CustomLinksField({ founderIndex }: { founderIndex: number }) {
 
 // Tiny adapter so FileUpload can read/write the correct dotted path in the
 function FoundersPhotoUploadField({ index }: { index: number }) {
-  const form = useFormContext<SubmissionInput>();
+  const form = useFormContext<FoundersValues>();
   const value = form.watch(`founders.${index}.photo_url`) as string | undefined;
   return (
     <FileUpload

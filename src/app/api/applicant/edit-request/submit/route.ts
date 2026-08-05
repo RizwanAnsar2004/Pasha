@@ -18,7 +18,7 @@ import { InputType } from "@/lib/forms/form-enums";
 import { allFieldKeys, filterConfigToKeys } from "@/lib/startups/edit-requests/edit-requests";
 import { markEditRequestSubmitted } from "@/lib/startups/edit-requests/edit-requests.server";
 import { publishSubmissionToDatabank, touchDatabank } from "@/lib/startups/databank/publish.server";
-import { marketSizeIssue, marketSizeMessage } from "@/lib/forms/market-size";
+import { runRules } from "@/lib/forms/form-design";
 
 const bodySchema = z.object({
   editRequestId: z.string().uuid(),
@@ -137,16 +137,15 @@ export async function POST(req: Request) {
       .eq("id", reqRow.submission_id)
       .maybeSingle<{ answers: Record<string, unknown> | null }>();
     const mergedAnswers = { ...(cur?.answers ?? {}), ...answers };
-    // Checked against the merge, not the submitted values: an edit request can
-    // unlock a single market field, so the inversion is only visible alongside
-    // the two figures already stored. Blocks before the write so a valid
-    // listing can't be edited into an impossible one.
-    const marketIssue = marketSizeIssue(mergedAnswers);
-    if (marketIssue) {
-      return NextResponse.json(
-        { error: marketSizeMessage(marketIssue) },
-        { status: 400 }
-      );
+    // Cross-field rules, checked against the merge rather than the submitted
+    // values: an edit request can unlock a single market-size field, so an
+    // inversion is only visible alongside the figures already stored. The
+    // reduced schema above cannot see them, so this runs the rules separately.
+    // Blocks before the write, so a valid listing can't be edited into an
+    // impossible one.
+    const ruleIssue = runRules({ ...mergedAnswers, ...columns })[0];
+    if (ruleIssue) {
+      return NextResponse.json({ error: ruleIssue.message }, { status: 400 });
     }
     const { error: subErr } = await updateWithHeal(
       supabase,

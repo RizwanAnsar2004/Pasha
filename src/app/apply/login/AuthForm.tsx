@@ -16,10 +16,12 @@ import { Rocket, Loader2, AlertCircle, MailCheck, ArrowLeft, ArrowRight, FileTex
 import { TermsModal } from "./TermsModal";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { DynamicField } from "@/components/form/DynamicField";
+import { FormField } from "@/components/form/inputs";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { OptionListsProvider, type OptionRegistry } from "@/components/form/OptionListsContext";
-import { buildZodSchema, buildDefaultValues, buildDevPrefill, type FormConfig, type FormFieldConfig } from "@/lib/forms/form-config";
+import type { FormConfig } from "@/lib/forms/form-config";
+import { getDefaults, getSchema, toDesign, type FormItem } from "@/lib/forms/form-design";
+import { buildDevPrefill } from "@/lib/forms/dev-prefill";
 import { InputType } from "@/lib/forms/form-enums";
 import {
   APPLICANT_MIN_PASSWORD_LENGTH,
@@ -86,19 +88,24 @@ function AuthInner({
       : null
   );
 
-  // RHF form for the admin-configured §3 registration fields (step 2).
-  const schema = useMemo(
-    () => (hasRegForm ? buildZodSchema(registrationConfig!) : null),
+  // RHF form for the admin-configured §3 registration fields (step 2), built
+  // from the same design array the applicant wizard uses.
+  const registrationDesign = useMemo(
+    () => (hasRegForm ? toDesign(registrationConfig!) : []),
     [hasRegForm, registrationConfig]
+  );
+  const schema = useMemo(
+    () => (hasRegForm ? getSchema(registrationDesign) : null),
+    [hasRegForm, registrationDesign]
   );
   const defaults = useMemo(
     () =>
       hasRegForm
         ? DEV_PREFILL
           ? buildDevPrefill(registrationConfig!, optionLists)
-          : buildDefaultValues(registrationConfig!)
+          : getDefaults(registrationDesign)
         : {},
-    [hasRegForm, registrationConfig, optionLists]
+    [hasRegForm, registrationConfig, registrationDesign, optionLists]
   );
   const form = useForm<Values>({
     resolver: schema ? (zodResolver(schema as never) as Resolver<Values>) : undefined,
@@ -159,14 +166,15 @@ function AuthInner({
     setCaptchaToken(null);
   }
 
-  function registrationFieldSpan(field: FormFieldConfig) {
+  // Wide inputs and structural rows take the full width of the two-column grid.
+  function registrationFieldSpan(item: FormItem) {
     if (
-      field.input_type === InputType.CITY_COMPOSITE ||
-      field.input_type === InputType.TEXTAREA ||
-      field.input_type === InputType.RICH_TEXT ||
-      field.input_type === InputType.GROUP ||
-      field.input_type === InputType.HEADING ||
-      field.field_key === "terms_accepted"
+      item.inputType === InputType.CITY_COMPOSITE ||
+      item.inputType === InputType.TEXTAREA ||
+      item.inputType === InputType.RICH_TEXT ||
+      item.inputType === InputType.GROUP ||
+      item.inputType === InputType.HEADING ||
+      item.fieldName === "terms_accepted"
     ) {
       return "sm:col-span-2";
     }
@@ -656,11 +664,10 @@ function AuthInner({
               noValidate
               className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"
             >
-              {registrationConfig!.flatMap((section) =>
-                section.fields.map((field) => (
-                  <div key={field.id} className={registrationFieldSpan(field)}>
-                    <DynamicField field={field} />
-                    {field.field_key === "terms_accepted" && (
+              {registrationDesign.map((item) => (
+                  <div key={item.id} className={registrationFieldSpan(item)}>
+                    <FormField item={item} />
+                    {item.fieldName === "terms_accepted" && (
                       <button
                         type="button"
                         onClick={() => setTermsOpen(true)}
@@ -671,8 +678,7 @@ function AuthInner({
                       </button>
                     )}
                   </div>
-                ))
-              )}
+                ))}
               <TermsModal
                 open={termsOpen}
                 onClose={() => setTermsOpen(false)}

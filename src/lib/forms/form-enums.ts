@@ -41,44 +41,9 @@ export const INPUT_TYPE_LABELS: Record<number, string> = {
   [InputType.CITY_COMPOSITE]: "City / country (built-in)",
 };
 
-// HEADING and GROUP nodes don't themselves hold a submittable scalar value.
-export function isHeading(t: number): boolean {
-  return t === InputType.HEADING;
-}
-
-// Which native <input type> a scalar field maps to.
-export function htmlInputType(t: number): string {
-  switch (t) {
-    case InputType.EMAIL:
-      return "email";
-    case InputType.URL:
-      return "url";
-    case InputType.PHONE:
-      return "tel";
-    case InputType.NUMBER:
-      return "number";
-    case InputType.DATE:
-      return "date";
-    default:
-      return "text";
-  }
-}
-
-// The set of input types whose value is a plain string in the form state.
-export function isScalarString(t: number): boolean {
-  return (
-    t === InputType.TEXT ||
-    t === InputType.EMAIL ||
-    t === InputType.URL ||
-    t === InputType.PHONE ||
-    t === InputType.TEXTAREA ||
-    t === InputType.RICH_TEXT ||
-    t === InputType.SELECT ||
-    t === InputType.RADIO_CARDS ||
-    t === InputType.DATE ||
-    t === InputType.FILE_UPLOAD
-  );
-}
+// How a type renders and validates is declared once, in
+// @/lib/forms/field-types/registry — including its native <input type>, via
+// htmlInputTypeFor(). This file holds only the DB's integer vocabulary.
 
 // Validation spec persisted in form_fields.validation (JSONB).
 export type ValidationSpec = {

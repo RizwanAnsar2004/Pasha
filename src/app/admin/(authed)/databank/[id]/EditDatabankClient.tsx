@@ -32,7 +32,8 @@ import {
   type OptionRegistry,
 } from "@/components/form/OptionListsContext";
 import { COUNTRIES } from "@/lib/constants/countries";
-import { InputType, htmlInputType } from "@/lib/forms/form-enums";
+import { InputType } from "@/lib/forms/form-enums";
+import { htmlInputTypeFor } from "@/lib/forms/form-design";
 import type { DynamicFieldDef } from "@/lib/forms/form-config";
 
 // CKEditor touches `window`; load it client-only.
@@ -1244,7 +1245,7 @@ function DynamicFieldControl({
   // Scalar inputs: text / email / url / phone / number / date.
   return (
     <Input
-      type={htmlInputType(t)}
+      type={htmlInputTypeFor(t)}
       value={value == null ? "" : String(value)}
       placeholder={def.placeholder ?? undefined}
       onChange={(e) => {

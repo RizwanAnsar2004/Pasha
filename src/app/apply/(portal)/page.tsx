@@ -25,8 +25,8 @@ import { getFormConfig } from "@/lib/forms/form-config.server";
 import { getActiveEditRequest } from "@/lib/startups/edit-requests/edit-requests.server";
 import { filterConfigToKeys } from "@/lib/startups/edit-requests/edit-requests";
 import { ensureClaimedProfileSeeded } from "@/lib/startups/claim/seed-application.server";
-import { buildDevPrefill, buildFieldLabelMap, buildZodSchema } from "@/lib/forms/form-config";
-import { submissionSchema } from "@/lib/forms/schema";
+import { buildFieldLabelMap, buildZodSchema } from "@/lib/forms/form-config";
+import { buildDevPrefill } from "@/lib/forms/dev-prefill";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
 import { computeCompletion, computeFormModules, fieldLabelMap } from "@/lib/forms/profile-completion";
 import { deriveStage, stageMeta, type WorkflowStage } from "@/lib/startups/vetting/workflow";
@@ -37,7 +37,6 @@ import { StartApplicationButton } from "./StartApplicationButton";
 import { StepLink } from "./StepLink";
 import { SubmitForApprovalButton } from "./SubmitForApprovalButton";
 import { DynamicForm } from "@/components/form/DynamicForm";
-import { ApplyForm } from "@/components/form/ApplyForm";
 import { RichText } from "@/components/ui/RichText";
 import { getOptionIndex } from "@/lib/options/index.server";
 import { resolveOptionLabel } from "@/lib/options/resolve";
@@ -172,11 +171,12 @@ export default async function ApplicantOverviewPage({
   // Would the saved draft pass submission today? Uses the exact schema
   // /api/submit enforces, so the dashboard's Submit button can never disagree
   // with the one at the end of the wizard.
-  const submitSchema =
-    config && config.length > 0 ? buildZodSchema(config) : submissionSchema;
-  const submitCheck = submitSchema.safeParse(draft.data);
+  const hasConfig = config != null && config.length > 0;
+  const submitCheck = hasConfig
+    ? buildZodSchema(config).safeParse(draft.data)
+    : ({ success: false, error: { issues: [] } } as const);
   const canSubmit = submitCheck.success;
-  const submitLabelMap = config && config.length > 0 ? buildFieldLabelMap(config) : {};
+  const submitLabelMap = hasConfig ? buildFieldLabelMap(config) : {};
   // One label per failing field — nested paths (founders.0.email) collapse to
   // their owning field so the hint stays readable.
   const missingForSubmit = submitCheck.success
@@ -251,8 +251,11 @@ export default async function ApplicantOverviewPage({
     debugPrefillEnabled() && draftEmpty && config != null && config.length > 0;
   const initialValues = usePrefill ? buildDevPrefill(config, optionLists) : draft.data;
 
+  // No fallback form: the wizard is rendered entirely from the admin config, so
+  // an empty config means the form builder has nothing published — a state to
+  // fix in /admin/forms, not to paper over with a second hard-coded form.
   const formNode = editable ? (
-    config && config.length > 0 ? (
+    hasConfig ? (
       <DynamicForm
         config={config}
         initialValues={initialValues}
@@ -261,7 +264,9 @@ export default async function ApplicantOverviewPage({
         optionLists={optionLists}
       />
     ) : (
-      <ApplyForm optionLists={optionLists} />
+      <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        The application form has not been published yet. Please check back shortly.
+      </div>
     )
   ) : partialMode && partialConfig && activeEditRequest ? (
     <DynamicForm

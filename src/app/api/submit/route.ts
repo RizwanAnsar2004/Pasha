@@ -1,14 +1,13 @@
 import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendTemplate, firstNameOf } from "@/lib/email/mailer";
-import { submissionSchema, OTHER_TEXT_FIELDS, type Founder } from "@/lib/forms/schema";
+import type { Founder } from "@/lib/forms/form-design";
 import { scoreVetting } from "@/lib/startups/vetting/vetting";
 import { getFormConfig } from "@/lib/forms/form-config.server";
 import { buildFieldLabelMap, buildZodSchema, resolveFieldLabel, routeValues } from "@/lib/forms/form-config";
 import { getApplicantUser } from "@/lib/auth/applicant/applicant-auth";
 import { writeAudit } from "@/lib/audit/audit.server";
 import { computeCompletion, fieldLabelMap } from "@/lib/forms/profile-completion";
-import { marketSizeIssue } from "@/lib/forms/market-size";
 import { findDuplicateStartupName } from "@/lib/startups/duplicate-name.server";
 import { emailOrigin } from "@/lib/utils/site-url";
 import { getFormOptionRegistry } from "@/lib/options/registry.server";
@@ -72,32 +71,22 @@ async function postHandler(req: Request) {
     // Field-key-keyed values (before column routing) — what the §12 completion engine reads.
     let formData: Record<string, unknown>;
 
-    if (config && config.length > 0) {
-      const parsed = buildZodSchema(config).safeParse(body);
-      if (!parsed.success) return validationError(parsed.error.issues, labelMap);
-      formData = parsed.data as Record<string, unknown>;
-      const routed = routeValues(config, formData);
-      cols = routed.columns;
-      answers = routed.answers;
-    } else {
-      const parsed = submissionSchema.safeParse(body);
-      if (!parsed.success) return validationError(parsed.error.issues, labelMap);
-      cols = parsed.data as unknown as Record<string, unknown>;
-      formData = cols;
-      // The `${field}_other` free text has no column of its own, so lift it out
-      for (const key of OTHER_TEXT_FIELDS) {
-        const otherKey = `${key}_other`;
-        const text = cols[otherKey];
-        if (typeof text === "string" && text.trim()) answers[otherKey] = text.trim();
-        delete cols[otherKey];
-      }
+    // The form is defined entirely by the admin config; there is no hard-coded
+    // fallback schema to fall back to. Cross-field rules (market sizing,
+    // employee counts, year founded) are applied by buildZodSchema itself — see
+    // @/lib/forms/rules/rules — so this single parse is the whole gate.
+    if (!config || config.length === 0) {
+      return NextResponse.json(
+        { error: "The application form is not published. Please try again shortly." },
+        { status: 503 }
+      );
     }
-
-    // TAM ≥ SAM ≥ SOM — see market-size.ts for why this is a cross-field check
-    // rather than a per-field schema rule. Runs against formData so it covers
-    // both parse branches above.
-    const marketIssue = marketSizeIssue(formData);
-    if (marketIssue) return validationError([marketIssue], labelMap);
+    const parsed = buildZodSchema(config).safeParse(body);
+    if (!parsed.success) return validationError(parsed.error.issues, labelMap);
+    formData = parsed.data as Record<string, unknown>;
+    const routed = routeValues(config, formData);
+    cols = routed.columns;
+    answers = routed.answers;
 
     // One listing per company. The directory carried the same startup twice
     // under two different sectors, which both misleads anyone browsing and

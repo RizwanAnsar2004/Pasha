@@ -9,7 +9,7 @@ import {
   type FormConfig,
   type FormFieldConfig,
 } from "../forms/form-config";
-import { SAFE_URL_RE } from "../forms/schema";
+import { SAFE_URL_RE } from "../forms/form-design";
 import { InputType } from "../forms/form-enums";
 
 let n = 0;
@@ -36,7 +36,19 @@ describe("#4 — SAFE_URL_RE rejects garbage, accepts real URLs", () => {
 });
 
 describe("#4 — year_founded bounds", () => {
-  const s = buildZodSchema(config([field({ field_key: "year_founded", input_type: InputType.TEXT })]));
+  // Split by design: the 4-digit shape is the admin's `pattern` (seeded in
+  // 20260621_full_application_form.sql), and the "not in the future" half is
+  // the FORM_RULES entry, because no regex can express a moving upper bound.
+  // Configured here exactly as the live form is.
+  const s = buildZodSchema(
+    config([
+      field({
+        field_key: "year_founded",
+        input_type: InputType.TEXT,
+        validation: { pattern: "^(19|20)\\d{2}$" },
+      }),
+    ])
+  );
   it("rejects 9999", () => assert.equal(ok(s, { year_founded: "9999" }), false));
   it("rejects 1500 (before 1900)", () => assert.equal(ok(s, { year_founded: "1500" }), false));
   it("rejects non-year text", () => assert.equal(ok(s, { year_founded: "abcd" }), false));
@@ -71,7 +83,7 @@ describe("Form Builder Pattern — regex enforced when non-empty, safe when malf
 describe("draft stripping — invalid values are not persisted", () => {
   const cfg = config([
     field({ field_key: "site", input_type: InputType.URL }),
-    field({ field_key: "year_founded", input_type: InputType.TEXT }),
+    field({ field_key: "year_founded", input_type: InputType.TEXT, validation: { pattern: "^(19|20)\\d{2}$" } }),
     field({ field_key: "code", input_type: InputType.TEXT, validation: { pattern: "^[A-Z]{2}$" } }),
     field({ field_key: "keep", input_type: InputType.TEXT }),
   ]);

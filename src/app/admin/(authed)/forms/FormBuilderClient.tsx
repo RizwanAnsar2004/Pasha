@@ -802,6 +802,18 @@ function FieldNode({
             onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })}
           />
         </label>
+        {/* Help text under the field on the applicant form. The column was
+            always read and saved here, but had no input — so the only way to
+            set a hint was raw SQL. */}
+        <label className="text-[11px] text-pasha-muted">
+          Hint / help text
+          <input
+            className={inputCls + " min-w-[200px]"}
+            value={draft.hint}
+            placeholder="Shown under the field"
+            onChange={(e) => setDraft({ ...draft, hint: e.target.value })}
+          />
+        </label>
         <label className="text-[11px] text-pasha-muted">
           Min len
           <input

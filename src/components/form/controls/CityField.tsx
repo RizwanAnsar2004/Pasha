@@ -8,11 +8,17 @@ import { YesNo } from "@/components/ui/RadioCard";
 import { HQ_CITIES, isOtherChoice } from "@/lib/options";
 import { useOptionList } from "@/components/form/OptionListsContext";
 import { COUNTRIES } from "@/lib/constants/countries";
-import type { SubmissionInput } from "@/lib/forms/schema";
 
 // Composite location control for the apply form.
+//
+// Its option lists ARE admin-managed (HQ_CITIES / COUNTRIES below resolve
+// through the option registry), but its four field keys, labels, required flags
+// and branch/reset logic are fixed here rather than read from the form config.
+// Registered as a composite in @/lib/forms/field-types/registry — the runtime
+// already supports the conditional visibility this would need to become four
+// ordinary config rows, so that conversion is possible whenever it's wanted.
 export function CityField() {
-  const form = useFormContext<SubmissionInput>();
+  const form = useFormContext<Record<string, unknown>>();
   // Single source of truth: the admin-managed HQ_CITIES list, with the code
   const cities = useOptionList("HQ_CITIES", HQ_CITIES);
   const countries = useOptionList("COUNTRIES", COUNTRIES);
